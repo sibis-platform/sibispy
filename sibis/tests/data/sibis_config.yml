@@ -7,7 +7,12 @@ operations: /home/ubuntu/.sibis-operations
 email: sibis-admin@example.com
 
 # The XNAT server URL
-xnat_url: https://central.xnat.org
+xnat:
+  url: https://central.xnat.org
+  user: username
+  passwd: password_here
 
 # The REDCap server URL
-redcap_url: https://redcapdemo.vanderbilt.edu/
+redcap:
+  url: https://redcapdemo.vanderbilt.edu/api
+  key: key_goes_here

@@ -21,9 +21,9 @@ class Session(object):
         self.xnat_api = None
         self.redcap_api = None
         self.github_api = None
-        self.sibis_home = None
-        self.sibis_config = None
-        self.sibis_config_path = config_path
+        self.home = None
+        self.config = None
+        self.config_path = config_path
         self.logging = logger.Logging()
 
         self.configure()
@@ -34,24 +34,29 @@ class Session(object):
         environment variable, then in the home directory.
         """
         env = os.environ.get('SIBIS_CONFIG')
-        if self.sibis_config_path:
+        if self.config_path:
             pass
         elif env:
-            self.sibis_config_path = env
+            self.config_path = env
         else:
             cfg = os.path.join(os.path.expanduser('~'),
                                '.sibis-operations',
                                'sibis_config.yml')
-            self.sibis_config_path = cfg
+            self.config_path = cfg
 
         try:
-            with open(self.sibis_config_path, 'r') as fi:
-                self.sibis_config = yaml.load(fi)
+            with open(self.config_path, 'r') as fi:
+                self.config = yaml.load(fi)
         except IOError, err:
             self.logging.info('Configuring Session {}'.format(time.asctime()),
                               'No sibis_config.yml found: {}'.format(err),
                               env_path=env,
-                              sibis_config_path=self.sibis_config_path)
-        return self.sibis_config
+                              sibis_config_path=self.config_path)
+        return self.config
+
+
+    def connect_xnat(self):
+
+
 
 
