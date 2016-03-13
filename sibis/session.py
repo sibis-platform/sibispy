@@ -18,7 +18,20 @@ import logger
 
 
 class Session(object):
-    def __init__(self, config_path=None):
+    """
+    SIBIS Session Object
+    ====================
+    Main object that provides logging, data connections, and
+    issues management.
+
+    config_path: Path to sibis_config.yml.
+                 Or set path as SIBIS_CONFIG environment variable
+                 (default: ~/sibis-operations/sibis.config)
+    connect: connects to all servers
+             (default: None)
+    """
+
+    def __init__(self, config_path=None, connect=None):
         self.config = None
         self.api_issues = None
         self.api_imaging = None
@@ -28,6 +41,8 @@ class Session(object):
         self.logging = logger.Logging()
 
         self.configure()
+        if connect:
+            self.connect_servers()
 
     def configure(self):
         """
