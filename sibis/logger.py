@@ -26,4 +26,5 @@ class Logging(object):
                         error=message)
         self.log.update(kwargs)
         log = json.dumps(self.log)
+        self.log.clear()
         return self.logging.info(log)

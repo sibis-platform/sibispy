@@ -1,0 +1,13 @@
+# Primary configurtation for a SIBIS installation for all operations related files.
+
+# The path to the operations git repository.
+operations: ~/.sibis-operations
+
+# The email address that should be used for reporting issues
+email: sibis-admin@example.com
+
+# The XNAT server URL
+xnat_url: https://central.xnat.org
+
+# The REDCap server URL
+redcap_url: https://redcapdemo.vanderbilt.edu/

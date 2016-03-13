@@ -1,3 +1,7 @@
+##
+##  Copyright 2016 SRI International
+##  See COPYING file distributed along with the package for the copyright and license terms
+##
 from setuptools import setup
 
 setup(name='sibis',
@@ -10,6 +14,7 @@ setup(name='sibis',
       packages=['sibis'],
       include_package_data=True,
       zip_safe=False,
+      install_requires=['pyyaml'],
       setup_requires=['pytest-runner'],
       tests_require=['pytest', 'pytest-capturelog', 'coverage'],
       scripts=['bin/sibis'])

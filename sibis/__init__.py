@@ -3,5 +3,4 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
-import logger
-logging = logger.Logging()
+from session import Session

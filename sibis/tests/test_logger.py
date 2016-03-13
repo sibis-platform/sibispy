@@ -9,12 +9,14 @@ import sibis
 
 
 def test_logging_init():
-    assert(isinstance(sibis.logging, sibis.logger.Logging))
+    session = sibis.Session()
+    assert(session.logging is not None)
 
 
 def test_logging_info(caplog):
+    session = sibis.Session()
     caplog.setLevel(logging.INFO)
-    sibis.logging.info('uid', 'message', key='value')
+    session.logging.info('uid', 'message', key='value')
     for record in caplog.records():
         data = json.loads(record.message)
         assert(data.get('experiment_site_id') == 'uid')
