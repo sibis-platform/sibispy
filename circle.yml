@@ -1,10 +1,11 @@
 machine:
+  environment:
+    SIBIS_CONFIG: /home/ubuntu/sibis/sibis/tests/data/sibis_config.yml
   python:
     version: 2.7.10
 
 dependencies:
   pre:
-    -  export SIBIS_CONFIG=/home/ubuntu/sibis/sibis/tests/data/sibis_config.yml
     - pip install pytest pytest-capturelog
 test:
   override:
