@@ -1,0 +1,17 @@
+appnope==0.1.0
+coverage==4.0.3
+decorator==4.0.9
+ipdb==0.9.0
+ipython==4.1.2
+ipython-genutils==0.1.0
+path.py==0.0.0
+pexpect==3.3
+pickleshare==0.5
+powerline-status===dev-d562844a1aba2a4108b1ecd2c6d9c5febff76c1d
+py==1.4.31
+pytest==2.8.5
+pytest-capturelog==0.7
+pytest-runner==2.7
+-e git+https://github.com/sibis-platform/sibis.git@e4de7e264932adbc8d10604534ddee76531e846d#egg=sibis
+simplegeneric==0.8.1
+traitlets==4.1.0
