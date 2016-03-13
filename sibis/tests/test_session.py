@@ -6,25 +6,24 @@ import os
 
 import sibis
 
+path = os.path.join(os.path.dirname(__file__), 'data', 'sibis_config.yml')
+
 
 def test_session_init_path():
-    path = os.path.join(os.path.expanduser('~'),
-                        'sibis-config', 'sibis_config.yml')
     # setting explicitly
     session = sibis.Session(config_path=path)
-    assert session.sibis_config_path == path
+    assert(session.sibis_config_path == path)
 
 
 def test_session_init_env():
-    path = os.path.join(os.path.expanduser('~'),
-                        'sibis-config', 'sibis_config.yml')
     os.environ.update(SIBIS_CONFIG=path)
     session = sibis.Session()
-    assert session.sibis_config_path == path
+    os.environ.clear()
+    assert(session.sibis_config_path == path)
 
 
 def test_session_init_cfg():
-    path = os.path.join(os.path.expanduser('~'),
-                        'sibis-config', 'sibis_config.yml')
+    default = os.path.join(os.path.expanduser('~'),
+                           '.sibis-operations', 'sibis_config.yml')
     session = sibis.Session()
-    assert session.sibis_config_path == path
+    assert(session.sibis_config_path == default)

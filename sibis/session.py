@@ -34,17 +34,15 @@ class Session(object):
         environment variable, then in the home directory.
         """
         env = os.environ.get('SIBIS_CONFIG')
-        cfg = os.path.join(os.path.expanduser('~'),
-                           '.sibis-operations',
-                           'sibis_config.yml')
         if self.sibis_config_path:
             pass
         elif env:
             self.sibis_config_path = env
-        elif cfg:
-            self.sibis_config_path = cfg
         else:
-            self.sibis_config_path = None
+            cfg = os.path.join(os.path.expanduser('~'),
+                               '.sibis-operations',
+                               'sibis_config.yml')
+            self.sibis_config_path = cfg
 
         try:
             with open(self.sibis_config_path, 'r') as fi:
@@ -53,7 +51,6 @@ class Session(object):
             self.logging.info('Configuring Session {}'.format(time.asctime()),
                               'No sibis_config.yml found: {}'.format(err),
                               env_path=env,
-                              cfg_path=cfg,
                               sibis_config_path=self.sibis_config_path)
         return self.sibis_config
 

@@ -1,7 +1,7 @@
 # Primary configurtation for a SIBIS installation for all operations related files.
 
 # The path to the operations git repository.
-operations: ~/.sibis-operations
+operations: /home/ubuntu/.sibis-operations
 
 # The email address that should be used for reporting issues
 email: sibis-admin@example.com
