@@ -4,7 +4,7 @@ machine:
 
 dependencies:
     pre:
-       -  pip install pytest
+       -  pip install pytest pytest-capturelog
 test:
   override:
     - py.test
