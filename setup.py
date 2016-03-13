@@ -5,13 +5,14 @@
 from setuptools import setup
 
 setup(name='sibis',
-      version='0.0.1',
+      version='0.0.2',
       description='Scalable Informatics for Biomedical Imaging Studies',
       url='http://github.com/sibis-platform/sibis',
       author='Nolan Nichols',
       author_email='nolan.nichols@gmail.com',
       license='BSD',
       packages=['sibis'],
+      package_data={"sibis": []},
       include_package_data=True,
       zip_safe=False,
       install_requires=['pyyaml', 'pyxnat', 'pycap', 'pygithub', 'requests'],
