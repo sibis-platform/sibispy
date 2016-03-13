@@ -11,5 +11,5 @@ setup(name='sibis',
       include_package_data=True,
       zip_safe=False,
       setup_requires=['pytest-runner'],
-      tests_require=['pytest'],
+      tests_require=['pytest', 'pytest-capturelog', 'coverage'],
       scripts=['bin/sibis'])

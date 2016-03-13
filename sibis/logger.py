@@ -3,6 +3,7 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+import sys
 import json
 import logging
 import collections
