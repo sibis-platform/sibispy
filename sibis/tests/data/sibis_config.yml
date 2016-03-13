@@ -8,9 +8,9 @@ email: sibis-admin@example.com
 
 # The XNAT server URL
 xnat:
-  url: https://central.xnat.org
+  server: https://central.xnat.org
   user: username
-  passwd: password_here
+  password: password_here
 
 # The REDCap server URL
 redcap:

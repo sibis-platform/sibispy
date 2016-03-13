@@ -9,6 +9,7 @@ The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
 import os
+import sys
 import time
 
 import yaml
@@ -18,11 +19,11 @@ import logger
 
 class Session(object):
     def __init__(self, config_path=None):
-        self.xnat_api = None
-        self.redcap_api = None
-        self.github_api = None
-        self.home = None
         self.config = None
+        self.api_issues = None
+        self.api_imaging = None
+        self.api_data_entry = None
+        self.api_import_laptops = None
         self.config_path = config_path
         self.logging = logger.Logging()
 
@@ -54,8 +55,57 @@ class Session(object):
                               sibis_config_path=self.config_path)
         return self.config
 
+    def connect_servers(self):
+        """
+        Connect to servers, setting each property.
+        """
+        self._connect_xnat()
+        self._connect_redcap()
+        self._connect_github()
 
-    def connect_xnat(self):
+    def _connect_xnat(self):
+        import pyxnat
+        cfg = self.config.get('xnat')
+        xnat = pyxnat.Interface(server=cfg.get('server'),
+                                user=cfg.get('user'),
+                                password=cfg.get('password'),
+                                cachedir=cfg.get('cachedir'))
+        self.api_imaging = xnat
+
+    def _connect_redcap(self):
+        import redcap
+        import requests
+        cfg = self.config.get('redcap')
+        try:
+            data_entry = redcap.Project(cfg.get('server'),
+                                        cfg.get('data_entry_token'),
+                                        verify_ssl=cfg.get('verify_ssl'))
+            import_laptops = redcap.Project(cfg.get('server'),
+                                            cfg.get('import_laptops_token'),
+                                            verify_ssl=cfg.get('verify_ssl'))
+            self.api_data_entry = data_entry
+            self.api_import_laptops = import_laptops
+        except KeyError, err:
+            self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
+                              '{}'.format(err),
+                              server=cfg.get('server'))
+            sys.exit()
+
+        except requests.RequestException, err:
+            self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
+                              '{}'.format(err),
+                              server=cfg.get('server'))
+            sys.exit()
+
+    def _connect_github(self):
+        import github
+        cfg = self.config.get('github')
+        g = github.Github(cfg.get('user'),
+                          cfg.get('password'))
+        self.api_issues = g
+
+
+
 
 
 
