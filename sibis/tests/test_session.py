@@ -27,3 +27,9 @@ def test_session_init_cfg():
                            '.sibis-operations', 'sibis_config.yml')
     session = sibis.Session()
     assert(session.sibis_config_path == default)
+
+
+def test_session_configure():
+    truth = '/home/ubuntu/.sibis-operations'
+    session = sibis.Session(config_path=path)
+    assert(session.sibis_config.get('operations') == truth)
