@@ -104,13 +104,13 @@ class Session(object):
             self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
                               '{}'.format(err),
                               server=cfg.get('server'))
-            sys.exit()
+            sys.exit(err)
 
         except requests.RequestException, err:
             self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
                               '{}'.format(err),
                               server=cfg.get('server'))
-            sys.exit()
+            sys.exit(err)
 
     def _connect_github(self):
         import github
