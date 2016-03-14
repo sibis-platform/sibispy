@@ -1,7 +1,6 @@
 API Reference
 =============
-This document is for developers of sibis, it contans the API functions
-
+This document is for developers of sibis, it contans the API functions.
 
 Session Component
 -----------------
