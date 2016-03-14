@@ -21,7 +21,7 @@ from recommonmark.transform import AutoStructify
 from recommonmark.parser import CommonMarkParser
 
 
-github_doc_root = 'https://github.com/sibis-platform/sibis/tree/master/'
+github_doc_root = 'https://github.com/sibis-platform/sibis/tree/master/doc'
 
 
 def setup(app):
