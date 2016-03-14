@@ -7,7 +7,7 @@ SIBIS is python middleware for supporting clinical data management activities. I
 
 Contents
 --------
-* [API Reference](api.md)
+* [API Reference](docs/api.md)
 
 ### Getting Started
 To use `sibis`you need to have access to an XNAT server and a REDCap
