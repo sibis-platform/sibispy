@@ -27,10 +27,7 @@ github_doc_root = 'https://github.com/sibis-platform/sibis/tree/master/'
 def setup(app):
     app.add_config_value('recommonmark_config',
                          {'url_resolver': lambda url: github_doc_root + url,
-                          'auto_toc_tree_section': 'Contents',
-                          'enable_auto_doc_ref': True,
-                          'enable_eval_rst': True,
-                          'enable_auto_toc_tree': True},
+                          'auto_toc_tree_section': 'Contents'},
                          True)
     app.add_transform(AutoStructify)
 
@@ -133,7 +130,8 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
