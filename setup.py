@@ -16,6 +16,6 @@ setup(name='sibis',
       include_package_data=True,
       zip_safe=False,
       install_requires=['pyyaml', 'pyxnat', 'pycap', 'pygithub', 'requests'],
-      setup_requires=['pytest-runner', 'recommonmark'],
+      setup_requires=['pytest-runner', 'recommonmark', 'sphinxcontrib-napoleon'],
       tests_require=['pytest', 'pytest-capturelog', 'coverage'],
       scripts=['bin/sibis'])

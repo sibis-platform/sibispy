@@ -21,7 +21,7 @@ from recommonmark.transform import AutoStructify
 from recommonmark.parser import CommonMarkParser
 
 
-github_doc_root = 'https://github.com/sibis-platform/sibis/tree/master/docs'
+github_doc_root = 'https://github.com/sibis-platform/sibis/tree/master/'
 
 
 def setup(app):
@@ -50,6 +50,7 @@ source_parsers = {
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinxcontrib.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
