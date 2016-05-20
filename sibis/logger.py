@@ -10,8 +10,10 @@ import collections
 
 
 class Logging(object):
-    """
-    SIBIS Logging Module
+    """Provides custom issue logging format.
+
+    Returns:
+        A sibis.logger.Logging object.
     """
     def __init__(self):
         self.logging = logging
@@ -19,8 +21,14 @@ class Logging(object):
         self.log = collections.OrderedDict()
 
     def info(self, uid, message, **kwargs):
-        """
-        Relpaces logging.info
+        """Relpaces logging.info
+
+        Args:
+            uid (str): A unique identifier for issue.
+            message (str): The error message to report.
+
+        Returns:
+            A str serialized json object.
         """
         self.log.update(experiment_site_id=uid,
                         error=message)
