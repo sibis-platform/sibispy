@@ -2,8 +2,6 @@
 ##  See COPYING file distributed along with the package for the copyright and
 ## license terms
 ##
-
-import sys
 import json
 import logging
 import collections
@@ -30,7 +28,7 @@ class Logging(object):
         Returns:
             A str serialized json object.
         """
-        self.log.update(experiment_site_id=uid,
+        self.log.update(issue_id=uid,
                         error=message)
         self.log.update(kwargs)
         log = json.dumps(self.log)

@@ -11,6 +11,7 @@ import time
 
 import yaml
 
+import issue
 import logger
 
 
@@ -31,6 +32,7 @@ class Session(object):
     def __init__(self, config_path=None, connect=None):
         self.config = None
         self.api_issues = None
+        self.create_issue = None
         self.api_imaging = None
         self.api_data_entry = None
         self.api_import_laptops = None
@@ -115,4 +117,7 @@ class Session(object):
         cfg = self.config.get('github')
         g = github.Github(cfg.get('user'),
                           cfg.get('password'))
-        self.api_issues = g
+        organization = g.get_organization(cfg.get('org'))
+        repo = organization.get_repo(cfg.get('repo'))
+        self.api_issues = repo
+        self.create_issue = issue.Issue(self.api_issues)

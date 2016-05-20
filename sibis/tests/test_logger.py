@@ -19,7 +19,7 @@ def test_logging_info(caplog):
     session.logging.info('uid', 'message', key='value')
     for record in caplog.records():
         data = json.loads(record.message)
-        assert(data.get('experiment_site_id') == 'uid')
+        assert(data.get('issue_id') == 'uid')
         assert(data.get('error') == 'message')
         assert(data.get('key') == 'value')
 
