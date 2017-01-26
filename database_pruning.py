@@ -3,6 +3,7 @@
 import os
 import pyxnat
 
+#Create a connection with the API
 ifc = pyxnat.Interface(config=os.path.join(os.path.expanduser("~"),'.server_config/ncanda.cfg'))
 
 #get phantom subject ids
@@ -16,6 +17,7 @@ adni_ids_search = ifc.select('xnat:subjectData',
 ['xnat:subjectData/SUBJECT_ID']).where(criteria)
 adni_ids = adni_ids_search.get('subject_id')
 
+# List of 5 subjects per site
 project_subjects = ['NCANDA_S00061',
  'NCANDA_S00076',
  'NCANDA_S00077',
@@ -44,8 +46,13 @@ project_subjects = ['NCANDA_S00061',
 
 ids_to_keep = fbirn_ids + adni_ids + project_subjects
 
+# Query database to get list of all subjects
 total_ids_search = ifc.select('xnat:subjectData',['xnat:subjectData/SUBJECT_ID'])
 total_ids = total_ids_search.get('subject_id')
+
+# Total list of subjets to delete. This is needed because the 
+# query syntax only allows 1 operator among ‘=’, ‘<’, ‘>’, ‘<=’, ‘>=’, ‘LIKE’
+# nothing like '!='
 
 #ids_to_delete = set(total_ids).difference(set(ids_to_keep))
 
