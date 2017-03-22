@@ -1,0 +1,1 @@
+sudo docker run -it --rm --name web --link ncanda-back:ncanda-back -p 8080:8080 -v /fs/ncanda-snapshots/test-data:/fs/storage/XNAT xnat_framework
