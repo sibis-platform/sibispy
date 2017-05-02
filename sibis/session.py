@@ -1,11 +1,8 @@
 ##
-##  Copyright 2016 SRI International
-##  See COPYING file distributed along with the package for the copyright and license terms
+##  See COPYING file distributed along with the package for the copyright and
+##  license terms
 ##
-"""
-Create the SIBIS Session Object
-===============================
-The SIBIS Session Object provides a single point of reference to access
+"""The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
 import os
@@ -14,26 +11,28 @@ import time
 
 import yaml
 
+import issue
 import logger
 
 
 class Session(object):
-    """
-    SIBIS Session Object
-    ====================
-    Main object that provides logging, data connections, and
-    issues management.
+    """Main object that provides logging, data connections, and issues
+    management.
 
-    config_path: Path to sibis_config.yml.
-                 Or set path as SIBIS_CONFIG environment variable
-                 (default: ~/sibis-operations/sibis.config)
-    connect: connects to all servers
-             (default: None)
+    Args:
+        config_path (str): Path to sibis_config.yml.
+            Or set path as SIBIS_CONFIG environment variable
+            (default: ~/sibis-operations/sibis.config)
+        connect (bool): connects to all servers
+            (default: None)
+    Returns:
+         A sibis.session.Session object.
     """
 
     def __init__(self, config_path=None, connect=None):
         self.config = None
         self.api_issues = None
+        self.create_issue = None
         self.api_imaging = None
         self.api_data_entry = None
         self.api_import_laptops = None
@@ -45,9 +44,11 @@ class Session(object):
             self.connect_servers()
 
     def configure(self):
-        """
-        Configures the session object by first checking for an
+        """Configures the session object by first checking for an
         environment variable, then in the home directory.
+
+        Returns:
+            A dict from yaml config file.
         """
         env = os.environ.get('SIBIS_CONFIG')
         if self.config_path:
@@ -71,8 +72,7 @@ class Session(object):
         return self.config
 
     def connect_servers(self):
-        """
-        Connect to servers, setting each property.
+        """Connect to servers, setting each property.
         """
         self._connect_xnat()
         self._connect_redcap()
@@ -117,11 +117,7 @@ class Session(object):
         cfg = self.config.get('github')
         g = github.Github(cfg.get('user'),
                           cfg.get('password'))
-        self.api_issues = g
-
-
-
-
-
-
-
+        organization = g.get_organization(cfg.get('org'))
+        repo = organization.get_repo(cfg.get('repo'))
+        self.api_issues = repo
+        self.create_issue = issue.Issue(self.api_issues)

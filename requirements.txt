@@ -1,2 +1,4 @@
+pygithub
+pyxnat
 recommonmark>=0.4.0
 sphinxcontrib-napoleon>=0.4.0

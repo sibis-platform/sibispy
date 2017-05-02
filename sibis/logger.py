@@ -1,17 +1,17 @@
 ##
-##  Copyright 2016 SRI International
-##  See COPYING file distributed along with the package for the copyright and license terms
+##  See COPYING file distributed along with the package for the copyright and
+## license terms
 ##
-
-import sys
 import json
 import logging
 import collections
 
 
 class Logging(object):
-    """
-    SIBIS Logging Module
+    """Provides custom issue logging format.
+
+    Returns:
+        A sibis.logger.Logging object.
     """
     def __init__(self):
         self.logging = logging
@@ -19,10 +19,16 @@ class Logging(object):
         self.log = collections.OrderedDict()
 
     def info(self, uid, message, **kwargs):
+        """Relpaces logging.info
+
+        Args:
+            uid (str): A unique identifier for issue.
+            message (str): The error message to report.
+
+        Returns:
+            A str serialized json object.
         """
-        Relpaces logging.info
-        """
-        self.log.update(experiment_site_id=uid,
+        self.log.update(issue_id=uid,
                         error=message)
         self.log.update(kwargs)
         log = json.dumps(self.log)
