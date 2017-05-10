@@ -11,10 +11,8 @@ multiple systems. For example, XNAT, REDDCap, and Github.
 import os
 import sys
 import time
-
 import yaml
-
-import logger
+# import logger
 
 
 class Session(object):
@@ -33,12 +31,11 @@ class Session(object):
 
     def __init__(self, config_path=None, connect=None):
         self.config = None
-        self.api_issues = None
         self.api_imaging = None
         self.api_data_entry = None
         self.api_import_laptops = None
         self.config_path = config_path
-        self.logging = logger.Logging()
+        # self.logging = logger.Logging()
 
         self.configure()
         if connect:
@@ -76,7 +73,6 @@ class Session(object):
         """
         self._connect_xnat()
         self._connect_redcap()
-        self._connect_github()
 
     def _connect_xnat(self):
         import pyxnat
@@ -112,12 +108,6 @@ class Session(object):
                               server=cfg.get('server'))
             sys.exit(err)
 
-    def _connect_github(self):
-        import github
-        cfg = self.config.get('github')
-        g = github.Github(cfg.get('user'),
-                          cfg.get('password'))
-        self.api_issues = g
 
 
 

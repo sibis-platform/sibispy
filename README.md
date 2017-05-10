@@ -7,7 +7,7 @@ SIBIS is python middleware for supporting clinical data management activities. I
 
 Contents
 --------
-* [API Reference](docs/api.md)
+* Install sibis-docker 
 
 ### Getting Started
 To use `sibis`you need to have access to an XNAT server and a REDCap
@@ -20,7 +20,7 @@ import sibis
 session = sibis.Session(config_path="/path/to/config.yml")
 
 # Use the logger for structured log format
-session.logging.info('id', 'err', **kwargs)
+# session.logging.info('id', 'err', **kwargs)
 
 # Connect to the configured servers
 session.connect_servers()
