@@ -1,0 +1,9 @@
+#!/bin/bash
+tmpfile=$(mktemp)
+echo '{"experiment_site_id": "sibislogger_test_1", "error": "Unit Testing 1", "msg": "Please ignore message"}'  > ${tmpfile}
+echo '{"experiment_site_id": "sibislogger_test_2", "error": "Unit Testing 2", "msg": "Please ignore message"}'  >> ${tmpfile}
+
+python ../post_issues_to_github.py --org sibis-platform --repo ncanda-operations --title "Unit Test (testing)" --body ${tmpfile} -v
+python ../post_issues_to_github.py --org sibis-platform --repo ncanda-operations --title "Unit Test (testing)" --body ${tmpfile} --close -v
+
+rm -f ${tmpfile}
