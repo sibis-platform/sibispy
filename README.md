@@ -17,7 +17,7 @@ server.
 import sibispy
 
 # Create a Session with configuration
-session = sibis.Session(config_path="/path/to/config.yml")
+session = sibispy.Session(config_path="/path/to/config.yml")
 
 # Use the logger for structured log format
 # session.logging.info('id', 'err', **kwargs)
