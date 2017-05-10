@@ -14,7 +14,7 @@ To use `sibis`you need to have access to an XNAT server and a REDCap
 server.
 
 ```python
-import sibis
+import sibispy
 
 # Create a Session with configuration
 session = sibis.Session(config_path="/path/to/config.yml")
