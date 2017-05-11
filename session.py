@@ -12,6 +12,7 @@ import os
 import sys
 import time
 import yaml
+from sibispy import sibislogger as slog
 # import logger
 
 
@@ -29,23 +30,26 @@ class Session(object):
              (default: None)
     """
 
-    def __init__(self, config_path=None, connect=None):
+    def __init__(self, config_path=None, connect=None, initiate_slog=False):
         self.config = None
-        self.api_imaging = None
+        self.api_xnat = None
         self.api_data_entry = None
         self.api_import_laptops = None
         self.config_path = config_path
-        # self.logging = logger.Logging()
+        if initiate_slog :
+            slog.init_log(False, False,'session.py', 'session')
 
         self.configure()
         if connect:
             self.connect_servers()
+            
 
     def configure(self):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
         """
+        
         env = os.environ.get('SIBIS_CONFIG')
         if self.config_path:
             pass
@@ -53,18 +57,19 @@ class Session(object):
             self.config_path = env
         else:
             cfg = os.path.join(os.path.expanduser('~'),
-                               '.sibis-operations',
-                               'sibis_config.yml')
+                               '.sibis-general-config.yml')
             self.config_path = cfg
 
         try:
             with open(self.config_path, 'r') as fi:
                 self.config = yaml.load(fi)
         except IOError, err:
-            self.logging.info('Configuring Session {}'.format(time.asctime()),
+            slog.info('Configuring Session {}'.format(time.asctime()),
                               'No sibis_config.yml found: {}'.format(err),
                               env_path=env,
                               sibis_config_path=self.config_path)
+            sys.exit(err)
+
         return self.config
 
     def connect_servers(self):
@@ -74,41 +79,49 @@ class Session(object):
         self._connect_xnat()
         self._connect_redcap()
 
-    def _connect_xnat(self):
+    def connect_xnat(self):
         import pyxnat
         cfg = self.config.get('xnat')
         xnat = pyxnat.Interface(server=cfg.get('server'),
                                 user=cfg.get('user'),
                                 password=cfg.get('password'),
                                 cachedir=cfg.get('cachedir'))
-        self.api_imaging = xnat
+        self.api_xnat = xnat
 
-    def _connect_redcap(self):
+    def connect_redcap(self,project_entry=True,project_import=True):
         import redcap
         import requests
         cfg = self.config.get('redcap')
         try:
-            data_entry = redcap.Project(cfg.get('server'),
-                                        cfg.get('data_entry_token'),
-                                        verify_ssl=cfg.get('verify_ssl'))
-            import_laptops = redcap.Project(cfg.get('server'),
-                                            cfg.get('import_laptops_token'),
+            if project_entry: 
+                data_entry = redcap.Project(cfg.get('server'),
+                                            cfg.get('data_entry_token'),
                                             verify_ssl=cfg.get('verify_ssl'))
-            self.api_data_entry = data_entry
-            self.api_import_laptops = import_laptops
+                self.api_data_entry = data_entry
+
+            if project_import :
+                import_laptops = redcap.Project(cfg.get('server'),
+                                                cfg.get('import_laptops_token'),
+                                                verify_ssl=cfg.get('verify_ssl'))
+                self.api_import_laptops = import_laptops
+
         except KeyError, err:
-            self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
+            slog.info('Connect to REDCap: {}'.format(time.asctime()),
                               '{}'.format(err),
                               server=cfg.get('server'))
             sys.exit(err)
 
         except requests.RequestException, err:
-            self.logging.info('Connect to REDCap: {}'.format(time.asctime()),
+            slog.info('Connect to REDCap: {}'.format(time.asctime()),
                               '{}'.format(err),
                               server=cfg.get('server'))
             sys.exit(err)
 
+    def get_log_dir(self):
+        return self.config.get('logdir')
 
+    def get_operations_dir(self):
+        return self.config.get('operations')
 
 
 
