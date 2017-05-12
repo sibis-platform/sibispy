@@ -9,11 +9,9 @@ The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
 import os
-import sys
 import time
 import yaml
 from sibispy import sibislogger as slog
-# import logger
 
 
 class Session(object):
@@ -30,19 +28,12 @@ class Session(object):
              (default: None)
     """
 
-    def __init__(self, config_path=None, connect=None, initiate_slog=False):
+    def __init__(self, config_path=None, initiate_slog=False):
         self.config = None
-        self.api_xnat = None
-        self.api_data_entry = None
-        self.api_import_laptops = None
         self.config_path = config_path
+        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
         if initiate_slog :
             slog.init_log(False, False,'session.py', 'session')
-
-        self.configure()
-        if connect:
-            self.connect_servers()
-            
 
     def configure(self):
         """
@@ -68,54 +59,64 @@ class Session(object):
                               'No sibis_config.yml found: {}'.format(err),
                               env_path=env,
                               sibis_config_path=self.config_path)
-            sys.exit(err)
+            return None
 
         return self.config
 
-    def connect_servers(self):
+    def connect_server(self,api_type):
         """
         Connect to servers, setting each property.
         """
-        self._connect_xnat()
-        self._connect_redcap()
+        if api_type not in self.api :
+            slog.info('connect_server','api type ' + api_type + ' not defined !',
+                      api_types = str(api.keys()))
+            return None
+             
+        if api_type == 'xnat' :
+            return self.__connect_xnat__()
 
-    def connect_xnat(self):
+        return self.__connect_redcap__(api_type)
+
+    def __connect_xnat__(self):
         import pyxnat
         cfg = self.config.get('xnat')
-        xnat = pyxnat.Interface(server=cfg.get('server'),
-                                user=cfg.get('user'),
-                                password=cfg.get('password'),
-                                cachedir=cfg.get('cachedir'))
-        self.api_xnat = xnat
+        try : 
+            xnat = pyxnat.Interface(server=cfg.get('server'),
+                                    user=cfg.get('user'),
+                                    password=cfg.get('password'),
+                                    cachedir=cfg.get('cachedir'))
+        except Exception as err_msg: 
+            self.info('Connect to xnat: {}'.format(time.asctime()), str(err_msg), server=cfg.get('server'))
+            return None
 
-    def connect_redcap(self,project_entry=True,project_import=True):
+        self.api['xnat'] = xnat
+        return xnat
+
+    def __connect_redcap__(self,api_type):
         import redcap
         import requests
-        cfg = self.config.get('redcap')
+        cfg = self.config.get('redcap')    
         try:
-            if project_entry: 
-                data_entry = redcap.Project(cfg.get('server'),
-                                            cfg.get('data_entry_token'),
-                                            verify_ssl=cfg.get('verify_ssl'))
-                self.api_data_entry = data_entry
-
-            if project_import :
-                import_laptops = redcap.Project(cfg.get('server'),
-                                                cfg.get('import_laptops_token'),
-                                                verify_ssl=cfg.get('verify_ssl'))
-                self.api_import_laptops = import_laptops
+            data_entry = redcap.Project(cfg.get('server'),
+                                        cfg.get(api_type + '_token'),
+                                        verify_ssl=cfg.get('verify_ssl'))
+            self.api[api_type] = data_entry
 
         except KeyError, err:
             slog.info('Connect to REDCap: {}'.format(time.asctime()),
-                              '{}'.format(err),
-                              server=cfg.get('server'))
-            sys.exit(err)
+                      '{}'.format(err),
+                      server=cfg.get('server'),
+                      api_type = api_type)
+            return None 
 
         except requests.RequestException, err:
             slog.info('Connect to REDCap: {}'.format(time.asctime()),
-                              '{}'.format(err),
-                              server=cfg.get('server'))
-            sys.exit(err)
+                      '{}'.format(err),
+                      server=cfg.get('server'),
+                      api_type = api_type)
+            return None
+
+        return data_entry
 
     def get_log_dir(self):
         return self.config.get('logdir')
@@ -123,8 +124,19 @@ class Session(object):
     def get_operations_dir(self):
         return self.config.get('operations')
 
+    def xnat_select_general(self,form, fields, conditions): 
+        if not self.api['xnat'] : 
+            slog.info('xnat_select_general','Error: XNAT api not defined')  
+            return None
 
+        try:
+            xnat_data = self.api['xnat'].select(form, fields).where(conditions).items()
+        except Exception, err_msg:
+            slog.info("xnat_select_general{}'.format(time.asctime())","ERROR: querying XNAT failed.",
+                      form = str(form),
+                      fields = str(fields),
+                      conditions = str(conditions),
+                      err_msg = str(err_msg))
+            return None
 
-
-
-
+        return xnat_data
