@@ -69,7 +69,7 @@ class Session(object):
         """
         if api_type not in self.api :
             slog.info('connect_server','api type ' + api_type + ' not defined !',
-                      api_types = str(api.keys()))
+                      api_types = str(self.api.keys()))
             return None
              
         if api_type == 'xnat' :
