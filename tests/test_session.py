@@ -7,7 +7,7 @@
 import os
 import sys
 import sibispy
-path = os.path.join(os.path.dirname(sys.argv[0]), 'data', 'sibis_config.yml')
+path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
 def test_session_init_path():
     # setting explicitly
