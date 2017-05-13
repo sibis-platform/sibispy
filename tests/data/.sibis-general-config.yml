@@ -2,9 +2,9 @@
 
 # The path to the operations git repository.
 # To ignore changes made to this file enter
-#    git update-index --assume-unchanged  tests/data/sibis_config.yml
+#   git update-index --assume-unchanged  tests/data/.sibis-general-config.yml
 # and undo 
-#   git update-index --no-assume-unchanged tests/data/sibis_config.yml
+#   git update-index --no-assume-unchanged tests/data/.sibis-general-config.yml
 
 operations: please_define
 
