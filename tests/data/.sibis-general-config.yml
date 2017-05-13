@@ -6,7 +6,11 @@
 # and undo 
 #   git update-index --no-assume-unchanged tests/data/.sibis-general-config.yml
 
+# The path to where the project specific git repository is located.
 operations: please_define
+
+# The path to log file
+logdir: please_define
 
 # The email address that should be used for reporting issues
 email: sibis-admin@example.com
