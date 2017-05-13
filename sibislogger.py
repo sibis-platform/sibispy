@@ -147,7 +147,7 @@ def init_log(verbose=False,post_to_github=False,github_issue_title="",github_iss
         log.post_to_github(github_issue_title, github_issue_label)
     
     if timerDir : 
-        log.startTimer1(timerDir,github_issue_label + "-time_log.csv")
+        log.initiateTimer(os.path.join(timerDir,github_issue_label + "-time_log.csv"))
 
 # if this fails bc it cannot find log, please make sure init_log is called firs 
 def info(uid, message, **kwargs):

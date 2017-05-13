@@ -26,22 +26,26 @@ class Session(object):
                  (default: ~/sibis-operations/sibis.config)
     connect: connects to all servers
              (default: None)
+
+    assumes 
+      from sibispy import sibislogger as slog
+      slog.init_log() 
+    is called before 
+
     """
 
     def __init__(self):
         self.config = None
         self.config_path = None 
+
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
 
 
-    def configure(self, config_path=None, initiate_slog=False, timer_file = None):
+    def configure(self, config_path=None):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
         """
-
-        if initiate_slog :
-            slog.init_log(False, False,'session.py', 'session')
 
         if config_path :
             self.config_path = config_path
