@@ -17,14 +17,15 @@ if os.path.isfile('/tmp/test_sibislogger-time_log.csv') :
    os.remove('/tmp/test_sibislogger-time_log.csv') 
 
 log.takeTimer1()
-log.startTimer1('/asaffsaf','test_sibislogger-time_log.csv')
+log.initiateTimer('/asaffsat/test_sibislogger-time_log.csv')
 if log.fileTime :
    sys.exit(1)
 
-log.startTimer1('/tmp','test_sibislogger-time_log.csv') 
+log.initiateTimer('/tmp/test_sibislogger-time_log.csv') 
 if not log.fileTime :
    sys.exit(1)
 
+log.startTimer1() 
 time.sleep(1)
 log.takeTimer1('should be 0:01:001')
 if not os.path.isfile('/tmp/test_sibislogger-time_log.csv') :

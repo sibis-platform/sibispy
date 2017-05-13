@@ -22,9 +22,10 @@ assert(session.configure(initiate_slog=True))
 os.environ.pop('SIBIS_CONFIG')
 assert(session.config_path == path)
 
-if not session.connect_server('data_entry') :
-    print "Info: Make sure data_entry token is correctly defined in " + path 
-    sys.exit(1)
+for project in ['xnat', 'data_entry'] :
+    if not session.connect_server(project):
+        print "Info: Make sure " + project + " is correctly defined in " + path 
+        sys.exit(1)
 
 
 

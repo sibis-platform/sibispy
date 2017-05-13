@@ -34,7 +34,7 @@ class Session(object):
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
 
 
-    def configure(self, config_path=None, initiate_slog=False):
+    def configure(self, config_path=None, initiate_slog=False, timer_file = None):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.

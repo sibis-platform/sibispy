@@ -79,11 +79,15 @@ class sibisLogging():
 
         return True
 
-    def startTimer1(self,timerDir,timerFile):
+    def initiateTimer(self,timerFile):
+        timerDir = os.path.dirname(timerFile)
         if not os.path.exists(timerDir): 
             self.info("sibislogger.py","Error: Directory  " + timerDir + " does not exist - timer disabled") 
         else : 
-            self.fileTime = os.path.join(timerDir, timerFile)  
+            self.fileTime = timerFile
+
+    def startTimer1(self):
+        if self.fileTime  :
             self.startTime1 = time.time()
 
     def startTimer2(self):
