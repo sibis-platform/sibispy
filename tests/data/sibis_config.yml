@@ -15,4 +15,4 @@ xnat:
 # The REDCap server URL
 redcap:
   server: https://redcapdemo.vanderbilt.edu/api
-  key: key_goes_here
+  data_entry_token: key_goes_here

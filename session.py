@@ -28,32 +28,34 @@ class Session(object):
              (default: None)
     """
 
-    def __init__(self, config_path=None, initiate_slog=False):
+    def __init__(self):
         self.config = None
-        self.config_path = config_path
+        self.config_path = None 
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
-        if initiate_slog :
-            slog.init_log(False, False,'session.py', 'session')
 
-    def configure(self):
+
+    def configure(self, config_path=None, initiate_slog=False):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
         """
-        
-        env = os.environ.get('SIBIS_CONFIG')
-        if self.config_path:
-            pass
-        elif env:
-            self.config_path = env
-        else:
-            cfg = os.path.join(os.path.expanduser('~'),
-                               '.sibis-general-config.yml')
-            self.config_path = cfg
 
+        if initiate_slog :
+            slog.init_log(False, False,'session.py', 'session')
+
+        if config_path :
+            self.config_path = config_path
+        else :  
+            env = os.environ.get('SIBIS_CONFIG')
+            if env:
+                self.config_path = env
+            else:
+                self.config_path = os.path.join(os.path.expanduser('~'),
+                                   '.sibis-general-config.yml')
         try:
             with open(self.config_path, 'r') as fi:
                 self.config = yaml.load(fi)
+
         except IOError, err:
             slog.info('Configuring Session {}'.format(time.asctime()),
                               'No sibis_config.yml found: {}'.format(err),

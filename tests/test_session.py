@@ -1,45 +1,34 @@
+#!/usr/bin/env python
+
 ##
 ##  Copyright 2016 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 import os
-
-import requests
-
-import sibis
-
-path = os.path.join(os.path.dirname(__file__), 'data', 'sibis_config.yml')
-
+import sys
+import sibispy
+path = os.path.join(os.path.dirname(sys.argv[0]), 'data', 'sibis_config.yml')
 
 def test_session_init_path():
     # setting explicitly
-    session = sibis.Session(config_path=path)
+    session = sibispy.Session()
+    assert(session.configure(config_path=path,initiate_slog=True))
     assert(session.config_path == path)
 
+# test_session_init_env():
+os.environ.update(SIBIS_CONFIG=path)
+session = sibispy.Session()
+assert(session.configure(initiate_slog=True))
+os.environ.pop('SIBIS_CONFIG')
+assert(session.config_path == path)
 
-def test_session_init_env():
-    os.environ.update(SIBIS_CONFIG=path)
-    session = sibis.Session()
-    os.environ.clear()
-    assert(session.config_path == path)
-
-
-def test_session_init_cfg():
-    default = os.path.join(os.path.expanduser('~'),
-                           '.sibis-operations', 'sibis_config.yml')
-    session = sibis.Session()
-    assert(session.config_path == default)
+if not session.connect_server('data_entry') :
+    print "Info: Make sure data_entry token is correctly defined in " + path 
+    sys.exit(1)
 
 
-def test_session_configure():
-    truth = '/home/ubuntu/.sibis-operations'
-    session = sibis.Session(config_path=path)
-    assert(session.config.get('operations') == truth)
 
 
-def test_session_connect_servers():
-    session = sibis.Session(config_path=path)
-    try:
-        session.connect_servers()
-    except SystemExit, err:
-        assert(isinstance(err.message, requests.RequestException))
+
+
+
