@@ -94,7 +94,7 @@ class sibisLogging():
         if self.fileTime  :
             self.startTime2 = time.time()
 
-    def _stopTimerGeneral(self,timerID,msg=None):
+    def _stopTimerGeneral(self,timerID,label=None,info=None):
         if not self.fileTime : 
             return 
             
@@ -112,15 +112,19 @@ class sibisLogging():
         time_diff_sec = int(time_diff / 1000)
         timeLine= ','.join([time.strftime(time_date_format,time.localtime(startTimer)),time.strftime(time_date_format,time.localtime(endTimer)),str(time_diff_sec/60) + ":" + str(time_diff_sec%60).zfill(2)  + ":" + str(time_diff%1000).zfill(3)])
         timeLine += ','
-        if msg : 
-            timeLine += '"' + str(msg) + '"'
+        if label : 
+            timeLine += str(label)
+
+        timeLine += ','
+        if info : 
+            timeLine += '"' + str(info) + '"'
 
         try :
             if os.path.isfile(self.fileTime) :
                 fd = open(self.fileTime,'a')
             else :
                 fd = open(self.fileTime,'w')
-                fd.write("start-time,end-time,difference(min:sec:msec),message\n")
+                fd.write("start-time,end-time,difference-min:sec:msec,label,extra-info\n")
 
             fd.write(timeLine +'\n')
             fd.close()
@@ -131,12 +135,12 @@ class sibisLogging():
                      fileTime=self.fileTime,
                      err_msg=str(err_msg)) 
 
-    def takeTimer1(self,msg=None):
-        self._stopTimerGeneral(1,msg)
+    def takeTimer1(self,label=None,info=None):
+        self._stopTimerGeneral(1,label,info)
 
 
-    def takeTimer2(self,msg=None):
-        self._stopTimerGeneral(2,msg)
+    def takeTimer2(self,label=None,info=None):
+        self._stopTimerGeneral(2,label,info)
 
 
 def init_log(verbose=False,post_to_github=False,github_issue_title="",github_issue_label="",timerDir=None):
@@ -159,9 +163,9 @@ def startTimer1():
 def startTimer2():
     log.startTimer2()
 
-def takeTimer1(msg):
-    log.takeTimer1(msg)
+def takeTimer1(label=None,info=None):
+    log.takeTimer1(label,info)
 
-def takeTimer2(msg):
-    log.takeTimer2(msg)
+def takeTimer2(label=None,info=None):
+    log.takeTimer2(label,info)
 

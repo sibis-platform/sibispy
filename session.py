@@ -11,6 +11,7 @@ multiple systems. For example, XNAT, REDDCap, and Github.
 import os
 import time
 import yaml
+import requests
 from sibispy import sibislogger as slog
 
 
@@ -37,9 +38,9 @@ class Session(object):
     def __init__(self):
         self.config = None
         self.config_path = None 
-        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
-
-
+        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None} 
+        self.active_redcap_project = None
+   
     def configure(self, config_path=None, ):
         """
         Configures the session object by first checking for an
@@ -60,10 +61,9 @@ class Session(object):
                 self.config = yaml.load(fi)
 
         except IOError, err:
-            slog.info('Configuring Session {}'.format(time.asctime()),
-                              'No sibis_config.yml found: {}'.format(err),
-                              env_path=env,
-                              sibis_config_path=self.config_path)
+            slog.info('session.configure',str(err),
+                      env_path=env,
+                      sibis_config_path=self.config_path)
             return None
 
         return self.config
@@ -73,7 +73,7 @@ class Session(object):
         Connect to servers, setting each property.
         """
         if api_type not in self.api :
-            slog.info('connect_server','api type ' + api_type + ' not defined !',
+            slog.info('session.connect_server','api type ' + api_type + ' not defined !',
                       api_types = str(self.api.keys()))
             return None
 
@@ -99,7 +99,7 @@ class Session(object):
                                     password=cfg.get('password'),
                                     cachedir=cfg.get('cachedir'))
         except Exception as err_msg: 
-            self.info('Connect to xnat: {}'.format(time.asctime()), str(err_msg), server=cfg.get('server'))
+            self.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
             return None
 
         self.api['xnat'] = xnat
@@ -107,7 +107,6 @@ class Session(object):
 
     def __connect_redcap__(self,api_type):
         import redcap
-        import requests
         cfg = self.config.get('redcap')    
         try:
             data_entry = redcap.Project(cfg.get('server'),
@@ -116,18 +115,18 @@ class Session(object):
             self.api[api_type] = data_entry
 
         except KeyError, err:
-            slog.info('Connect to REDCap: {}'.format(time.asctime()),
-                      '{}'.format(err),
+            slog.info('session.__connect_redcap__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
             return None 
 
         except requests.RequestException, err:
-            slog.info('Connect to REDCap: {}'.format(time.asctime()),
-                      '{}'.format(err),
+            slog.info('session.__connect_redcap__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
             return None
+
+        self.active_redcap_project = api_type
 
         return data_entry
 
@@ -137,19 +136,109 @@ class Session(object):
     def get_operations_dir(self):
         return self.config.get('operations')
 
-    def xnat_select_general(self,form, fields, conditions): 
+    # if time_label is set then will take the time of the operation 
+    def xnat_export_general(self,form, fields, conditions, time_label = None): 
         if not self.api['xnat'] : 
-            slog.info('xnat_select_general','Error: XNAT api not defined')  
+            slog.info('xnat_export_general','Error: XNAT api not defined')  
             return None
 
+        if time_label:
+            slog.startTimer2() 
         try:
             xnat_data = self.api['xnat'].select(form, fields).where(conditions).items()
         except Exception, err_msg:
-            slog.info("xnat_select_general{}'.format(time.asctime())","ERROR: querying XNAT failed.",
+            slog.info("session.xnat_export_general","ERROR: querying XNAT failed at {}".format(time.asctime()),
                       form = str(form),
                       fields = str(fields),
                       conditions = str(conditions),
                       err_msg = str(err_msg))
             return None
 
+        if time_label:
+            slog.takeTimer2("xnat_export_" + time_label) 
+        
         return xnat_data
+
+    def __get_active_redcap_api__(self):
+        project = self.active_redcap_project
+        if not project :
+            slog.info('__get_active_redcap_api__','Error: an active redcap project is currently not defined ! Most likely redcap api was not initialized correctly')  
+            return None
+
+        if not self.api[project]: 
+            slog.info('__get_active_redcap_api__','Error: ' + str(project) + ' api not defined')  
+            return None
+            
+        return self.api[project]
+
+   
+    # if time_label is set then will take the time of the operation 
+    def redcap_export_records(self, time_label, **selectStmt):
+        red_api = self.__get_active_redcap_api__()
+        if not red_api: 
+            return None
+
+        if time_label:
+            slog.startTimer2() 
+        try:
+            redcap_data = red_api.export_records(**selectStmt)
+        except Exception, err_msg:
+            slog.info("session.redcap_export_records","ERROR: exporting data from REDCap failed at {}".format(time.asctime()),
+                      err_msg = str(err_msg),
+                      **selectStmt)
+            return None
+
+        if time_label:
+            slog.takeTimer2("redcap_export_" + time_label) 
+        
+        return redcap_data
+
+    def redcap_import_records(self, redcap_visit_id, time_label, record_array):
+        red_api = self.__get_active_redcap_api__()
+        if not red_api: 
+            return None
+
+        if time_label:
+            slog.startTimer2() 
+        try:
+            import_response = red_api.import_records(record_array, overwrite='overwrite')
+
+        except requests.exceptions.RequestException as e:
+            error = 'Failed to import into REDCap'
+            err_list = ast.literal_eval(str(e))['error'].split('","')
+            # probably needs more work here - but right now good enough
+            if len(err_list) > 3 and err_list[3] == 'This field is located on a form that is locked. You must first unlock this form for this record."':
+                red_var = err_list[1]
+                event = err_list[0].split('(')[1][:-1]
+                red_value = session.redcap_export_records(None,fields=[red_var],records=[subject_label],events=[event])[0][red_var]
+                if not record.has_key["mri_xnat_sid"] or not record.has_key["mri_xnat_eids"] :
+                    slog.info(redcap_visit_id, error,
+                              redcap_value="'"+str(red_value)+"'",
+                              redcap_variable=red_var,
+                              redcap_event=event,
+                              new_value="'"+str(err_list[2])+"'",
+                              requestError=str(e))
+                else :
+                    slog.info(redcap_visit_id, error,
+                              redcap_value="'"+str(red_value)+"'",
+                              redcap_variable=red_var,
+                              redcap_event=event,
+                              new_value="'"+str(err_list[2])+"'",
+                              xnat_sid=record["mri_xnat_sid"],
+                              xnat_eid=record["mri_xnat_eids"], 
+                              requestError=str(e))
+
+            elif not record.has_key["mri_xnat_sid"] or not record.has_key["mri_xnat_eids"] :
+                slog.info(redcap_visit_id, error,
+                          requestError=str(e))
+            else : 
+                slog.info(redcap_visit_id, error,
+                          xnat_sid=xnat_sid, 
+                          xnat_eid=xnat_eid,
+                          requestError=str(e))
+            return None
+
+        if time_label:
+            slog.takeTimer2("redcap_import_" + time_label, str(import_response)) 
+        
+        return import_response
