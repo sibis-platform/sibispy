@@ -37,11 +37,10 @@ class Session(object):
     def __init__(self):
         self.config = None
         self.config_path = None 
-
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None}    
 
 
-    def configure(self, config_path=None):
+    def configure(self, config_path=None, ):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
@@ -69,7 +68,7 @@ class Session(object):
 
         return self.config
 
-    def connect_server(self,api_type):
+    def connect_server(self,api_type, timeFlag=False):
         """
         Connect to servers, setting each property.
         """
@@ -77,11 +76,19 @@ class Session(object):
             slog.info('connect_server','api type ' + api_type + ' not defined !',
                       api_types = str(self.api.keys()))
             return None
-             
-        if api_type == 'xnat' :
-            return self.__connect_xnat__()
 
-        return self.__connect_redcap__(api_type)
+        if timeFlag : 
+            slog.startTimer2() 
+
+        if api_type == 'xnat' :
+            connectionPtr = self.__connect_xnat__()
+        else :    
+            connectionPtr = self.__connect_redcap__(api_type)
+            
+        if timeFlag : 
+            slog.takeTimer2('connect_' + api_type) 
+
+        return connectionPtr
 
     def __connect_xnat__(self):
         import pyxnat

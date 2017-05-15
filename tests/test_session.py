@@ -9,7 +9,12 @@ import sys
 import sibispy
 from sibispy import sibislogger as slog
 
+timeLogFile = '/tmp/test_session-time_log.csv'
+if os.path.isfile(timeLogFile) : 
+    os.remove(timeLogFile) 
+
 slog.init_log(False, False,'test_session', 'test_session','/tmp')
+
 
 path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
@@ -29,13 +34,10 @@ os.environ.pop('SIBIS_CONFIG')
 assert(session.config_path == path)
 
 for project in ['xnat', 'data_entry'] :
-    if not session.connect_server(project):
+    if not session.connect_server(project, True):
         print "Info: Make sure " + project + " is correctly defined in " + path 
         sys.exit(1)
 
-
-
-
-
+print "Info: Time log writen to " + timeLogFile 
 
 

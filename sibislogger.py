@@ -152,3 +152,16 @@ def init_log(verbose=False,post_to_github=False,github_issue_title="",github_iss
 # if this fails bc it cannot find log, please make sure init_log is called firs 
 def info(uid, message, **kwargs):
     log.info(uid,message,**kwargs)
+
+def startTimer1():
+    log.startTimer1()
+
+def startTimer2():
+    log.startTimer2()
+
+def takeTimer1(msg):
+    log.takeTimer1(msg)
+
+def takeTimer2(msg):
+    log.takeTimer2(msg)
+
