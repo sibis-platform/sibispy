@@ -14,6 +14,19 @@ import yaml
 import requests
 from sibispy import sibislogger as slog
 
+# this class was created to capture output from xnat if one cannot connect to server
+from cStringIO import StringIO
+import sys
+
+class Capturing(list):
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 class Session(object):
     """
@@ -145,9 +158,20 @@ class Session(object):
         if time_label:
             slog.startTimer2() 
         try:
-            xnat_data = self.api['xnat'].select(form, fields).where(conditions).items()
+            #  python if one cannot connect to server then 
+            with Capturing() as xnat_output: 
+                xnat_data = self.api['xnat'].select(form, fields).where(conditions).items()
+        
         except Exception, err_msg:
-            slog.info("session.xnat_export_general","ERROR: querying XNAT failed at {}".format(time.asctime()),
+            if xnat_output : 
+                slog.info("session.xnat_export_general","ERROR: querying XNAT failed most likely due disconnect to server ({})".format(time.asctime()),
+                          xnat_api_output = str(xnat_output),
+                          form = str(form),
+                          fields = str(fields),
+                          conditions = str(conditions),
+                          err_msg = str(err_msg))
+            else :                
+                slog.info("session.xnat_export_general","ERROR: querying XNAT failed at {}".format(time.asctime()),
                       form = str(form),
                       fields = str(fields),
                       conditions = str(conditions),
