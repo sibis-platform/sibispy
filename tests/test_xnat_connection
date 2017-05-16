@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+
+import sibispy
+from sibispy import sibislogger as slog
+import pyxnat
+
+slog.init_log(None,None ,'TEST-XNAT', 'TEST-XNAT-CONNECTION')
+
+session = sibispy.Session()
+blub = session.configure()
+xnat = session.connect_server('xnat',True)
+session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
