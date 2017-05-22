@@ -8,6 +8,7 @@ Create the SIBIS Session Object
 The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
+import ast
 import os
 import time
 import yaml
