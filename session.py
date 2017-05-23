@@ -147,8 +147,15 @@ class Session(object):
     def get_log_dir(self):
         return self.config.get('logdir')
 
+    def get_email(self):
+        return self.config.get('email')
+
     def get_operations_dir(self):
         return self.config.get('operations')
+
+    def get_xnat_server_address(self):
+        return self.config.get('xnat').get('server')
+
 
     # if time_label is set then will take the time of the operation 
     def xnat_export_general(self,form, fields, conditions, time_label = None): 
