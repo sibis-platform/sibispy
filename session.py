@@ -232,7 +232,7 @@ class Session(object):
             error = 'Failed to import into REDCap'
             err_list = ast.literal_eval(str(e))['error'].split('","')
             # probably needs more work here - but right now good enough
-            if len(err_list) > 3 and err_list[3] == 'This field is located on a form that is locked. You must first unlock this form for this record."':
+            if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
                 red_var = err_list[1]
                 event = err_list[0].split('(')[1][:-1]
                 red_value = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])[0][red_var]
@@ -258,8 +258,8 @@ class Session(object):
                           requestError=str(e))
             else : 
                 slog.info(error_label, error,
-                          xnat_sid=xnat_sid, 
-                          xnat_eid=xnat_eid,
+                          xnat_sid=record["mri_xnat_sid"], 
+                          xnat_eid=record["mri_xnat_eids"],
                           requestError=str(e))
             return None
 
