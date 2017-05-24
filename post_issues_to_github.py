@@ -72,14 +72,17 @@ def get_github_label(repo, label_text, verbose=None):
     """
 
     label = None
+    if not repo :
+        raise ValueError("Error: repo is not defined for label '" + label_text +"'") 
+        
     if label_text:
         try:
             label = [repo.get_label(label_text)]
             if verbose:
                 print "Found label: {0}".format(label)
         except UnknownObjectException, e:
-            print "Error: The label '{0}' does not exist on " \
-                  "Github. {1}".format(label_text, e)
+            raise ValueError("Error: The label '{0}' does not exist on Github. {1}".format(label_text, e))
+
     return label
 
 
@@ -106,8 +109,16 @@ def get_github_label_from_title(repo, title, verbose=None):
     except ValueError, e:
         print "Warning: This tile '" + title + "' has no embeded label. {0}".format(e)
 
-    return get_github_label(repo,label_text,verbose)
-
+    label = None
+    try :  
+        label = get_github_label(repo,label_text,verbose)
+    except ValueError, err_msg:
+        print "Error: Could not get label for tile '" + title + "!'"
+        print err_msg
+        
+    return label
+    
+    
 def get_issue(repo, subject, verbose=None):
     """get issue it it already exists.
 
@@ -302,8 +313,18 @@ def connect_to_github(path_to_config_file,org_name,repo_name,verbose):
 
 
 def main(args=None):
-    repo = connect_to_github(args.config,args.org,args.repo,args.verbose)
     issue_list = get_issues_from_file(args.body, args.verbose)
+
+    repo = connect_to_github(args.config,args.org,args.repo,args.verbose)
+    if not repo:
+        print "ERROR: For `" + str(args.title) + "` could not connect to repo with the following settings: "
+        print "Config: " + str(args.config)
+        print "Org:    " + str(args.org)
+        print "Repo:   " + str(args.repo)
+        print " " 
+        print "Info: The following issues were not posted: " + str(issue_list)
+        return 1
+
     label = get_github_label_from_title(repo, args.title)
     if not label:
         err = "A label embedded in parentheses is currently required. For " \
