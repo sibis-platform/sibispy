@@ -36,9 +36,9 @@ class Session(object):
     Main object that provides logging, data connections, and
     issues management.
 
-    config_path: Path to sibis_config.yml.
+    config_file: yml file specifying configuration
                  Or set path as SIBIS_CONFIG environment variable
-                 (default: ~/sibis-operations/sibis.config)
+                 (default: ~/.sibis-general-config.yml)
     connect: connects to all servers
              (default: None)
 
@@ -51,33 +51,34 @@ class Session(object):
 
     def __init__(self):
         self.config = None
-        self.config_path = None 
-        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry' : None} 
+        self.config_file = None 
+        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None} 
+        # redcap projects are import_laptops, import_webcnp, and data_entry
         self.active_redcap_project = None
    
-    def configure(self, config_path=None, ):
+    def configure(self, config_file=None, ):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
         """
 
-        if config_path :
-            self.config_path = config_path
+        if config_file :
+            self.config_file = config_file
         else :  
             env = os.environ.get('SIBIS_CONFIG')
             if env:
-                self.config_path = env
+                self.config_file = env
             else:
-                self.config_path = os.path.join(os.path.expanduser('~'),
+                self.config_file = os.path.join(os.path.expanduser('~'),
                                    '.sibis-general-config.yml')
         try:
-            with open(self.config_path, 'r') as fi:
+            with open(self.config_file, 'r') as fi:
                 self.config = yaml.load(fi)
 
         except IOError, err:
             slog.info('session.configure',str(err),
                       env_path=env,
-                      sibis_config_path=self.config_path)
+                      sibis_config_file=self.config_file)
             return None
 
         return self.config
@@ -96,8 +97,10 @@ class Session(object):
 
         if api_type == 'xnat' :
             connectionPtr = self.__connect_xnat__()
-        else :    
-            connectionPtr = self.__connect_redcap__(api_type)
+        elif api_type == 'redcap_mysql_db' : 
+            connectionPtr = self.__connect_redcap_mysql__()
+        else :
+            connectionPtr = self.__connect_redcap_project__(api_type)
             
         if timeFlag : 
             slog.takeTimer2('connect_' + api_type) 
@@ -119,7 +122,7 @@ class Session(object):
         self.api['xnat'] = xnat
         return xnat
 
-    def __connect_redcap__(self,api_type):
+    def __connect_redcap_project__(self,api_type):
         import redcap
         cfg = self.config.get('redcap')    
         try:
@@ -129,13 +132,13 @@ class Session(object):
             self.api[api_type] = data_entry
 
         except KeyError, err:
-            slog.info('session.__connect_redcap__',str(err),
+            slog.info('session.__connect_redcap_project__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
             return None 
 
         except requests.RequestException, err:
-            slog.info('session.__connect_redcap__',str(err),
+            slog.info('session.__connect_redcap_project__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
             return None
@@ -143,6 +146,38 @@ class Session(object):
         self.active_redcap_project = api_type
 
         return data_entry
+
+    def __connect_redcap_mysql__(self):
+        from sqlalchemy import create_engine
+
+        cfg = self.config.get('redcap-mysql') 
+        if not cfg:
+            slog.info('session.__connect_redcap_mysql__','Error: config file does not contain section recap-mysql',
+                      config_file = self.config_file)
+            return None
+
+        user = cfg.get('user')
+        passwd = cfg.get('passwd')
+        db = cfg.get('db')
+        hostname = cfg.get('hostname')
+        connection_string = "mysql+pymysql://{0}:{1}@{2}/{3}".format(user,
+                                                                 passwd,
+                                                                 hostname,
+                                                                 db)
+
+        try:
+            engine = create_engine(connection_string, pool_recycle=3600)
+        except Exception, err_msg:
+            slog.info('session.__connect_redcap_mysql__',str(err_msg),
+                      database = db,
+                      hostname = hostname)
+            return None
+
+        self.api['redcap_mysql_db'] = engine 
+            
+        return engine
+
+
 
     def get_log_dir(self):
         return self.config.get('logdir')

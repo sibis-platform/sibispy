@@ -21,8 +21,8 @@ path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config
 def test_session_init_path():
     # setting explicitly
     session = sibispy.Session()
-    assert(session.configure(config_path=path))
-    assert(session.config_path == path)
+    assert(session.configure(config_file=path))
+    assert(session.config_file == path)
 
 test_session_init_path()
 
@@ -31,9 +31,9 @@ os.environ.update(SIBIS_CONFIG=path)
 session = sibispy.Session()
 assert(session.configure())
 os.environ.pop('SIBIS_CONFIG')
-assert(session.config_path == path)
+assert(session.config_file == path)
 
-for project in ['xnat', 'data_entry'] :
+for project in ['xnat', 'data_entry','redcap_mysql_db'] :
     if not session.connect_server(project, True):
         print "Info: Make sure " + project + " is correctly defined in " + path 
         sys.exit(1)
