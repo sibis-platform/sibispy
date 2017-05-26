@@ -24,7 +24,7 @@ email: sibis-admin@example.com
 #   server: https://redcapdemo.vanderbilt.edu/api
 #   data_entry_token: key_goes_here
 #
-# recap-mysql: 
+# redcap-mysql: 
 #   hostname: 
 #   db: 
 #   user:
