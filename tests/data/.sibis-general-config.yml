@@ -15,26 +15,18 @@ logdir: please_define
 # The email address that should be used for reporting issues
 email: sibis-admin@example.com
 
-# The XNAT server URL
-xnat: 
-  server: https://ncanda.sri.com/xnat
-  user: RestAPI
-  password: 2#5PFdhD*@3@
-  cachedir: /tmp
-
-# The REDCap server URL
-redcap:
-  server: https://ncanda.sri.com/redcap/api/
-  import_laptops_token: 6DD25AF039EB7756157022352D98D14F
-  data_entry_token: 17BACB144F9B9C79425834C6B419CC11
-  verify: False
-
 # xnat:
 #   server: https://central.xnat.org
 #   user: username
 #   password: password_here
 # 
-# # The REDCap server URL
 # redcap: 
 #   server: https://redcapdemo.vanderbilt.edu/api
 #   data_entry_token: key_goes_here
+#
+# recap-mysql: 
+#   hostname: 
+#   db: 
+#   user:
+#   password: 
+
