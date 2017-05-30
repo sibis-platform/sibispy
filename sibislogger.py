@@ -61,7 +61,7 @@ class sibisLogging():
 
         # Create Connection
         if not self.postGithubRepo :
-            self.postGithubRepo = pig.connect_to_github("~/.server_config/github.cfg","sibis-platform",  "ncanda-operations", self.verbose) 
+            self.postGithubRepo = pig.connect_to_github("~/.server_config/github.cfg","sibis-platform",  "test-operations", self.verbose) 
         # Make sure it is a valid title 
         if not self.postGithubRepo: 
             return False
