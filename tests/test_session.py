@@ -4,26 +4,39 @@
 ##  Copyright 2016 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
+
+# if test script is run with argument then it will run script with the sibis config file defined by that argument 
+# for example test_session.py ~/.sibis-general-config.yml 
+# otherwise will run with data/.sibis-general-config.yml
+
+
 import os
 import pandas as pd
 import sys
 import sibispy
 from sibispy import sibislogger as slog
 
-timeLogFile = '/tmp/test_session-time_log.csv'
-if os.path.isfile(timeLogFile) : 
-    os.remove(timeLogFile) 
-
-slog.init_log(False, False,'test_session', 'test_session','/tmp')
-
-
-path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
-
 def test_session_init_path():
     # setting explicitly
     session = sibispy.Session()
     assert(session.configure(config_file=path))
     assert(session.config_file == path)
+
+#
+# MAIN
+#
+
+if sys.argv.__len__() > 1 : 
+    path = sys.argv[1]
+else :
+    path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
+
+
+timeLogFile = '/tmp/test_session-time_log.csv'
+if os.path.isfile(timeLogFile) : 
+    os.remove(timeLogFile) 
+
+slog.init_log(False, False,'test_session', 'test_session','/tmp')
 
 test_session_init_path()
 
@@ -38,6 +51,7 @@ for project in ['xnat', 'data_entry','redcap_mysql_db'] :
     server = session.connect_server(project, True)
     if not server:
         print "Error: could not connect server! Make sure " + project + " is correctly defined in " + path 
+        continue 
 
     try :
         if project == 'xnat': 
