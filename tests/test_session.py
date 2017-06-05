@@ -41,8 +41,8 @@ for project in ['xnat', 'data_entry','redcap_mysql_db'] :
         continue 
 
     try :
-        if project == 'xnat': 
-            server._get_json('/data/config/pyxnat/check_new_sessions')
+        if project == 'xnat':
+            session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
         elif project == 'data_entry' :
             server.export_fem( format='df' )
         elif project == 'redcap_mysql_db' : 
