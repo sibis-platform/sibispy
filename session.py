@@ -11,11 +11,13 @@ multiple systems. For example, XNAT, REDDCap, and Github.
 import ast
 import os
 import time
-import yaml
 import requests
 from sibispy import sibislogger as slog
+from sibispy import config_file_parser as cfg_parser
 
-# this class was created to capture output from xnat if one cannot connect to server
+# --------------------------------------------
+# this class was created to capture output from xnat 
+# if one cannot connect to server
 from cStringIO import StringIO
 import sys
 
@@ -28,6 +30,9 @@ class Capturing(list):
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio    # free up some memory
         sys.stdout = self._stdout
+
+# --------------------------------------------
+# CLASS DEFINITION
 
 class Session(object):
     """
@@ -50,11 +55,10 @@ class Session(object):
     """
 
     def __init__(self):
-        self.config = None
-        self.config_file = None 
+        self.__config_data = cfg_parser.config_file_parser()
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
-        self.active_redcap_project = None
+        self.__active_redcap_project__ = None
    
     def configure(self, config_file=None, ):
         """
@@ -62,26 +66,13 @@ class Session(object):
         environment variable, then in the home directory.
         """
 
-        if config_file :
-            self.config_file = config_file
-        else :  
-            env = os.environ.get('SIBIS_CONFIG')
-            if env:
-                self.config_file = env
-            else:
-                self.config_file = os.path.join(os.path.expanduser('~'),
-                                   '.sibis-general-config.yml')
-        try:
-            with open(self.config_file, 'r') as fi:
-                self.config = yaml.load(fi)
+        err_msg = self.__config_data.configure(config_file)
+        if err_msg:
+            slog.info('session.configure',str(err_msg),
+                      sibis_config_file=self.__config_data.get_config_file())
+            return False
 
-        except IOError, err:
-            slog.info('session.configure',str(err),
-                      env_path=env,
-                      sibis_config_file=self.config_file)
-            return None
-
-        return self.config
+        return True
 
     def connect_server(self,api_type, timeFlag=False):
         """
@@ -109,14 +100,14 @@ class Session(object):
 
     def __connect_xnat__(self):
         import pyxnat
-        cfg = self.config.get('xnat')
+        cfg = self.__config_data.get_category('xnat')
         try : 
             xnat = pyxnat.Interface(server=cfg.get('server'),
                                     user=cfg.get('user'),
                                     password=cfg.get('password'),
                                     cachedir=cfg.get('cachedir'))
         except Exception as err_msg: 
-            self.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
+            slog.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
             return None
 
         self.api['xnat'] = xnat
@@ -124,7 +115,13 @@ class Session(object):
 
     def __connect_redcap_project__(self,api_type):
         import redcap
-        cfg = self.config.get('redcap')    
+        cfg = self.__config_data.get_category('redcap')   
+        if not cfg : 
+            slog.info('session.__connect_redcap_project__','Error: config file does not contain section redcap',
+                      config_file = self.__config_data.get_config_file())
+                      
+            return None 
+
         try:
             data_entry = redcap.Project(cfg.get('server'),
                                         cfg.get(api_type + '_token'),
@@ -143,17 +140,17 @@ class Session(object):
                       api_type = api_type)
             return None
 
-        self.active_redcap_project = api_type
+        self.__active_redcap_project__ = api_type
 
         return data_entry
 
     def __connect_redcap_mysql__(self):
         from sqlalchemy import create_engine
 
-        cfg = self.config.get('redcap-mysql') 
+        cfg = self.__config_data.get_category('redcap-mysql') 
         if not cfg:
             slog.info('session.__connect_redcap_mysql__','Error: config file does not contain section recap-mysql',
-                      config_file = self.config_file)
+                      config_file = self.__config_data.get_config_file())
             return None
 
         user = cfg.get('user')
@@ -180,13 +177,13 @@ class Session(object):
 
 
     def get_log_dir(self):
-        return self.config.get('logdir')
+        return self.__config_data.get_value('logdir')
 
     def get_email(self):
-        return self.config.get('email')
+        return self.__config_data.get_value('email')
 
     def get_operations_dir(self):
-        return self.config.get('operations')
+        return self.__config_data.get_value('operations')
 
     def get_xnat_server_address(self):
         return self.config.get('xnat').get('server')
@@ -227,7 +224,7 @@ class Session(object):
         return xnat_data
 
     def __get_active_redcap_api__(self):
-        project = self.active_redcap_project
+        project = self.__active_redcap_project__
         if not project :
             slog.info('__get_active_redcap_api__','Error: an active redcap project is currently not defined ! Most likely redcap api was not initialized correctly')  
             return None

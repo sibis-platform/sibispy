@@ -16,12 +16,6 @@ import sys
 import sibispy
 from sibispy import sibislogger as slog
 
-def test_session_init_path():
-    # setting explicitly
-    session = sibispy.Session()
-    assert(session.configure(config_file=path))
-    assert(session.config_file == path)
-
 #
 # MAIN
 #
@@ -31,21 +25,14 @@ if sys.argv.__len__() > 1 :
 else :
     path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
-
 timeLogFile = '/tmp/test_session-time_log.csv'
 if os.path.isfile(timeLogFile) : 
     os.remove(timeLogFile) 
 
 slog.init_log(False, False,'test_session', 'test_session','/tmp')
 
-test_session_init_path()
-
-# Test when variable is set 
-os.environ.update(SIBIS_CONFIG=path)
 session = sibispy.Session()
-assert(session.configure())
-os.environ.pop('SIBIS_CONFIG')
-assert(session.config_file == path)
+assert(session.configure(path))
 
 for project in ['xnat', 'data_entry','redcap_mysql_db'] :
     server = session.connect_server(project, True)

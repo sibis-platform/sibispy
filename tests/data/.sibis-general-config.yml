@@ -15,11 +15,11 @@ logdir: please_define
 # The email address that should be used for reporting issues
 email: sibis-admin@example.com
 
-# xnat:
-#   server: https://central.xnat.org
-#   user: username
-#   password: password_here
-# 
+xnat:
+   server: https://central.xnat.org
+   user: username
+   password: password_here
+ 
 # redcap: 
 #   server: https://redcapdemo.vanderbilt.edu/api
 #   data_entry_token: key_goes_here
