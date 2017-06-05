@@ -63,7 +63,6 @@ class sibisLogging():
         # Create Connection
         if not self.postGithubRepo :
             self.postGithubRepo = pig.connect_to_github(config_file=self.postGithubConfigFile,verbose=self.verbose) 
-        print "HELLO"
         # Make sure it is a valid title 
         if not self.postGithubRepo: 
             return False
