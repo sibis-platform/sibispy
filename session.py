@@ -43,7 +43,7 @@ class Session(object):
 
     config_file: yml file specifying configuration
                  Or set path as SIBIS_CONFIG environment variable
-                 (default: ~/.sibis-general-config.yml)
+                 (default: see cfg_parser.default_config_file)
     connect: connects to all servers
              (default: None)
 

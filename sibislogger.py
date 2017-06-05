@@ -18,11 +18,14 @@ class sibisLogging():
     """
     SIBIS Logging Module
     """
-    def __init__(self):
+    def __init__(self,config_file=None):
         self.logging = logging
         # all call that are info or above will be printed out 
         self.logging.basicConfig(level=logging.INFO, format='%(message)s')
         self.log = collections.OrderedDict()
+
+        # Configure file to be used when positing things to github
+        self.postGithubConfigFile = config_file
         self.postGithubRepo = None
         self.postGithubTitle = None
         self.postGithubLabel = None
@@ -52,8 +55,6 @@ class sibisLogging():
         # Post output to logger 
         return self.logging.info(log)
 
-
-
     def post_to_github(self,general_title,git_label):
         if self.verbose:
             print "================================"
@@ -61,7 +62,8 @@ class sibisLogging():
 
         # Create Connection
         if not self.postGithubRepo :
-            self.postGithubRepo = pig.connect_to_github("~/.server_config/github.cfg","sibis-platform",  "ncanda-operations", self.verbose) 
+            self.postGithubRepo = pig.connect_to_github(config_file=self.postGithubConfigFile,verbose=self.verbose) 
+        print "HELLO"
         # Make sure it is a valid title 
         if not self.postGithubRepo: 
             return False
@@ -153,7 +155,7 @@ def init_log(verbose=False,post_to_github=False,github_issue_title="",github_iss
     if timerDir : 
         log.initiateTimer(os.path.join(timerDir,github_issue_label + "-time_log.csv"))
 
-# if this fails bc it cannot find log, please make sure init_log is called firs 
+# if this fails bc it cannot find log, please make sure init_log is called first 
 def info(uid, message, **kwargs):
     log.info(uid,message,**kwargs)
 

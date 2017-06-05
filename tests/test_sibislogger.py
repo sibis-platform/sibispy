@@ -5,13 +5,23 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+# if test script is run with argument then it will run script with the sibis config file defined by that argument 
+# for example test_sibislogger.py ~/.sibis-general-config.yml 
+# otherwise will run with data/.sibis-general-config.yml
+
+
 from sibispy import sibislogger
 from sibispy import post_issues_to_github as pig
 import os 
 import sys
 import time 
 
-log = sibislogger.sibisLogging()
+if sys.argv.__len__() > 1 : 
+    config_file = sys.argv[1]
+else :
+    config_file= os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
+
+log = sibislogger.sibisLogging(config_file=config_file)
 
 if os.path.isfile('/tmp/test_sibislogger-time_log.csv') : 
    os.remove('/tmp/test_sibislogger-time_log.csv') 
@@ -45,35 +55,39 @@ print "============== Test 2 ==================="
 print "Post issue on GitHub"
 log.startTimer2()
 log.post_to_github('Unit Test', 'testing')
-log.takeTimer2("Test 2: Post Github: Initialize")
+if log.postGithubRepo : 
+  log.takeTimer2("Test 2: Post Github: Initialize")
 
-iID="sibislogger_test_2"
-iTitle= "Testing 2"
+  iID="sibislogger_test_2"
+  iTitle= "Testing 2"
 
-print "Issue exists:",
-log.startTimer2()
-issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, False)
-log.takeTimer2("Test 2: Post Github: Get Issue")
-if issue:
+  print "Issue exists:",
+  log.startTimer2()
+  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, False)
+  log.takeTimer2("Test 2: Post Github: Get Issue")
+  if issue:
     print "yes, closed"
     log.startTimer2()
     issue.edit(state='close')
     log.takeTimer2("Test 2: Post Github: Change State")
-else : 
+  else : 
     print "No" 
 
-log.info(iID,iTitle, msg="Please ignore message")
-print "============== Test 3 ==================="
-print "Issue should already exist!"
-log.info('sibislogger_test_2',"Testing 2", msg="Please ignore message")
+  log.info(iID,iTitle, msg="Please ignore message")
+  print "============== Test 3 ==================="
+  print "Issue should already exist!"
+  log.info('sibislogger_test_2',"Testing 2", msg="Please ignore message")
 
-# Close issue 
-issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, True)
-if issue:
+  # Close issue 
+  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, True)
+  if issue:
     issue.edit(state='close')
-else : 
+  else : 
     print "Error: Could not find issue!"
- 
+
+else : 
+   print "ERROR: Failed test posting issue to gtihub" 
+
 log.takeTimer1()
 print "Output of time log written to "  + log.fileTime 
 

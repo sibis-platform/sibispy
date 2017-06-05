@@ -19,6 +19,12 @@ xnat:
    server: https://central.xnat.org
    user: username
    password: password_here
+
+github:
+   user: username
+   password: password_here
+   org: 
+   repo: 
  
 # redcap: 
 #   server: https://redcapdemo.vanderbilt.edu/api

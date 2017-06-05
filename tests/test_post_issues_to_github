@@ -3,7 +3,14 @@ tmpfile=$(mktemp)
 echo '{"experiment_site_id": "sibislogger_test_1", "error": "Unit Testing 1", "msg": "Please ignore message"}'  > ${tmpfile}
 echo '{"experiment_site_id": "sibislogger_test_2", "error": "Unit Testing 2", "msg": "Please ignore message"}'  >> ${tmpfile}
 
-python ../post_issues_to_github.py --org sibis-platform --repo ncanda-operations --title "Unit Test (testing)" --body ${tmpfile} -v
-python ../post_issues_to_github.py --org sibis-platform --repo ncanda-operations --title "Unit Test (testing)" --body ${tmpfile} --close -v
+# If you call with argument then it will read configuration from this file instead of data/.sibis-general-config.yml
+if [ "$1" != "" ]; then 
+    cfg_file=$1
+else 
+    cfg_file="data/.sibis-general-config.yml"
+fi 
+
+python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --config $cfg_file -v
+python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --close --config $cfg_file -v
 
 rm -f ${tmpfile}

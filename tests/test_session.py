@@ -21,9 +21,9 @@ from sibispy import sibislogger as slog
 #
 
 if sys.argv.__len__() > 1 : 
-    path = sys.argv[1]
+    config_file = sys.argv[1]
 else :
-    path = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
+    config_file = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
 timeLogFile = '/tmp/test_session-time_log.csv'
 if os.path.isfile(timeLogFile) : 
@@ -32,12 +32,12 @@ if os.path.isfile(timeLogFile) :
 slog.init_log(False, False,'test_session', 'test_session','/tmp')
 
 session = sibispy.Session()
-assert(session.configure(path))
+assert(session.configure(config_file))
 
 for project in ['xnat', 'data_entry','redcap_mysql_db'] :
     server = session.connect_server(project, True)
     if not server:
-        print "Error: could not connect server! Make sure " + project + " is correctly defined in " + path 
+        print "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
         continue 
 
     try :

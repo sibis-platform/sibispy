@@ -22,41 +22,11 @@ import os
 import sys
 import json
 import hashlib
-import ConfigParser
 
 import github
 from github.GithubException import UnknownObjectException, GithubException
 
-
-def create_connection(cfg, verbose=None):
-    """Get a connection to github api.
-
-    Args:
-        cfg (str): Path to configuration file.
-        verbose (bool): True turns on verbose.
-
-    Returns:
-        object: A github.MainClass.Github.
-    """
-    if verbose:
-        print "Parsing config: {0}".format(cfg)
-
-    try :
-        config = ConfigParser.RawConfigParser()
-        config_path = os.path.expanduser(cfg)
-        config.read(config_path)
-        user = config.get('github', 'user')
-        passwd = config.get('github', 'password')
-    except Exception as e:
-        print "Error: Config file " + config_path + " not correctly defined: " + str(e)
-        return None
-
-    g = github.Github(user, passwd)
-
-    if verbose:
-        print "Connected to GitHub"
-    return g
-
+from sibispy import config_file_parser as cfg_parser
 
 def get_github_label(repo, label_text, verbose=None):
     """Checks if the label is valid
@@ -107,7 +77,12 @@ def get_github_label_from_title(repo, title, verbose=None):
         label_end = title.index(')')
         label_text = title[label_start:label_end]
     except ValueError, e:
-        print "Warning: This tile '" + title + "' has no embeded label. {0}".format(e)
+        print "Warning: This tile '" + title + "' has no embeded label. "
+        print "  A label embedded in parentheses is currently required. For " 
+        print "  example 'Title of Error (title_tag).' You provided: " + title
+        print "  The following error message was produced when trying to extract label:"
+        print str(e)
+        return None
 
     label = None
     try :  
@@ -130,8 +105,14 @@ def get_issue(repo, subject, verbose=None):
     Returns:
         github.Issue.Issue
     """
+    if not repo :
+        raise ValueError("Error: repo is not defined for subject '" +  subject +"'") 
+ 
     if verbose:
         print "Checking for issue: {0}".format(subject)
+
+
+
     for issue in repo.get_issues(state='all'):
         if issue.title == subject :
             return issue
@@ -290,14 +271,36 @@ def get_issues_from_file(file_name, verbose=None):
     return issues
 
 
-def connect_to_github(path_to_config_file,org_name,repo_name,verbose): 
+def connect_to_github(config_file=None,verbose=False): 
     if verbose:
         print "Setting up GitHub..."
+        print "Parsing config: {0}".format(config_file)
 
-    g = create_connection(path_to_config_file, verbose=verbose)
-    if not g: 
-        print "Error: Could not connect to github repository"
+
+    config_data = cfg_parser.config_file_parser()
+    err_msg = config_data.configure(config_file)
+    if err_msg:
+        print "Error: Reading config file " + config_file + " (parser tried reading: " + config_data.get_config_file() + ") failed: " + str(err_msg)
+
         return None
+
+    user = config_data.get_value('github', 'user')
+    passwd = config_data.get_value('github', 'password')
+    org_name = config_data.get_value('github', 'org')
+    repo_name = config_data.get_value('github', 'repo')
+    if not user or not passwd or not org_name or not repo_name: 
+        print "ERROR: github definition is incomplete in " +  config_data.get_config_file()
+        return None
+
+    g = github.Github(user, passwd)
+
+    if not g: 
+        print "Error: Could not connect to github repository as defined by " +  config_data.get_config_file()
+        return None
+
+    if verbose:
+        print "Connected to GitHub"
+
 
     try :
         organization = g.get_organization(org_name)
@@ -306,7 +309,8 @@ def connect_to_github(path_to_config_file,org_name,repo_name,verbose):
            print "... ready!"
 
     except Exception as e :
-        print "Error: github setting incorrect: {0}".format(e)
+        print "Error: github setting incorrect (" + config_data.get_config_file() + ") - failed with the following error message: "
+        print str(e)
         return None
 
     return repo
@@ -315,22 +319,15 @@ def connect_to_github(path_to_config_file,org_name,repo_name,verbose):
 def main(args=None):
     issue_list = get_issues_from_file(args.body, args.verbose)
 
-    repo = connect_to_github(args.config,args.org,args.repo,args.verbose)
+    repo = connect_to_github(args.config,args.verbose)
     if not repo:
-        print "ERROR: For `" + str(args.title) + "` could not connect to repo with the following settings: "
-        print "Config: " + str(args.config)
-        print "Org:    " + str(args.org)
-        print "Repo:   " + str(args.repo)
-        print " " 
-        print "Info: The following issues were not posted: " + str(issue_list)
+        print "ERROR: For `" + str(args.title) + "` could not connect to github repo"
+        print "Info: The following issues were not posted/closed: " + str(issue_list)
         return 1
 
     label = get_github_label_from_title(repo, args.title)
     if not label:
-        err = "A label embedded in parentheses is currently required. For " \
-              "example 'Title of Error (title_tag).' You provided: {0}" \
-              "Issues_list:" + str(issue_list)
-        raise NotImplementedError(err.format(title))
+        raise NotImplementedError('Label not implemented')
 
     if args.closeFlag : 
         if args.verbose:
@@ -357,7 +354,12 @@ def main(args=None):
             git_issue= get_issue(repo, subject , False)
             if git_issue:
                 print "Closing", str(issue) 
-                git_issue.edit(state='close')
+                try: 
+                    git_issue.edit(state='close')
+                except GithubException as error:
+                    print("ERROR: Closing issue failed for subject ({}), title ({}). {}".format(subject, issue.title, error))
+                    raise RuntimeError('Github Server Problem')
+
             else :
                 "Warning: Issue '" + str(issue) +"' does not exist!"  
     else :
@@ -370,18 +372,10 @@ if __name__ == "__main__":
     import argparse
 
     formatter = argparse.RawDescriptionHelpFormatter
-    default = 'default: %(default)s'
     parser = argparse.ArgumentParser(prog="post_github_issues.py",
                                      description=__doc__,
                                      formatter_class=formatter)
-    default_cfg = '~/.server_config/github.cfg'
-    parser.add_argument("-c", "--config", dest="config",
-                        default=os.path.expanduser(default_cfg),
-                        help="GitHub authentication info.".format(default))
-    parser.add_argument("-o", "--org", dest="org", required=True,
-                        help="GitHub organization.")
-    parser.add_argument("-r", "--repo", dest="repo", required=True,
-                        help="GitHub repo.")
+    parser.add_argument("-c", "--config", dest="config", help="File containing GitHub authentication info. If not defined then use default setting of config_file_parser.py")
     parser.add_argument("-t", "--title", dest="title", required=True,
                         help="GitHub issue title with label in parentheses.")
     parser.add_argument("-b", "--body", dest="body", required=True,

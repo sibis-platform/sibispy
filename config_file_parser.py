@@ -15,7 +15,7 @@ class config_file_parser(object):
     Main object that provides access to config file 
     config_file: yml file specifying configuration
                  Or set path as SIBIS_CONFIG environment variable
-                 (default: ~/.sibis-general-config.yml)
+                 (default: default_config_file)
     assumes 
       import config_file_parser 
       cfp = config_file_parser() 
@@ -42,8 +42,8 @@ class config_file_parser(object):
             if env:
                 self.__config_file = env
             else:
-                self.__config_file = os.path.join(os.path.expanduser('~'),
-                                   '.sibis-general-config.yml')
+                self.__config_file = os.path.join(os.path.expanduser('~'), '.sibis-general-config.yml')
+
         try:
             with open(self.__config_file, 'r') as fi:
                 self.__config_dict = yaml.load(fi)
