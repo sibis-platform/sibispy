@@ -186,8 +186,7 @@ class Session(object):
         return self.__config_data.get_value('operations')
 
     def get_xnat_server_address(self):
-        return self.__config_data.get('xnat').get('server')
-
+        return self.__config_data.get_value('xnat','server')
 
     # if time_label is set then will take the time of the operation 
     def xnat_export_general(self,form, fields, conditions, time_label = None): 
