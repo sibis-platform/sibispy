@@ -176,14 +176,25 @@ class Session(object):
 
 
 
-    def get_log_dir(self):
-        return self.__config_data.get_value('logdir')
-
     def get_email(self):
         return self.__config_data.get_value('email')
 
+    def get_log_dir(self):
+        return os.path.join(self.__config_data.get_value('project_dir'),'log')
+
+
     def get_operations_dir(self):
-        return self.__config_data.get_value('operations')
+        return os.path.join(self.__config_data.get_value('project_dir'),"operations")
+
+    def get_cases_dir(self):
+        return os.path.join(self.__config_data.get_value('project_dir'),'cases')
+
+    def get_summaries_dir(self):
+        return os.path.join(self.__config_data.get_value('project_dir'),'summaries')
+
+    def get_xnat_dir(self):
+        return os.path.join(self.__config_data.get_value('import_dir'),'XNAT')
+
 
     def get_xnat_server_address(self):
         return self.__config_data.get_value('xnat','server')
