@@ -1,0 +1,23 @@
+#!/bin/bash
+
+container_mail_server=""
+
+# Run a command, and send its output (stdout and stderr) to a given email address, but only if there is output
+if [ "${SIBIS_CONFIG}" == "" ]; then
+  export SIBIS_CONFIG=~/.sibis-general-config.yml
+fi
+
+export SIBIS_ADMIN_EMAIL=`grep email: ${SIBIS_CONFIG} | cut -d ' ' -f2`
+
+if [ "${SMTP_SERVER}" == "" ]; then
+  echo "IP of the smtp server environmnet variable needs to be defined \
+  SMTP_SERVER "
+else 
+  container_mail_server="-S smtp=\"$SMTP_SERVER\""
+  eval "echo \"Test mail\" | \
+  mailx -s \"TEST-NCANDA smtp server\" \
+  -r ${SIBIS_ADMIN_EMAIL} \
+  ${container_mail_server} \
+  ${SIBIS_ADMIN_EMAIL}" 
+fi
+
