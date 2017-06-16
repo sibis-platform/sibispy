@@ -174,6 +174,8 @@ class Session(object):
             
         return engine
 
+    def get_project_name(self):
+        return self.__config_data.get_value('project_name')
 
 
     def get_email(self):
@@ -194,7 +196,6 @@ class Session(object):
 
     def get_xnat_dir(self):
         return os.path.join(self.__config_data.get_value('import_dir'),'XNAT')
-
 
     def get_xnat_server_address(self):
         return self.__config_data.get_value('xnat','server')
