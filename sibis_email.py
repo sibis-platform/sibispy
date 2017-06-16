@@ -62,7 +62,7 @@ class sibis_email:
             slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
                     err_msg = str(err_msg),
                     smtp_server = self._smtp_server) 
-            return 
+            return False
  
         try : 
             # sendmail function takes 3 arguments: sender's address, recipient's address
@@ -79,9 +79,13 @@ class sibis_email:
                       email_to = to_email,
                       sibis_admin_email = self._sibis_admin_email, 
                       email_msg = msg.as_string(),
-                      smtp_server = self._smtp_server) 
+                      smtp_server = self._smtp_server)
+            s.quit()
+            return False
+
 
         s.quit()
+        return True
 
     # Send mail to one user
     def mail_user( self, uEmail, uFirst, uLast, title, intro_text, prolog,  msglist ):
