@@ -35,7 +35,7 @@ email_adr = session.get_email()
 #
 
 smail = sibis_email.sibis_email('localhost.localdomain',email_adr)
-assert(smail.send('General-Test', 'test@email.com', email_adr, 'TEST MESSAGE' ))
+assert(smail.send('General-Test', 'test@email.com', [ email_adr ], 'TEST MESSAGE' ) == None)
 
 smail.add_user_message('testA', 'user-test 1', 't', 'estA', email_adr)
 smail.add_user_message('testA', 'user-test 2')
