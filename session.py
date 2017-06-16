@@ -268,7 +268,7 @@ class Session(object):
         
         return redcap_data
 
-    def redcap_import_record(self, error_label, subject_label, event, time_label, record):
+    def redcap_import_record(self, error_label, subject_label, event, time_label, record, record_id=None):
         red_api = self.__get_active_redcap_api__()
         if not red_api: 
             return None
@@ -292,6 +292,7 @@ class Session(object):
                               redcap_variable=red_var,
                               redcap_event=event,
                               new_value="'"+str(err_list[2])+"'",
+                              import_record_id=str(record_id), 
                               requestError=str(e))
                 else :
                     slog.info(error_label, error,
@@ -300,11 +301,12 @@ class Session(object):
                               redcap_event=event,
                               new_value="'"+str(err_list[2])+"'",
                               xnat_sid=record["mri_xnat_sid"],
-                              xnat_eid=record["mri_xnat_eids"], 
+                              xnat_eid=record["mri_xnat_eids"],
                               requestError=str(e))
 
             elif not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
                 slog.info(error_label, error,
+                          import_record_id=str(record_id),  
                           requestError=str(e))
             else : 
                 slog.info(error_label, error,
