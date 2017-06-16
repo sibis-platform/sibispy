@@ -156,12 +156,20 @@ class xnat_email(sibis_email):
 
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:
-            uEmail = self._interface.manage.users.email( uname )
-            user_firstname = self._interface.manage.users.firstname( uname )
-            user_lastname = self._interface.manage.users.lastname( uname )
+            try: 
+                uEmail = self._interface.manage.users.email( uname )
+                user_firstname = self._interface.manage.users.firstname( uname )
+                user_lastname = self._interface.manage.users.lastname( uname )
+            except:
+                slog.info('xnat_email.add_user_message',"ERROR: failed to get detail information for user " + str(uid) + " at {}".format(time.asctime()),
+                          msg = str(msg))
+                return False
+
             sibis_email.add_user_message(self,uname,msg,user_firstname,user_lastname,uEmail)
         else:
             sibis_email.add_user_message(self,uname,msg)
+
+        return True
 
 
     def mail_user( self, uEmail, uFirst, uLast, msglist ):
