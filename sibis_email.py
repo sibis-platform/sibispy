@@ -145,15 +145,14 @@ class sibis_email:
 	print self._admin_messages
 
 class xnat_email(sibis_email):
-    def __init__(self, project_name,xnat_interface, sibis_admin_email = None):
-        self._interface = xnat_interface
-        self._project_name = project_name
-
+    def __init__(self, session): 
+        self._interface = session.api['xnat']
+        self._project_name = session.get_project_name()
         # Determine server config to get admin email and public URL
         server_config = json.loads( self._interface._exec( '/data/services/settings' ) )[u'ResultSet'][u'Result']
         self._site_url = server_config[u'siteUrl']
         self._site_name = server_config[u'siteId']
-        sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],sibis_admin_email)
+        sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
 
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:

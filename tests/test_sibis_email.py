@@ -49,7 +49,7 @@ smail.send_all('test_sibis_email','TEST USER INTRO', 'TEST_PROLOG', 'TEST ADMIN 
 # Test subclass 
 #
 xserver = session.connect_server('xnat')
-xmail = sibis_email.xnat_email(session.get_project_name(), xserver, email_adr)
+xmail = sibis_email.xnat_email(session)
 
 # If we cannot find admin user everything will be sent to first user in the list 
 uList = xserver.manage.users() 
