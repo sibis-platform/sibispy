@@ -12,6 +12,7 @@ import ast
 import os
 import time
 import requests
+import hashlib
 from sibispy import sibislogger as slog
 from sibispy import config_file_parser as cfg_parser
 
@@ -268,7 +269,7 @@ class Session(object):
         
         return redcap_data
 
-    def redcap_import_record(self, error_label, subject_label, event, time_label, record, record_id=None):
+    def redcap_import_record(self, error_label, subject_label, event, time_label, records, record_id=None):
         red_api = self.__get_active_redcap_api__()
         if not red_api: 
             return None
@@ -276,43 +277,50 @@ class Session(object):
         if time_label:
             slog.startTimer2() 
         try:
-            import_response = red_api.import_records([record], overwrite='overwrite')
+            import_response = red_api.import_records(records, overwrite='overwrite')
 
         except requests.exceptions.RequestException as e:
-            error = 'Failed to import into REDCap'
+            error = 'Failed to import into REDCap' 
             err_list = ast.literal_eval(str(e))['error'].split('","')
-            # probably needs more work here - but right now good enough
-            if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
-                red_var = err_list[1]
-                event = err_list[0].split('(')[1][:-1]
-                red_value = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])[0][red_var]
-                if not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
+            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+
+            if len(records) > 1 :
+                slog.info(error_label, error,
+                          requestError=str(e))
+
+            else :
+                record = records[0]
+                if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
+                    red_var = err_list[1]
+                    event = err_list[0].split('(')[1][:-1]
+                    red_value = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])[0][red_var]
+                    if not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
+                        slog.info(error_label, error,
+                                  redcap_value="'"+str(red_value)+"'",
+                                  redcap_variable=red_var,
+                                  redcap_event=event,
+                                  new_value="'"+str(err_list[2])+"'",
+                                  import_record_id=str(record_id), 
+                                  requestError=str(e))
+                    else :
+                        slog.info(error_label, error,
+                                  redcap_value="'"+str(red_value)+"'",
+                                  redcap_variable=red_var,
+                                  redcap_event=event,
+                                  new_value="'"+str(err_list[2])+"'",
+                                  xnat_sid=record["mri_xnat_sid"],
+                                  xnat_eid=record["mri_xnat_eids"],
+                                  requestError=str(e))
+
+                elif not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
                     slog.info(error_label, error,
-                              redcap_value="'"+str(red_value)+"'",
-                              redcap_variable=red_var,
-                              redcap_event=event,
-                              new_value="'"+str(err_list[2])+"'",
-                              import_record_id=str(record_id), 
+                              import_record_id=str(record_id),  
                               requestError=str(e))
-                else :
+                else : 
                     slog.info(error_label, error,
-                              redcap_value="'"+str(red_value)+"'",
-                              redcap_variable=red_var,
-                              redcap_event=event,
-                              new_value="'"+str(err_list[2])+"'",
-                              xnat_sid=record["mri_xnat_sid"],
+                              xnat_sid=record["mri_xnat_sid"], 
                               xnat_eid=record["mri_xnat_eids"],
                               requestError=str(e))
-
-            elif not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
-                slog.info(error_label, error,
-                          import_record_id=str(record_id),  
-                          requestError=str(e))
-            else : 
-                slog.info(error_label, error,
-                          xnat_sid=record["mri_xnat_sid"], 
-                          xnat_eid=record["mri_xnat_eids"],
-                          requestError=str(e))
             return None
 
         if time_label:
