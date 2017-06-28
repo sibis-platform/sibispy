@@ -5,23 +5,25 @@
 
 import sys
 import json
-import logging
+# import logging
 import collections
 import time 
 import os
 import post_issues_to_github as pig
 # set logger of python packages to warning so that we avoid info messages being printed out 
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("requests").setLevel(logging.WARNING)
+#logging.getLogger("urllib3").setLevel(logging.WARNING)
+#logging.getLogger("requests").setLevel(logging.WARNING)
 
 class sibisLogging():
     """
     SIBIS Logging Module
     """
     def __init__(self,config_file=None):
-        self.logging = logging
+        # self.logging = logging
+
         # all call that are info or above will be printed out 
-        self.logging.basicConfig(level=logging.INFO, format='%(message)s')
+        # self.logging.basicConfig(level=logging.INFO, format='%(message)s')
+
         self.log = collections.OrderedDict()
 
         # Configure file to be used when positing things to github
@@ -53,7 +55,8 @@ class sibisLogging():
             return pig.create_issues_from_list(self.postGithubRepo, self.postGithubTitle, self.postGithubLabel, [log],self.verbose)
 
         # Post output to logger 
-        return self.logging.info(log)
+        # return self.logging.info(log)
+        print log 
 
     def post_to_github(self,general_title,git_label):
         if self.verbose:
