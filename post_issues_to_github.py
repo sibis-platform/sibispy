@@ -94,7 +94,7 @@ def get_github_label_from_title(repo, title, verbose=None):
     return label
     
     
-def get_issue(repo, subject, verbose=None):
+def get_issue(repo, subject, labelList = None, verbose=None):
     """get issue it it already exists.
 
     Args:
@@ -111,14 +111,18 @@ def get_issue(repo, subject, verbose=None):
     if verbose:
         print "Checking for issue: {0}".format(subject)
 
+    if labelList: 
+        issueList = repo.get_issues(state='all',labels=labelList)
+    else : 
+        issueList = repo.get_issues(state='all')
 
-
-    for issue in repo.get_issues(state='all'):
+    for issue in issueList: 
         if issue.title == subject :
             return issue
+
     return None
 
-def is_open_issue(repo, subject, verbose=None):
+def is_open_issue(repo, subject, label=None, verbose=None):
     """Verify if issue already exists, if the issue is closed, reopen it.
 
     Args:
@@ -129,7 +133,8 @@ def is_open_issue(repo, subject, verbose=None):
     Returns:
         bool: True if issue is already open.
     """
-    issue = get_issue(repo, subject, verbose)
+
+    issue = get_issue(repo, subject, labelList=label, verbose=verbose)
 
     if issue:
         if issue.state == 'open':
@@ -227,7 +232,8 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             subject = subject_base + ": {0}".format(sha1)
             body = issue
         try:
-            open_issue = is_open_issue(repo, subject, verbose=verbose)
+            open_issue = is_open_issue(repo, subject, label = label, verbose=verbose)
+
         except Exception as e:
             print '====================================='
             print 'Error:post_github_issues: Failed to check for open issue on github'
@@ -301,17 +307,23 @@ def connect_to_github(config_file=None,verbose=False):
     if verbose:
         print "Connected to GitHub"
 
-
     try :
         organization = g.get_organization(org_name)
-        repo = organization.get_repo(repo_name)
-   	if verbose:
-           print "... ready!"
-
     except Exception as e :
-        print "Error: github setting incorrect (" + config_data.get_config_file() + ") - failed with the following error message: "
+        print "Error: getting organization (" + org_name + ") as defined in " + config_data.get_config_file() + " failed with the following error message: "
         print str(e)
         return None
+
+    try :
+        repo = organization.get_repo(repo_name)
+    except Exception as e :
+        print "Error: getting repo (" + repo + ") as defined in " + config_data.get_config_file() + " failed with the following error message: "
+        print str(e)
+        return None
+
+    if verbose:
+        print "... ready!"
+
 
     return repo
 
@@ -326,6 +338,7 @@ def main(args=None):
         return 1
 
     label = get_github_label_from_title(repo, args.title)
+
     if not label:
         raise NotImplementedError('Label not implemented')
 
@@ -351,7 +364,8 @@ def main(args=None):
                 subject_base = title[0:args.title.index(' (')]
                 subject = subject_base + ": {0}".format(sha1)
 
-            git_issue= get_issue(repo, subject , False)
+            git_issue= get_issue(repo, subject , label, False)
+
             if git_issue:
                 print "Closing", str(issue) 
                 try: 
