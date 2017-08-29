@@ -64,8 +64,10 @@ def get_github_label(repo, label_text, verbose=None):
         except UnknownObjectException, e:
             raise ValueError("Error:post_issues_to_github: The label '{0}' does not exist on Github. {1}".format(label_text, e))
 
+        except Exception as e:
+            raise RuntimeWarning("Error:post_issues_to_github: Could not retract label '{0}' from Github: {1}".format(label_text, e))
+ 
     return label
-
 
 def get_github_label_from_title(repo, title, verbose=None):
     """Get a label object to tag the issue.
