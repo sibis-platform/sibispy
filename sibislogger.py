@@ -72,7 +72,7 @@ class sibisLogging():
 
         self.postGithubLabel=pig.get_github_label(self.postGithubRepo, git_label, self.verbose)
         if not self.postGithubLabel :
-            print "Warning: Github label does not exist so not creating issues on gtihub!"
+            print "Warning: Github label does not exist so not creating issues on github!"
             self.postGithubRepo = None
             return False
 
