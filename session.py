@@ -175,6 +175,15 @@ class Session(object):
             
         return engine
 
+    def __get_analysis_dir(self) :
+        analysis_dir = self.__config_data.get_value('analysis_dir')
+        if analysis_dir == None :
+            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_data.get_config_file())).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
+                      config_file = self.__config_data.get_config_file())
+            
+        return  analysis_dir
+            
+            
     def get_project_name(self):
         return self.__config_data.get_value('project_name')
 
@@ -183,17 +192,29 @@ class Session(object):
         return self.__config_data.get_value('email')
 
     def get_log_dir(self):
-        return os.path.join(self.__config_data.get_value('analysis_dir'),'log')
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'log')
+        return None
 
 
     def get_operations_dir(self):
-        return os.path.join(self.__config_data.get_value('analysis_dir'),"operations")
-
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'operations')
+        return None
+        
     def get_cases_dir(self):
-        return os.path.join(self.__config_data.get_value('analysis_dir'),'cases')
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'cases')
+        return None
 
     def get_summaries_dir(self):
-        return os.path.join(self.__config_data.get_value('analysis_dir'),'summaries')
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'summaries')
+        return None
 
     def get_xnat_dir(self):
         return os.path.join(self.__config_data.get_value('import_dir'),'XNAT')
@@ -201,10 +222,72 @@ class Session(object):
     def get_xnat_server_address(self):
         return self.__config_data.get_value('xnat','server')
 
+    # replaces xnat_api.select.project(prj).subject( subject_label ).attrs.get(attribute)
+    def xnat_get_subject_attribute(self,project,subject_label,attribute):
+        xnat_api = self.__get_xnat_api__()
+        if not xnat_api:
+            error_msg = "XNAT API is not defined! Cannot retrieve value for " + attribute
+            slog.info(subject_label,error_msg,
+                      function = "session.xnat_get_subject_attribute",
+                      attribute = attribute,
+                      project = project)
+            return None
+ 
+        try : 
+            xnat_project = xnat_api.select.project(project)
+
+        except Exception, err_msg:
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_subject_attribute",
+                      project = project)
+            return None
+            
+        if not xnat_project:
+            slog.info(subject_label + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6],"ERROR: project not found !",
+                      function = "session.xnat_get_subject_attribute",
+                      project = project)
+            return None
+
+        try : 
+            xnat_subject = xnat_project.subject( subject_label )
+
+        except Exception, err_msg:
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
+                      err_msg = str(err_msg),
+                      project = project,
+                      function = "session.xnat_get_subject_attribute",
+                      subject = subject_label)
+            return None
+
+        if not xnat_subject:
+            slog.info(subject_label + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6] ,"ERROR: subject not found !",
+                      project = project,
+                      function = "session.xnat_get_subject_attribute",
+                      subject = subject_label)
+            return None
+
+        try : 
+            if attribute == "label" :
+                return xnat_subject.label()
+            else :
+                return xnat_subject.attrs.get(attribute)
+
+        except Exception, err_msg:
+            slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
+                      err_msg = str(err_msg),
+                      project = project,
+                      subject = subject_label,
+                      function = "session.xnat_get_subject_attribute",
+                      attribute = attribute)
+            
+        return None
+
+
     # if time_label is set then will take the time of the operation 
     def xnat_export_general(self,form, fields, conditions, time_label = None): 
-        if not self.api['xnat'] : 
-            slog.info('xnat_export_general','Error: XNAT api not defined')  
+        xnat_api = self.__get_xnat_api__()
+        if not xnat_api: 
             return None
 
         if time_label:
@@ -212,7 +295,7 @@ class Session(object):
         try:
             #  python if one cannot connect to server then 
             with Capturing() as xnat_output: 
-                xnat_data = self.api['xnat'].select(form, fields).where(conditions).items()
+                xnat_data = xnat_api.select(form, fields).where(conditions).items()
         
         except Exception, err_msg:
             if xnat_output : 
@@ -235,6 +318,15 @@ class Session(object):
         
         return xnat_data
 
+    def __get_xnat_api__(self): 
+        if not self.api['xnat'] : 
+            slog.info('__get_xnat_api__','Error: XNAT api not defined')  
+            return None
+
+        return self.api['xnat']
+
+
+
     def __get_active_redcap_api__(self):
         project = self.__active_redcap_project__
         if not project :
@@ -248,6 +340,7 @@ class Session(object):
         return self.api[project]
 
    
+
     # if time_label is set then will take the time of the operation 
     def redcap_export_records(self, time_label, **selectStmt):
         red_api = self.__get_active_redcap_api__()

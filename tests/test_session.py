@@ -34,6 +34,8 @@ slog.init_log(False, False,'test_session', 'test_session','/tmp')
 session = sibispy.Session()
 assert(session.configure(config_file))
 
+assert(session.xnat_get_subject_attribute('blub','blub','blub') == None)
+
 for project in ['xnat', 'data_entry','redcap_mysql_db'] :
     server = session.connect_server(project, True)
     if not server:
@@ -42,6 +44,7 @@ for project in ['xnat', 'data_entry','redcap_mysql_db'] :
 
     try :
         if project == 'xnat':
+            assert(session.xnat_get_subject_attribute('blub','blub','blub') == None)
             session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
         elif project == 'data_entry' :
             server.export_fem( format='df' )
