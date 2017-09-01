@@ -38,6 +38,10 @@ class sibis_email:
 
     # Send pre-formatted mail message 
     def send( self, subject, from_email, to_email, html ):
+        if not self._smtp_server : 
+            slog.info("sibis_email.send","ERROR: smtp server not defined - email will not be sent!")
+            return False
+
         # Create message container - the correct MIME type is multipart/alternative.
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
@@ -71,6 +75,8 @@ class sibis_email:
         
             # Send email also to sibis admin if defined
             if self._sibis_admin_email and to_email != self._sibis_admin_email : 
+                print "blub test sibis_email (admin and to_emnail)", self._sibis_admin_email, to_email 
+
                 s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
         except Exception, err_msg:
             slog.info("sibis_email.send","ERROR: failed to send email at {} ".format(time.asctime()),
@@ -147,12 +153,21 @@ class sibis_email:
 class xnat_email(sibis_email):
     def __init__(self, session): 
         self._interface = session.api['xnat']
+        if self._interface :
+            server_config = json.loads( self._interface._exec( '/data/services/settings' ) )[u'ResultSet'][u'Result']
+            self._site_url = server_config[u'siteUrl']
+            self._site_name = server_config[u'siteId']
+            sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
+
+        else: 
+            slog.info('xnat_email.__init__',"ERROR: xnat api is not defined")
+            self._site_url = None 
+            self._site_name = None  
+            sibis_email.__init__(self,None,None,session.get_email())
+
         self._project_name = session.get_project_name()
         # Determine server config to get admin email and public URL
-        server_config = json.loads( self._interface._exec( '/data/services/settings' ) )[u'ResultSet'][u'Result']
-        self._site_url = server_config[u'siteUrl']
-        self._site_name = server_config[u'siteId']
-        sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
+
 
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:
