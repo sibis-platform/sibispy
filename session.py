@@ -222,6 +222,29 @@ class Session(object):
     def get_xnat_server_address(self):
         return self.__config_data.get_value('xnat','server')
 
+    def xnat_get_experiment(self,eid): 
+        xnat_api = self.__get_xnat_api__()
+        if not xnat_api:
+            error_msg = "XNAT API is not defined! Cannot retrieve experiment!",
+            slog.info(eid,error_msg,
+                      function = "session.xnat_get_experiment")
+            return None
+ 
+        try : 
+            xnat_experiment = xnat_api.select.experiment(eid)
+
+        except Exception, err_msg:
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: experiment could not be found!",
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_experiment")
+            return None
+            
+        if not xnat_experiment:
+            slog.info(eid + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6],"ERROR: experiment not found!", 
+            function = "session.xnat_get_experiment")
+
+        return xnat_experiment
+
     # replaces xnat_api.select.project(prj).subject( subject_label ).attrs.get(attribute)
     def xnat_get_subject_attribute(self,project,subject_label,attribute):
         xnat_api = self.__get_xnat_api__()
