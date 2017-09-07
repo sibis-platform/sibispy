@@ -321,7 +321,7 @@ def connect_to_github(config_file=None,verbose=False):
     try :
         repo = organization.get_repo(repo_name)
     except Exception as e :
-        print "Error:post_issues_to_github: Getting repo (" + repo + ") as defined in " + config_data.get_config_file() + " failed with the following error message: " + str(e)
+        print "Error:post_issues_to_github: Getting repo (" + repo_name + ") as defined in " + config_data.get_config_file() + " failed with the following error message: " + str(e)
         return None
 
     if verbose:
