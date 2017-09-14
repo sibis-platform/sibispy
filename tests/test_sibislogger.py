@@ -54,16 +54,18 @@ blub = log.info('sibislogger_test_1',"Unit Testing 1", msg="Please ignore messag
 print "============== Test 2 ==================="
 print "Post issue on GitHub"
 log.startTimer2()
-log.post_to_github('Unit Test', 'testing')
+issue_label_text='testing'
+log.post_to_github('Unit Test', issue_label_text)
 if log.postGithubRepo : 
   log.takeTimer2("Test 2: Post Github: Initialize")
-
+  issue_label=pig.get_github_label(log.postGithubRepo,issue_label_text)
+  
   iID="sibislogger_test_2"
   iTitle= "Testing 2"
 
   print "Issue exists:",
   log.startTimer2()
-  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, False)
+  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle,issue_label)
   log.takeTimer2("Test 2: Post Github: Get Issue")
   if issue:
     print "yes, closed"
@@ -79,11 +81,10 @@ if log.postGithubRepo :
   log.info('sibislogger_test_2',"Testing 2", msg="Please ignore message")
 
   # Close issue 
-  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle, True)
-  if issue:
-    issue.edit(state='close')
-  else : 
-    print "Error: Could not find issue!"
+  issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle,issue_label)
+  # Error: Could not find issue!"
+  assert(issue)
+  issue.edit(state='close')
 
 else : 
    print "ERROR: Failed test posting issue to gtihub" 
