@@ -63,9 +63,56 @@ for project in ['xnat', 'data_entry','redcap_mysql_db'] :
                 sys.exit(1)
 
         elif project == 'data_entry' :
-            assert not server.export_fem( format='df' ).empty 
+            assert not server.export_fem( format='df' ).empty
             assert len(server.export_records(fields=['study_id'],event_name='unique',format='df'))
 
+            all_forms = {
+             # Forms for Arm 1: Standard Protocol
+             'dd100': 'delayed_discounting_100',
+             'dd1000': 'delayed_discounting_1000',
+
+             'pasat': 'paced_auditory_serial_addition_test_pasat',
+             'stroop': 'stroop',
+             'ssaga_youth': 'ssaga_youth',
+             'ssaga_parent': 'ssaga_parent',
+             'youthreport1': 'youth_report_1',
+             'youthreport1b': 'youth_report_1b',
+             'youthreport2': 'youth_report_2',
+             'parentreport': 'parent_report',
+             'mrireport': 'mri_report',
+             'plus': 'participant_last_use_summary',
+
+             'myy': 'midyear_youth_interview',
+
+             'lssaga1_youth': 'limesurvey_ssaga_part_1_youth',
+             'lssaga2_youth': 'limesurvey_ssaga_part_2_youth',
+             'lssaga3_youth': 'limesurvey_ssaga_part_3_youth',
+             'lssaga4_youth': 'limesurvey_ssaga_part_4_youth',
+
+             'lssaga1_parent': 'limesurvey_ssaga_part_1_parent',
+             'lssaga2_parent': 'limesurvey_ssaga_part_2_parent',
+             'lssaga3_parent': 'limesurvey_ssaga_part_3_parent',
+             'lssaga4_parent': 'limesurvey_ssaga_part_4_parent',
+
+             # Forms for Arm 3: Sleep Studies
+             'sleepeve': 'sleep_study_evening_questionnaire',
+             'sleeppre': 'sleep_study_presleep_questionnaire',
+             'sleepmor': 'sleep_study_morning_questionnaire',
+
+             # Forms for Recovery project
+             'recq': 'recovery_questionnaire'}
+            form_prefixes = all_forms.keys()
+            form_names = all_forms.values()
+
+            entry_data_fields = [('%s_complete' % form) for form in form_names] + [('%s_missing' % form) for form in form_prefixes] + [('%s_record_id' % form) for form in form_prefixes]
+            entry_data_fields += ['study_id', 'dob', 'redcap_event_name', 'visit_date', 'exclude', 'sleep_date']
+            entry_data_fields += ['parentreport_manual'] 
+            print "Start REDCap stress test ..."  
+            slog.startTimer2()            
+            server.export_records(fields=entry_data_fields,event_name='unique',format='df')
+            slog.takeTimer2("RCStressTest","REDCap Stress Test")            
+            print ".... completed" 
+        
         elif project == 'redcap_mysql_db' : 
             pd.read_sql_table('redcap_projects', server)
 
