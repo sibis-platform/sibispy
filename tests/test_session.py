@@ -43,30 +43,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['xnat', 'data_entry','redcap_mysql_db'] :
-    print "==== Testing " + project + " ====" 
-    try : 
-        server = session.connect_server(project, True)
-
-        if not server:
-            print "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
-            continue 
-
-        if project == 'xnat':
-            assert (session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list") != None)
-            with sess.Capturing() as xnat_output: 
-                assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
-            
-            if "ERROR: attribute could not be found" not in xnat_output.__str__():
-                print "Error: session.xnat_get_subject_attribute: Test did not return correct error message"
-                print xnat_output.__str__()
-                sys.exit(1)
-
-        elif project == 'data_entry' :
-            assert not server.export_fem( format='df' ).empty
-            assert len(server.export_records(fields=['study_id'],event_name='unique',format='df'))
-
-            all_forms = {
+all_forms = {
              # Forms for Arm 1: Standard Protocol
              'dd100': 'delayed_discounting_100',
              'dd1000': 'delayed_discounting_1000',
@@ -101,6 +78,46 @@ for project in ['xnat', 'data_entry','redcap_mysql_db'] :
 
              # Forms for Recovery project
              'recq': 'recovery_questionnaire'}
+
+for project in ['xnat', 'import_laptops', 'data_entry', 'redcap_mysql_db'] :
+    print "==== Testing " + project + " ====" 
+    try : 
+        server = session.connect_server(project, True)
+
+        if not server:
+            print "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
+            continue 
+
+        if project == 'xnat':
+            assert (session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list") != None)
+            with sess.Capturing() as xnat_output: 
+                assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
+            
+            if "ERROR: attribute could not be found" not in xnat_output.__str__():
+                print "Error: session.xnat_get_subject_attribute: Test did not return correct error message"
+                print xnat_output.__str__()
+                sys.exit(1)
+        elif project == 'import_laptops' :
+            index =0 
+            # Test that all forms are accessible in import project
+            for form_prefix, form_name in all_forms.iteritems():
+                index +=1 
+                complete_label = '%s_complete' % form_name
+                exclude_label = '%s_exclude' % form_prefix
+                fields_list = [complete_label, exclude_label]
+                try :  
+                    import_complete_records = server.export_records( fields = fields_list, format='df' )
+                except Exception as err_msg:
+                    print "ERROR: Failed exporting", fields_list, "for form", form_name, " (" + str(index) + "th form)"
+                    print "Error msg from server:",  err_msg
+                    print "Stopped test"
+                    break 
+  
+
+        elif project == 'data_entry' :
+            assert not server.export_fem( format='df' ).empty
+            assert len(server.export_records(fields=['study_id'],event_name='unique',format='df'))
+
             form_prefixes = all_forms.keys()
             form_names = all_forms.values()
 
