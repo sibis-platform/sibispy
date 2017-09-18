@@ -97,22 +97,18 @@ for project in ['xnat', 'import_laptops', 'data_entry', 'redcap_mysql_db'] :
                 print "Error: session.xnat_get_subject_attribute: Test did not return correct error message"
                 print xnat_output.__str__()
                 sys.exit(1)
+
         elif project == 'import_laptops' :
-            index =0 
-            # Test that all forms are accessible in import project
-            for form_prefix, form_name in all_forms.iteritems():
-                index +=1 
-                complete_label = '%s_complete' % form_name
-                exclude_label = '%s_exclude' % form_prefix
-                fields_list = [complete_label, exclude_label]
-                try :  
-                    import_complete_records = server.export_records( fields = fields_list, format='df' )
-                except Exception as err_msg:
-                    print "ERROR: Failed exporting", fields_list, "for form", form_name, " (" + str(index) + "th form)"
+            # Test that forms are accessible in import project
+            (form_prefix, form_name) = all_forms.items()[0]
+            complete_label = '%s_complete' % form_name
+            exclude_label = '%s_exclude' % form_prefix
+            fields_list = [complete_label, exclude_label]
+            try :  
+                import_complete_records = server.export_records( fields = fields_list, format='df' )
+            except Exception as err_msg:
+                    print "ERROR: Failed exporting", fields_list, "for form", form_name, "!"
                     print "Error msg from server:",  err_msg
-                    print "Stopped test"
-                    break 
-  
 
         elif project == 'data_entry' :
             assert not server.export_fem( format='df' ).empty
