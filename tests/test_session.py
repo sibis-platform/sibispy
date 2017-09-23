@@ -89,14 +89,27 @@ for project in ['xnat', 'import_laptops', 'data_entry', 'redcap_mysql_db'] :
             continue 
 
         if project == 'xnat':
-            assert (session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list") != None)
+            # 1. XNAT Test: Non-Empty querry  
+            with sess.Capturing() as xnat_output: 
+                searchResult = session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
+
+            if xnat_output.__str__() != '[]' :
+                print "Error: session.xnat_export_general: failed to perform querry"
+                if '"err_msg": "Apache Tomcat' in xnat_output.__str__():
+                    print "Info: username or password might be incorrect - check crudentials by using them to manually log in XNAT! "
+                
+                print xnat_output.__str__()
+
+            elif searchResult == None : 
+                print "Error: session.xnat_export_general: Test returned empty record"
+
+            # 2. XNAT Test: Failed querry  
             with sess.Capturing() as xnat_output: 
                 assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
             
             if "ERROR: attribute could not be found" not in xnat_output.__str__():
-                print "Error: session.xnat_get_subject_attribute: Test did not return correct error message"
+                print "Error: session.xnat_get_subject_attribute: Test returned wrong error message"
                 print xnat_output.__str__()
-                sys.exit(1)
 
         elif project == 'import_laptops' :
             # Test that forms are accessible in import project
