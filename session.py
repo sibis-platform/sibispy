@@ -349,6 +349,9 @@ class Session(object):
         return self.api['xnat']
 
 
+    def get_redcap_server_address(self):
+        return self.__config_data.get_value('redcap','server')
+
 
     def __get_active_redcap_api__(self):
         project = self.__active_redcap_project__
