@@ -36,6 +36,15 @@ slog.init_log(False, False,'test_session', 'test_session','/tmp')
 session = sibispy.Session()
 assert session.configure(config_file)
 
+# Make sure that config file is correctly defined 
+assert(session.get_log_dir())
+
+# Check that the file infrastructure is setup correctly
+for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_xnat_dir(), session.get_cases_dir(),session.get_summaries_dir()] : 
+    if not os.path.exists(DIR) : 
+        print "ERROR: " + DIR + " does not exist" 
+ 
+# Check that the servers are accessible 
 with sess.Capturing() as xnat_output: 
     assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
 if "Error: XNAT api not defined" not in xnat_output.__str__():
