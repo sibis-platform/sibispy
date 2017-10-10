@@ -216,6 +216,23 @@ class Session(object):
             return os.path.join(aDir,'summaries')
         return None
 
+    def get_dvd_dir(self):
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'burn2dvd')
+        return None
+
+    def get_datadict_dir(self):
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'datadict')
+        return None
+
+
+    def get_laptop_dir(self):
+        return os.path.join(self.__config_data.get_value('import_dir'),'laptops')
+
+
     def get_xnat_dir(self):
         return os.path.join(self.__config_data.get_value('import_dir'),'XNAT')
 
@@ -446,3 +463,23 @@ class Session(object):
             slog.takeTimer2("redcap_import_" + time_label, str(import_response)) 
         
         return import_response
+
+if __name__ == '__main__':
+    import argparse 
+    default = 'default: %(default)s'
+    formatter = argparse.RawDescriptionHelpFormatter
+    parser = argparse.ArgumentParser(prog="session.py",
+                                     description="Call a specific function in session",
+                                     formatter_class=formatter)
+    parser.add_argument('-c', '--config',
+                        help="SIBIS config file. {}".format(default),
+                        default=os.environ.get('SIBIS_CONFIG'))
+    parser.add_argument('function_call',help="variable to get value for")
+    argv = parser.parse_args()
+    slog.init_log(False, False,'session', 'session',None)
+    sInstance = Session()
+    sInstance.configure(argv.config)
+    print getattr(sInstance,argv.function_call)()
+    sys.exit()
+
+

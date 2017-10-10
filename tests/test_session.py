@@ -40,7 +40,7 @@ assert session.configure(config_file)
 assert(session.get_log_dir())
 
 # Check that the file infrastructure is setup correctly
-for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_xnat_dir(), session.get_cases_dir(),session.get_summaries_dir()] : 
+for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_xnat_dir(), session.get_cases_dir(), session.get_summaries_dir(), session.get_laptop_dir(), session.get_dvd_dir(), session.get_datadict_dir(), ] : 
     if not os.path.exists(DIR) : 
         print "ERROR: " + DIR + " does not exist" 
  
