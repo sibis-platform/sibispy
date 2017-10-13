@@ -284,6 +284,7 @@ class check_dti_gradients(object):
         errorsFrame = list()
         errorsExpected = list()
         errorsActual = list()
+        errorsAbsDiff = list()
 
         errorFlag = False
 
@@ -294,10 +295,13 @@ class check_dti_gradients(object):
                 for idx, frame in enumerate(evaluated_gradients):
                     # if there is a frame that doesn't match,
                     # report it.
-                    if not (truth_gradient[idx] == frame).all():
+                    gtf = truth_gradient[idx]
+                    if not ( gtf == frame).all():
                         errorsFrame.append(idx)
                         errorsActual.append(frame)
-                        errorsExpected.append(truth_gradient[idx])
+                        errorsExpected.append(gtf)
+                        errorsAbsDiff.append('%.3f' % np.sum(np.sum(np.absolute(gtf - frame)[:])))
+                        
             else:
                 slog.info(session_label +"-"+ sequence_label,"ERROR: Incorrect number of frames.",
                           number_of_frames=str(len(evaluated_gradients)),
@@ -321,6 +325,7 @@ class check_dti_gradients(object):
                       frames=str(errorsFrame),
                       actualGradients=str(errorsActual),
                       expectedGradients=str(errorsExpected),
+                      sumError=str(errorsAbsDiff),
                       sequence = sequence_label,
                       eid = eid, scan = scan_id)
             errorFlag = True
