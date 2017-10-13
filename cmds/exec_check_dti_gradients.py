@@ -24,6 +24,7 @@ def get_cases(cases_root, arm, event, case=None):
         if os.path.isdir(os.path.join(cpath,arm,event)) : 
             case_list.append(cpath)
   
+    case_list.sort() 
     return case_list
 
 
