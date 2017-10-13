@@ -33,14 +33,14 @@ if os.path.isfile(timeLogFile) :
 
 slog.init_log(False, False,'test_session', 'test_session','/tmp')
 
-session = sibispy.Session()
+session = sess.Session()
 assert session.configure(config_file)
 
 # Make sure that config file is correctly defined 
 assert(session.get_log_dir())
 
 # Check that the file infrastructure is setup correctly
-for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_xnat_dir(), session.get_cases_dir(), session.get_summaries_dir(), session.get_laptop_dir(), session.get_dvd_dir(), session.get_datadict_dir(), ] : 
+for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_xnat_dir(), session.get_cases_dir(), session.get_summaries_dir(), session.get_laptop_dir(), session.get_dvd_dir(), session.get_datadict_dir(), session.get_config_sys_file()] : 
     if not os.path.exists(DIR) : 
         print "ERROR: " + DIR + " does not exist" 
  

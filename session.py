@@ -61,7 +61,7 @@ class Session(object):
         # redcap projects are import_laptops, import_webcnp, and data_entry
         self.__active_redcap_project__ = None
    
-    def configure(self, config_file=None, ):
+    def configure(self, config_file=None):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
@@ -197,12 +197,19 @@ class Session(object):
             return os.path.join(aDir,'log')
         return None
 
-
     def get_operations_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
             return os.path.join(aDir,'operations')
         return None
+
+    def get_config_sys_file(self):
+        oDir = self.get_operations_dir()
+        if oDir :
+            return os.path.join(oDir,'sibis_sys_config.yml')
+        return None
+
+
         
     def get_cases_dir(self):
         aDir = self.__get_analysis_dir()
@@ -386,6 +393,7 @@ class Session(object):
 
     # if time_label is set then will take the time of the operation 
     def redcap_export_records(self, time_label, **selectStmt):
+	print "RUNNING redcap_export_records"
         red_api = self.__get_active_redcap_api__()
         if not red_api: 
             return None
