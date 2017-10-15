@@ -56,8 +56,9 @@ class Session(object):
     """
 
     def __init__(self):
-        self.__config_data = cfg_parser.config_file_parser()
-        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None} 
+        self.__config_usr_data = cfg_parser.config_file_parser()
+        self.__config_srv_data = None 
+        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
         self.__active_redcap_project__ = None
    
@@ -67,11 +68,18 @@ class Session(object):
         environment variable, then in the home directory.
         """
 
-        err_msg = self.__config_data.configure(config_file)
+        err_msg = self.__config_usr_data.configure(config_file)
         if err_msg:
             slog.info('session.configure',str(err_msg),
-                      sibis_config_file=self.__config_data.get_config_file())
+                      sibis_config_file=config_file)
             return False
+
+        (sys_file_parser,err_msg) = self.get_config_sys_parser()
+        if err_msg :
+            slog.info('session.configure',str(err_msg))
+            return False
+            
+        self.__config_srv_data = sys_file_parser.get_category('session')
 
         return True
 
@@ -89,6 +97,8 @@ class Session(object):
 
         if api_type == 'xnat' :
             connectionPtr = self.__connect_xnat__()
+        elif api_type == 'browser_penncnp' : 
+            connectionPtr = self.__connect_penncnp__()
         elif api_type == 'redcap_mysql_db' : 
             connectionPtr = self.__connect_redcap_mysql__()
         else :
@@ -101,7 +111,7 @@ class Session(object):
 
     def __connect_xnat__(self):
         import pyxnat
-        cfg = self.__config_data.get_category('xnat')
+        cfg = self.__config_usr_data.get_category('xnat')
         try : 
             xnat = pyxnat.Interface(server=cfg.get('server'),
                                     user=cfg.get('user'),
@@ -114,12 +124,35 @@ class Session(object):
         self.api['xnat'] = xnat
         return xnat
 
+    def __connect_penncnp__(self):
+        from selenium import webdriver
+        # Configure Firefox profile for automated file download
+        fp = webdriver.FirefoxProfile()
+        fp.set_preference("browser.download.folderList",2)
+        fp.set_preference("browser.download.manager.showWhenStarting",False)
+        fp.set_preference("browser.download.dir", os.getcwd())
+        fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel")
+
+        # Open browser
+        browser = webdriver.Firefox( firefox_profile=fp )
+        browser.get(self.__config_srv_data["penncnp"]["server"])
+
+        # Fill login screen
+        cud = self.__config_usr_data.get_category('penncnp')
+        browser.find_element_by_name("adminid").send_keys(cud['user'] )
+        browser.find_element_by_name("pwd").send_keys(cud['password'] )
+        browser.find_element_by_name("Login").click()
+
+        self.api['penncnp'] = browser
+
+        return browser
+
     def __connect_redcap_project__(self,api_type):
         import redcap
-        cfg = self.__config_data.get_category('redcap')   
+        cfg = self.__config_usr_data.get_category('redcap')   
         if not cfg : 
             slog.info('session.__connect_redcap_project__','Error: config file does not contain section redcap',
-                      config_file = self.__config_data.get_config_file())
+                      config_file = self.__config_usr_data.get_config_file())
                       
             return None 
 
@@ -148,10 +181,10 @@ class Session(object):
     def __connect_redcap_mysql__(self):
         from sqlalchemy import create_engine
 
-        cfg = self.__config_data.get_category('redcap-mysql') 
+        cfg = self.__config_usr_data.get_category('redcap-mysql') 
         if not cfg:
             slog.info('session.__connect_redcap_mysql__','Error: config file does not contain section recap-mysql',
-                      config_file = self.__config_data.get_config_file())
+                      config_file = self.__config_usr_data.get_config_file())
             return None
 
         user = cfg.get('user')
@@ -176,20 +209,20 @@ class Session(object):
         return engine
 
     def __get_analysis_dir(self) :
-        analysis_dir = self.__config_data.get_value('analysis_dir')
+        analysis_dir = self.__config_usr_data.get_value('analysis_dir')
         if analysis_dir == None :
-            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_data.get_config_file())).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
-                      config_file = self.__config_data.get_config_file())
+            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file())).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
+                      config_file = self.__config_usr_data.get_config_file())
             
         return  analysis_dir
             
             
     def get_project_name(self):
-        return self.__config_data.get_value('project_name')
+        return self.__config_usr_data.get_value('project_name')
 
 
     def get_email(self):
-        return self.__config_data.get_value('email')
+        return self.__config_usr_data.get_value('email')
 
     def get_log_dir(self):
         aDir = self.__get_analysis_dir()
@@ -203,12 +236,22 @@ class Session(object):
             return os.path.join(aDir,'operations')
         return None
 
-    def get_config_sys_file(self):
+    def get_config_sys_parser(self):
         oDir = self.get_operations_dir()
-        if oDir :
-            return os.path.join(oDir,'sibis_sys_config.yml')
-        return None
+        if not oDir :
+            return (None,"ERROR: could not retrieve operations directory") 
 
+        sys_file = os.path.join(oDir,'sibis_sys_config.yml')
+        if not os.path.exists(sys_file) : 
+            return (None,"ERROR:", sys_file," does not exist!") 
+
+        # Get procject specific settings for test file 
+        sys_file_parser = cfg_parser.config_file_parser()
+        err_msg = sys_file_parser.configure(sys_file)
+        if err_msg:
+            return (None, str(err_msg) + " (config_sys_file : " + str(config_sys_file) + ")")
+
+        return (sys_file_parser, None)
 
         
     def get_cases_dir(self):
@@ -237,14 +280,14 @@ class Session(object):
 
 
     def get_laptop_dir(self):
-        return os.path.join(self.__config_data.get_value('import_dir'),'laptops')
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),'laptops')
 
 
     def get_xnat_dir(self):
-        return os.path.join(self.__config_data.get_value('import_dir'),'XNAT')
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),'XNAT')
 
     def get_xnat_server_address(self):
-        return self.__config_data.get_value('xnat','server')
+        return self.__config_usr_data.get_value('xnat','server')
 
     def xnat_get_experiment(self,eid): 
         xnat_api = self.__get_xnat_api__()
@@ -372,9 +415,24 @@ class Session(object):
 
         return self.api['xnat']
 
+    def initialize_penncnp_wait(self) : 
+        from selenium.webdriver.support.ui import WebDriverWait
+        return WebDriverWait(self.api['penncnp'],self.__config_srv_data["penncnp"]["wait"])
+        
+    def get_penncnp_export_report(self,wait) :
+        from selenium.webdriver.support import expected_conditions as EC
+        try: 
+            report = wait.until(EC.element_to_be_clickable((By.NAME,'Export Report')))
+        except Exception as e:
+                slog.info('session.get_penncnp_export', "ERROR: Timeout, could not find Export Report",
+                  info = "Try increasing wait time at WebDriverWait", 
+                  msg=str(e))
+                return None
+
+        return report
 
     def get_redcap_server_address(self):
-        return self.__config_data.get_value('redcap','server')
+        return self.__config_usr_data.get_value('redcap','server')
 
 
     def __get_active_redcap_api__(self):
@@ -471,6 +529,7 @@ class Session(object):
             slog.takeTimer2("redcap_import_" + time_label, str(import_response)) 
         
         return import_response
+
 
 if __name__ == '__main__':
     import argparse 

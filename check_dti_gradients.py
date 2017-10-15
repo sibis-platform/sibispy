@@ -41,12 +41,9 @@ class check_dti_gradients(object):
         #
         # Define sibis_defs
         #
-        cfgFile = sessionObj.get_config_sys_file()
-        cfgParser= cfg_parser.config_file_parser()
-        err_msg = cfgParser.configure(cfgFile)
+        (cfgParser,err_msg) = sessionObj.get_config_sys_parser()
         if err_msg:
-            slog.info('check_dti_gradients.configure',str(err_msg),
-                      config_file= cfgFile)
+            slog.info('check_dti_gradients.configure',str(err_msg))
             return False
 
         self.__sibis_defs= cfgParser.get_category('check_dti_gradients')
