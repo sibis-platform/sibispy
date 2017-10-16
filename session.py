@@ -126,6 +126,20 @@ class Session(object):
         return xnat
 
     def __connect_penncnp__(self):
+        # Check that config file is correctly defined 
+        if "penncnp" not in self.__config_srv_data.keys():
+            slog.info("session.__connnect_penncnp__","ERROR: penncnp server info not defined!")
+            return None
+
+        penncnp_srv_data = self.__config_srv_data["penncnp"]
+
+        if "penncnp" not in self.__config_usr_data.keys():
+            slog.info("session.__connnect_penncnp__","ERROR: penncnp user info not defined!")
+            return None
+
+        penncnp_usr_data = self.__config_usr_data.get_category('penncnp')
+
+        # Open screen
         cmd = "Xvfb +extension RANDR :666 >& /dev/null &" 
         try:
             output = subprocess.check_output(cmd,shell=True)
@@ -135,26 +149,25 @@ class Session(object):
 
         os.environ["DISPLAY"]=":666"
 
-        from selenium import webdriver
+        # Set up Browser
         # Configure Firefox profile for automated file download
+        from selenium import webdriver
+       
         fp = webdriver.FirefoxProfile()
         fp.set_preference("browser.download.folderList",2)
         fp.set_preference("browser.download.manager.showWhenStarting",False)
         fp.set_preference("browser.download.dir", os.getcwd())
         fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel")
-
-        # Open browser
         browser = webdriver.Firefox( firefox_profile=fp )
-        browser.get(self.__config_srv_data["penncnp"]["server"])
 
-        # Fill login screen
-        cud = self.__config_usr_data.get_category('penncnp')
-        browser.find_element_by_name("adminid").send_keys(cud['user'] )
-        browser.find_element_by_name("pwd").send_keys(cud['password'] )
+        # Log into website
+        browser.get(penncnp_srv_data["server"])
+        browser.find_element_by_name("adminid").send_keys(penncnp_usr_data['user'] )
+        browser.find_element_by_name("pwd").send_keys(penncnp_usr_data['password'] )
         browser.find_element_by_name("Login").click()
 
-        self.api['penncnp'] = browser
-
+        # Exit configuration
+        self.api['browser_penncnp'] = browser
         return browser
 
     def __connect_redcap_project__(self,api_type):
@@ -427,10 +440,11 @@ class Session(object):
 
     def initialize_penncnp_wait(self) : 
         from selenium.webdriver.support.ui import WebDriverWait
-        return WebDriverWait(self.api['penncnp'],self.__config_srv_data["penncnp"]["wait"])
+        return WebDriverWait(self.api['browser_penncnp'],self.__config_srv_data["penncnp"]["wait"])
         
     def get_penncnp_export_report(self,wait) :
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.common.by import By
         try: 
             report = wait.until(EC.element_to_be_clickable((By.NAME,'Export Report')))
         except Exception as e:
@@ -442,8 +456,8 @@ class Session(object):
         return report
 
     def disconnect_penncnp(self) :
-        if self.api['brwoser_penncnp'] : 
-            self.api['broswer_penncnp'].quit()
+        if self.api['browser_penncnp'] : 
+            self.api['browser_penncnp'].quit()
         if os.environ['DISPLAY'] == ":666" :
             del os.environ['DISPLAY']
 

@@ -117,12 +117,12 @@ for project in ['browser_penncnp', 'xnat', 'import_laptops', 'redcap_mysql_db', 
                 print xnat_output.__str__()
 
             # no xnat tests after this one as it breaks the interface for some reason
-            session = None
+            server = None
 
 
         elif project == 'browser_penncnp' :
             wait = session.initialize_penncnp_wait()
-            assert session.get_penncnp_export(wait)
+            assert session.get_penncnp_export_report(wait)
 
         elif project == 'import_laptops' :
             if "redcap_version_test" in config_test_data.iterkeys() :  
