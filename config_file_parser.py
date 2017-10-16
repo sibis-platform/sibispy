@@ -64,6 +64,10 @@ class config_file_parser(object):
     def get_category(self,category):
         return self.__config_dict.get(category)
 
+    def keys(self):
+        return self.__config_dict.keys()
+
+
     def get_config_file(self):
         return self.__config_file
     
