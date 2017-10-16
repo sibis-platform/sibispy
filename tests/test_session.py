@@ -170,6 +170,8 @@ for project in ['browser_penncnp', 'xnat', 'import_laptops', 'redcap_mysql_db', 
         print "Error: Failed to retrieve content from " + project + ". Server responded :"
         print str(err_msg)
 
+    if project == 'browser_penncnp' :
+        session.disconnect_penncnp()
 
 print "Info: Time log writen to " + timeLogFile 
 

@@ -13,6 +13,7 @@ import os
 import time
 import requests
 import hashlib
+import subprocess
 from sibispy import sibislogger as slog
 from sibispy import config_file_parser as cfg_parser
 
@@ -125,6 +126,15 @@ class Session(object):
         return xnat
 
     def __connect_penncnp__(self):
+        cmd = "Xvfb +extension RANDR :666 >& /dev/null &" 
+        try:
+            output = subprocess.check_output(cmd,shell=True)
+        except:
+            slog("session.__connect_penncnp__","The following command failed %s with the following output %s" % (cmd,output))
+            return None
+
+        os.environ["DISPLAY"]=":666"
+
         from selenium import webdriver
         # Configure Firefox profile for automated file download
         fp = webdriver.FirefoxProfile()
@@ -430,6 +440,12 @@ class Session(object):
                 return None
 
         return report
+
+    def disconnect_penncnp(self) :
+        if self.api['brwoser_penncnp'] : 
+            self.api['broswer_penncnp'].quit()
+        if os.environ['DISPLAY'] == ":666" :
+            del os.environ['DISPLAY']
 
     def get_redcap_server_address(self):
         return self.__config_usr_data.get_value('redcap','server')
