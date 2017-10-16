@@ -140,7 +140,7 @@ class Session(object):
         penncnp_usr_data = self.__config_usr_data.get_category('penncnp')
 
         # Open screen
-        cmd = "Xvfb +extension RANDR :666 >& /dev/null &" 
+        cmd = "Xvfb +extension RANDR :666 &> /dev/null &" 
         try:
             output = subprocess.check_output(cmd,shell=True)
         except:
