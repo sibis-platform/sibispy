@@ -13,7 +13,6 @@ import os
 import time
 import requests
 import hashlib
-import subprocess
 from sibispy import sibislogger as slog
 from sibispy import config_file_parser as cfg_parser
 
@@ -125,6 +124,18 @@ class Session(object):
         self.api['xnat'] = xnat
         return xnat
 
+    def __list_running_process__(self,cmd): 
+        from subprocess import Popen, PIPE
+        check_cmd  = "ps -ef | grep '" + cmd + "' | awk '{print $2}'"
+
+        try : 
+            p = Popen(check_cmd, shell = True, stdout = PIPE,  stderr = PIPE)
+            return p.communicate()
+            
+        except Exception,err_msg:
+            return (None,str(err_msg))
+            
+        
     def __connect_penncnp__(self):
         # Check that config file is correctly defined 
         if "penncnp" not in self.__config_srv_data.keys():
@@ -139,16 +150,42 @@ class Session(object):
 
         penncnp_usr_data = self.__config_usr_data.get_category('penncnp')
 
-        # Open screen
-        display = str(penncnp_srv_data["display"])
-        cmd = "Xvfb +extension RANDR :{} &> /dev/null &".format(display) 
-        try:
-            output = subprocess.check_output(cmd,shell=True)
-        except:
-            slog("session.__connect_penncnp__","The following command failed %s with the following output %s" % (cmd,output))
+        # Check if display is open     
+        display = ":" + str(penncnp_srv_data["display"])
+        vfb_cmd =  'vfb +extension RANDR ' + display
+        check_cmd = "[X]" + vfb_cmd
+
+        (pip_list, err_msg) = self.__list_running_process__(check_cmd)
+        if err_msg : 
+            slog.info("session.__connect_penncnp__","Checking if command %s is already running failed with the following error message: %s" % (check_cmd,strcheck_err))
             return None
 
-        os.environ["DISPLAY"]=":"+ display
+        if pip_list: 
+            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + str(pip_list) + "' before proceeding!")
+            return None 
+
+        # Open screen
+        import subprocess
+        display_cmd = "X" + vfb_cmd + " &> /dev/null & "
+        try:
+            err_msg = subprocess.check_output(display_cmd,shell=True)
+        except Exception, err_msg:
+            pass
+            
+        if err_msg: 
+            slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (display_cmd,str(err_msg)))
+            return None
+
+        (pip, err_msg) = self.__list_running_process__(check_cmd)
+        if err_msg : 
+            slog.info("session.__connect_penncnp__","Checking if command %s is already running failed with the following error message: %s" % (check_cmd,strcheck_err))
+            return None
+
+        if not pip: 
+            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " did not start up!")
+            return None 
+
+        os.environ["DISPLAY"]=display
 
         # Set up Browser
         # Configure Firefox profile for automated file download
@@ -168,7 +205,7 @@ class Session(object):
         browser.find_element_by_name("Login").click()
 
         # Exit configuration
-        self.api['browser_penncnp'] = browser
+        self.api['browser_penncnp'] = {"browser": browser, "pip" : int(pip), "display": display} 
         return browser
 
     def __connect_redcap_project__(self,api_type):
@@ -441,7 +478,7 @@ class Session(object):
 
     def initialize_penncnp_wait(self) : 
         from selenium.webdriver.support.ui import WebDriverWait
-        return WebDriverWait(self.api['browser_penncnp'],self.__config_srv_data["penncnp"]["wait"])
+        return WebDriverWait(self.api['browser_penncnp']["browser"],self.__config_srv_data["penncnp"]["wait"])
         
     def get_penncnp_export_report(self,wait) :
         from selenium.webdriver.support import expected_conditions as EC
@@ -456,12 +493,27 @@ class Session(object):
 
         return report
 
-    def disconnect_penncnp(self) :
-        if self.api['browser_penncnp'] : 
-            self.api['browser_penncnp'].quit()
-        display = ":" + str(self.__config_srv_data["penncnp"]["display"])
-        if os.environ['DISPLAY'] == display :
+    def disconnect_penncnp(self):
+        # Note, if python script is manually killed before reaching this function then the subprocesses (e.g. X display) are also automatically killed  
+        if not self.api['browser_penncnp']:
+            return 
+  
+        self.api['browser_penncnp']['browser'].quit()
+
+        if "DISPLAY" in os.environ.keys() and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
             del os.environ['DISPLAY']
+ 
+        import subprocess
+        kill_cmd = "kill -9 " + str(self.api['browser_penncnp']['pip']) 
+        try:
+            err_msg = subprocess.check_output(kill_cmd,shell=True)
+        except Exception, err_msg:
+            pass
+            
+        
+        if err_msg: 
+            slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (kill_cmd,str(err_msg)))
+            return None
 
     def get_redcap_server_address(self):
         return self.__config_usr_data.get_value('redcap','server')
