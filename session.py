@@ -140,14 +140,15 @@ class Session(object):
         penncnp_usr_data = self.__config_usr_data.get_category('penncnp')
 
         # Open screen
-        cmd = "Xvfb +extension RANDR :666 &> /dev/null &" 
+        display = str(penncnp_srv_data["display"])
+        cmd = "Xvfb +extension RANDR :{} &> /dev/null &".format(display) 
         try:
             output = subprocess.check_output(cmd,shell=True)
         except:
             slog("session.__connect_penncnp__","The following command failed %s with the following output %s" % (cmd,output))
             return None
 
-        os.environ["DISPLAY"]=":666"
+        os.environ["DISPLAY"]=":"+ display
 
         # Set up Browser
         # Configure Firefox profile for automated file download
@@ -458,7 +459,8 @@ class Session(object):
     def disconnect_penncnp(self) :
         if self.api['browser_penncnp'] : 
             self.api['browser_penncnp'].quit()
-        if os.environ['DISPLAY'] == ":666" :
+        display = ":" + str(self.__config_srv_data["penncnp"]["display"])
+        if os.environ['DISPLAY'] == display :
             del os.environ['DISPLAY']
 
     def get_redcap_server_address(self):
