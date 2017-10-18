@@ -4,11 +4,13 @@ import ast
 import glob
 import hashlib
 import pandas 
+import datetime
+from ast import literal_eval as make_tuple
 
 import sibispy
 from sibispy import sibislogger as slog
+from sibispy import sibis_utils
 from sibispy import config_file_parser as cfg_parser
-from ast import literal_eval as make_tuple
 
 class redcap_to_casesdir(object):
     def __init__(self):
@@ -18,8 +20,11 @@ class redcap_to_casesdir(object):
         # Make lookup dicts for mapping radio/dropdown codes to labels
         self.__code_to_label_dict = dict()
         self.__metadata_dict = dict()
+        self.__event_dict = dict()
         self.__forms_dir =  None 
         self.__sibis_defs = None
+        self.__date_format_ymd = None
+
 
     def configure(self, sessionObj, redcap_metadata):
         # Make sure it was set up correctly 
@@ -27,14 +32,22 @@ class redcap_to_casesdir(object):
             slog.info('recap_to_cases_dir.configure',"ERROR: session has to be configured with ordered_config_load set to True")
             return False
 
-        # reading in all forms and variables that should be exported to cases_dir 
+        # reading script specific settings 
         (cfgParser,err_msg) = sessionObj.get_config_sys_parser()
         if err_msg:
             slog.info('recap_to_cases_dir.configure',str(err_msg))
             return False
 
-        self.__sibis_defs= cfgParser.get_category('redcap_to_casesdir')
+        self.__sibis_defs = cfgParser.get_category('redcap_to_casesdir')
 
+        self.__date_format_ymd = self.__sibis_defs['date_format_ymd']
+
+        # Reading in events 
+        self.__event_dict = self.__transform_dict_string_into_tuple__('event_dictionary')
+        if not  self.__event_dict: 
+            return False
+
+        # reading in all forms and variables that should be exported to cases_dir 
         self.__forms_dir  = os.path.join(sessionObj.get_operations_dir(),'redcap_to_casesdir')
         if not os.path.exists(self.__forms_dir) :
             slog.info('redcap_to_casesdir.configure','ERROR: ' + str(self.__forms_dir)  + " does not exist!")
@@ -59,6 +72,20 @@ class redcap_to_casesdir(object):
                     self.__export_rename[export_name][match.group(1)] = match.group(2)
 
         return self.__organize_metadata__(redcap_metadata)
+   
+    def __transform_dict_string_into_tuple__(self,dict_name):
+        dict_str = self.__sibis_defs[dict_name]
+        dict_keys = dict_str.keys()
+        if not len(dict_keys):
+            slog.info('redcap_to_casesdir.configure',"ERROR: Cannot find '" + dict_name + "'' in config file!")
+            return None
+
+        dict_tup = dict()
+        for key in dict_keys:
+            # turn string into tuple 
+            dict_tup[key] = make_tuple("(" + dict_str[key] +")")
+
+        return dict_tup
 
     # Organize REDCap metadata (data dictionary)
     def __organize_metadata__(self,redcap_metadata):
@@ -72,6 +99,12 @@ class redcap_to_casesdir(object):
                            field['select_choices_or_calculations'])
 
             self.__metadata_dict[field['field_name']] = field_tuple
+
+        meta_data_dict = self.__transform_dict_string_into_tuple__('general_datadict')
+        if not  meta_data_dict : 
+            return False
+
+        self.__metadata_dict.update(meta_data_dict)
 
         if not self.__check_all_forms__():
             return False
@@ -153,29 +186,16 @@ class redcap_to_casesdir(object):
             self.create_datadict(export_name,datadict_dir)
         self.create_demographic_datadict(datadict_dir)
 
-    def __reading_datadict_definitions__(self,dictionary_type):
-        dict_data = self.__sibis_defs[dictionary_type]
-        export_entry_list = dict_data.keys(); 
-        if not len(export_entry_list):
-            slog.info('redcap_to_casesdir.__reading_datadict_definitions',"ERROR: Cannot find " + dictionary_type + " in config file!")
-            return None
-
-        meta_data_dict= dict()
-        for variable in export_entry_list:
-            # turn string into tuple 
-            meta_data_dict[variable] = make_tuple("(" + dict_data[variable] +")")
-        
-        self.__metadata_dict.update(meta_data_dict)
-
-        return export_entry_list
-
     # Create custom form for demographics 
     def create_demographic_datadict(self, datadict_dir):
-        export_entry_list = self.__reading_datadict_definitions__('demographic_datadict')
-        if not export_entry_list: 
+        meta_data_dict = self.__transform_dict_string_into_tuple__('demographic_datadict')
+        if not meta_data_dict: 
             return False
+        self.__metadata_dict.update(meta_data_dict)
 
-        # First two entries are extracted from SubjectID
+        dict_str = self.__sibis_defs['demographic_datadict']
+        export_entry_list = dict_str.keys()
+
         export_form_list = ['demographics'] * len(export_entry_list)
 
         return self.__create_datadicts_general__(datadict_dir, 'demographics', export_form_list,export_entry_list)
@@ -199,10 +219,6 @@ class redcap_to_casesdir(object):
             elements = ['subject', 'arm', 'visit']
             export_forms_list.insert(i, export_forms_list[0])
             variable_list.insert(i, elements[i])
-
-
-        if not self.__reading_datadict_definitions__('general_datadict'):
-            return None
 
         if not os.path.exists(datadict_dir):
             os.makedirs(datadict_dir)
@@ -238,3 +254,191 @@ class redcap_to_casesdir(object):
             slog.info('redcap_to_casesdir.__create_datadicts_general__',"ERROR: could not export dictionary" + dicFileName, 
                       err_msg = str(err_msg))
             return None
+
+
+    # Truncate age to 2 digits for increased identity protection
+    def __truncate_age__(self, age_in):
+        matched = re.match('([0-9]*\.[0-9]*)', str(age_in))
+        if matched:
+            return round(float(matched.group(1)), 2)
+        else:
+            return age_in
+
+    # NCANDA SPECIFIC - Generalize later
+    def __get_scanner_mfg_and_model__(self, mri_scanner, subject):
+        if mri_scanner == 'nan' :
+            return "",""
+
+        mri_scanner= mri_scanner.upper()
+        if 'DISCOVERY MR750' in mri_scanner :
+            return 'ge', 'MR750'
+        elif 'PRISMA_FIT' in mri_scanner :
+            return 'siemens', 'Prisma_Fit'
+        elif 'TRIOTRIM' in mri_scanner or 'TRIOTIM' in mri_scanner:
+            return 'siemens', 'TrioTim'
+        else :
+            slog.info(subject, "Error: Do not know scanner type",
+                       script='redcap_to_casesdir.py',
+                       mri_scanner = mri_scanner)
+
+        return "",""
+
+    # NCANDA SPECIFIC - Generalize later
+    # Create "demographics" file "by hand" - this includes some text fields
+    def export_demographics(self,subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,measures_dir,verbose=False) :
+            # Latino and race coding arrives here as floating point numbers; make
+            # int strings from that (cannot use "int()" because it would fail for
+            # missing data
+            hispanic_code = re.sub('(.0)|(nan)', '', str(subject_data['hispanic']))
+            race_code = re.sub('(.0)|(nan)', '', str(subject_data['race']))
+
+            # scanner manufacturer map
+            scanner_mfg, scanner_model = self.__get_scanner_mfg_and_model__(str(visit_data['mri_scanner']),subject)
+
+            demographics = [
+                ['subject', subject_code],
+                ['arm', arm_code],
+                ['visit', visit_code],
+                ['site', site],
+                ['sex', subject[8]],
+                ['visit_age', self.__truncate_age__(visit_age)],
+                ['mri_structural_age', self.__truncate_age__(visit_data['mri_t1_age'])],
+                ['mri_diffusion_age', self.__truncate_age__(visit_data['mri_dti_age'])],
+                ['mri_restingstate_age', self.__truncate_age__(visit_data['mri_rsfmri_age'])],
+                ['exceeds_bl_drinking',
+                 'NY'[int(subject_data['enroll_exception___drinking'])]],
+                ['siblings_enrolled_yn',
+                 'NY'[int(subject_data['siblings_enrolled___true'])]],
+                ['siblings_id_first', subject_data['siblings_id1']],
+                ['hispanic', self.__code_to_label_dict['hispanic'][hispanic_code][0:1]],
+                ['race', race_code],
+                ['race_label', self.__code_to_label_dict['race'][race_code]],
+                ['participant_id', subject],
+                ['scanner', scanner_mfg], 
+                ['scanner_model', scanner_model],
+            ]
+
+            if race_code == '6':
+                # if other race is specified, mark race label with manually curated
+                # race code
+                demographics[14] = ('race_label', subject_data['race_other_code'])
+
+            series = pandas.Series()
+            for (key, value) in demographics:
+                series = series.set_value(key, value)
+
+            return sibis_utils.safe_dataframe_to_csv(pandas.DataFrame(series).T,os.path.join(measures_dir, 'demographics.csv'),verbose=verbose)
+
+    # Export selected REDCap data to cases dir 
+    def export(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, select_exports=None, verbose=False):
+
+        # Mark subjects/visits that have QA completed by creating a hidden marker
+        # file
+        qafile_path = os.path.join(subject_datadir, '.qacomplete')
+        if visit_data['mri_qa_completed'] == '1':
+            try:
+                if not os.path.exists(qafile_path):
+                    qafile = open(qafile_path, 'w')
+                    qafile.close()
+            except IOError as error:
+                print("ERROR: unable to open QA marker file in {}. {}".format(subject_datadir, error))
+        else:
+            try:
+                if os.path.exists(qafile_path):
+                    os.remove(qafile_path)
+            except OSError as error:
+                print("ERROR: unable to remove QA marker file {}. {}".format(qafile_path, error))
+
+        # Check if the "measures" subdirectory already exists - this is where all
+        # the csv files go. Create it if necessary.
+        measures_dir = os.path.join(subject_datadir, 'measures')
+        if not os.path.exists(measures_dir):
+            os.makedirs(measures_dir)
+
+        # Export demographics (if selected)
+        if not select_exports or 'demographics' in select_exports:
+            self.export_demographics(subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,measures_dir,verbose)
+
+        # First get data for all fields across all forms in this event - this
+        # speeds up transfers over getting each form separately
+        all_fields = ['study_id']
+        export_list = []
+        for export_name in export_forms.keys():
+            if (import_forms[export_name] in forms_this_event) and (not select_exports or export_name in select_exports):
+                all_fields += [re.sub('___.*', '', field_name) for field_name in export_forms[export_name]]
+                export_list.append(export_name)
+
+        all_records = redcap_project.export_records(fields=all_fields,
+                                                    records=[subject],
+                                                    events=[event],
+                                                    format='df')
+
+        # Now go form by form and export data
+        for export_name in export_list:
+            # Remove the complete field from the list of forms
+            complete = '{}_complete'.format(import_forms.get(export_name))
+            fields = [column for column in export_forms.get(export_name)
+                      if column != complete]
+
+            # Select data for this form - "reindex_axis" is necessary to put
+            # fields in listed order - REDCap returns them lexicographically sorted
+            fields = [i for i in fields if i not in ['subject', 'arm', 'visit']]
+            record = all_records[fields].reindex_axis(fields, axis=1)
+
+            if len(record) == 1:
+                # First, add the three index columns
+                record.insert(0, 'subject', subject_code)
+                record.insert(1, 'arm', arm_code)
+                record.insert(2, 'visit', visit_code)
+
+                field_idx = 0
+                output_fields = []
+                for field in record.columns:
+                    # Rename field for output if necessary
+                    if field in export_rename[export_name].keys():
+                        output_field = export_rename[export_name][field]
+                    else:
+                        output_field = field
+                    output_fields.append(output_field)
+
+                    # If this is an "age" field, truncate to 2 digits for privacy
+                    if re.match('.*_age$', field):
+                        record[field] = record[field].apply(self.__truncate_age__)
+
+                    # If this is a radio or dropdown field
+                    # (except "FORM_[missing_]why"), add a separate column for the
+                    # coded label
+                    if field in code_to_label_dict.keys() and not re.match(
+                            '.*_why$', field):
+                        code = str(record[field].ix[0])
+                        label = ''
+                        if code in code_to_label_dict[field].keys():
+                            label = code_to_label_dict[field][code]
+                        field_idx += 1
+                        record.insert(field_idx, output_field + '_label', label)
+                        output_fields.append(output_field + '_label')
+
+                    field_idx += 1
+
+                # Apply renaming to columns
+                record.columns = output_fields
+
+                # Figure out path for CSV file and export this record
+                sibis_utils.safe_dataframe_to_csv(record,os.path.join(measures_dir, export_name + '.csv'),verbose=verbose)
+
+    # What Arm and Visit of the study is this event?
+    def translate_subject_and_event( self, subject_code, event_label):
+        if event_label in self.__event_dict.keys():
+            (arm_code,visit_code) = self.__event_dict[event_label]
+        else:
+            slog.info(str(subject_code),"ERROR: Cannot determine study Arm and Visit from event %s" % event_label )
+
+        pipeline_workdir_rel = os.path.join( subject_code, arm_code, visit_code )
+        return (arm_code,visit_code,pipeline_workdir_rel)
+
+    def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=None):
+        if not  date_format_ymd : 
+             date_format_ymd = self.__date_format_ymd
+
+        return (datetime.datetime.strptime( date_to_str, date_format_ymd ) - datetime.datetime.strptime( date_from_str, date_format_ymd ) ).days
+
