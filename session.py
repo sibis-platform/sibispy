@@ -308,7 +308,7 @@ class Session(object):
 
         # Get procject specific settings for test file 
         sys_file_parser = cfg_parser.config_file_parser()
-        err_msg = sys_file_parser.configure(sys_file)
+        err_msg = sys_file_parser.configure(sys_file,ordered_load=True)
         if err_msg:
             return (None, str(err_msg) + " (config_sys_file : " + str(config_sys_file) + ")")
 
