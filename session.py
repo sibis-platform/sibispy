@@ -61,14 +61,15 @@ class Session(object):
         self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
         self.__active_redcap_project__ = None
+        self.__ordered_config_load = False
    
-    def configure(self, config_file=None):
+    def configure(self, config_file=None, ordered_config_load_flag = False):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
         """
-
-        err_msg = self.__config_usr_data.configure(config_file)
+        self.__ordered_config_load = ordered_config_load_flag
+        err_msg = self.__config_usr_data.configure(config_file,ordered_load = self.__ordered_config_load )
         if err_msg:
             slog.info('session.configure',str(err_msg),
                       sibis_config_file=config_file)
@@ -278,6 +279,9 @@ class Session(object):
         return  analysis_dir
             
             
+    def get_ordered_config_load(self) : 
+        return self.__ordered_config_load
+
     def get_project_name(self):
         return self.__config_usr_data.get_value('project_name')
 
@@ -308,7 +312,7 @@ class Session(object):
 
         # Get procject specific settings for test file 
         sys_file_parser = cfg_parser.config_file_parser()
-        err_msg = sys_file_parser.configure(sys_file,ordered_load=True)
+        err_msg = sys_file_parser.configure(sys_file,ordered_load=self.__ordered_config_load)
         if err_msg:
             return (None, str(err_msg) + " (config_sys_file : " + str(config_sys_file) + ")")
 

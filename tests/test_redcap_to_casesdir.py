@@ -20,7 +20,7 @@ else :
 slog.init_log(False, False,'test_check_dti_gradient', 'test_check_dti_gradient',None)
 
 session = sibispy.Session()
-assert(session.configure(config_file))
+assert(session.configure(config_file=config_file,ordered_config_load_flag = True))
 
 redcap_project = session.connect_server('data_entry', True) 
 assert(redcap_project)

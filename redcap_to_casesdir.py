@@ -22,6 +22,11 @@ class redcap_to_casesdir(object):
         self.__sibis_defs = None
 
     def configure(self, sessionObj, redcap_metadata):
+        # Make sure it was set up correctly 
+        if not sessionObj.get_ordered_config_load() :
+            slog.info('recap_to_cases_dir.configure',"ERROR: session has to be configured with ordered_config_load set to True")
+            return False
+
         # reading in all forms and variables that should be exported to cases_dir 
         (cfgParser,err_msg) = sessionObj.get_config_sys_parser()
         if err_msg:
@@ -89,7 +94,7 @@ class redcap_to_casesdir(object):
         if text_list: 
             slog.info('redcap_to_casesdir.__filter_all_forms__.' + hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
                       form_variable_list = str(text_list),
-                      info = "Remove it from form or modify definition in REDCap")
+                      info = "Remove it from form file or modify definition in REDCap")
 
         if non_redcap_list : 
             slog.info('redcap_to_casesdir.__filter_all_forms__.' +  hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
