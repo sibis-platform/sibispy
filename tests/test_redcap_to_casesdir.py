@@ -29,6 +29,13 @@ red2cas = r2c.redcap_to_casesdir()
 if not red2cas.configure(session,redcap_project.metadata) :
     sys.exit(1)
 
-assert(red2cas.create_demographic_datadict("/tmp"))
-print "Wrote to /tmp/demographic.csv"
+fileName =red2cas.create_demographic_datadict("/tmp")
+assert(fileName)
+print "Wrote to " + fileName
+
+form_name = red2cas.get_export_form_names()[0]
+fileName = red2cas.create_datadict(form_name,"/tmp")
+assert(fileName)
+print "Wrote to " + fileName
+
 

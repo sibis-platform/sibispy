@@ -137,16 +137,20 @@ class redcap_to_casesdir(object):
                     field_dict[code_label[0]] = ', '.join(code_label[1:])
                 self.__code_to_label_dict[field['field_name']] = field_dict
 
+    def get_export_form_names(self):
+        return self.__export_forms.keys()
+
+    def create_datadict(self, export_name, datadict_dir):
+         export_form_entry_list = self.__export_forms[export_name]
+         size_entry_list = len(export_form_entry_list)
+         export_form_list = [export_name] * size_entry_list
+         return self.__create_datadicts_general__(datadict_dir, export_name, export_form_list,export_form_entry_list)
+
     # defining entry_list only makes sense if export_forms_list only consists of one
     # entry !
-    def create_datadicts(self, datadict_dir):
-        # Go over all exported forms
-        for export_name in self.__export_forms.keys():
-            export_form_entry_list = self.__export_forms[export_name]
-            size_entry_list = len(export_form_entry_list)
-            export_form_list = [export_name] * size_entry_list
-            self.__create_datadicts_general__(datadict_dir, export_name, export_form_list,export_form_entry_list)
-
+    def create_all_datadicts(self, datadict_dir):
+        for export_name in self.get_export_form_names():
+            self.create_datadict(export_name,datadict_dir)
         self.create_demographic_datadict(datadict_dir)
 
     def __reading_datadict_definitions__(self,dictionary_type):
@@ -172,9 +176,7 @@ class redcap_to_casesdir(object):
             return False
 
         # First two entries are extracted from SubjectID
-        export_form_list = []
-        for entry in  export_entry_list: 
-            export_form_list.append('demographics')
+        export_form_list = ['demographics'] * len(export_entry_list)
 
         return self.__create_datadicts_general__(datadict_dir, 'demographics', export_form_list,export_entry_list)
             
@@ -200,7 +202,7 @@ class redcap_to_casesdir(object):
 
 
         if not self.__reading_datadict_definitions__('general_datadict'):
-            return False
+            return None
 
         if not os.path.exists(datadict_dir):
             os.makedirs(datadict_dir)
@@ -231,8 +233,8 @@ class redcap_to_casesdir(object):
         dicFileName = os.path.join(datadict_dir,datadict_base_file + '_datadict.csv')
         try:
             ddict.to_csv(dicFileName, index=False)
-            return True
+            return dicFileName
         except Exception, err_msg:
             slog.info('redcap_to_casesdir.__create_datadicts_general__',"ERROR: could not export dictionary" + dicFileName, 
                       err_msg = str(err_msg))
-            return False
+            return None
