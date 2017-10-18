@@ -23,8 +23,10 @@ class check_dti_gradients(object):
 
     """
     def __init__(self):
-        self.__sibis_defs = None 
+        self.__decimals = -1
         self.__cases_dir = None
+        self.__sibis_defs = dict() 
+        self.__gt_gradients_dict = dict()
 
 
     def configure(self, sessionObj=None, check_decimals=1):
@@ -35,9 +37,7 @@ class check_dti_gradients(object):
 
         self.__cases_dir = sessionObj.get_cases_dir() 
         self.__decimals = check_decimals
-        self.__sibis_defs= dict()
-        self.__gt_gradients_dict = dict()
-
+        
         #
         # Define sibis_defs
         #
