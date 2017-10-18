@@ -7,6 +7,19 @@ Parse Arguments From Config File
 """
 import os
 import yaml
+from collections import OrderedDict
+
+def __ordered_load__(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+    class OrderedLoader(Loader):
+        pass
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return object_pairs_hook(loader.construct_pairs(node))
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+    return yaml.load(stream, OrderedLoader)
+
 
 class config_file_parser(object):
     """
@@ -29,7 +42,7 @@ class config_file_parser(object):
         self.__config_dict = None
         self.__config_file = None 
    
-    def configure(self, config_file=None, ):
+    def configure(self, config_file=None, ordered_load=False):
         """
         Configures the session object by first checking for an
         environment variable, then in the home directory.
@@ -46,7 +59,10 @@ class config_file_parser(object):
 
         try:
             with open(self.__config_file, 'r') as fi:
-                self.__config_dict = yaml.load(fi)
+                if ordered_load:
+                    self.__config_dict = __ordered_load__(fi, yaml.SafeLoader)
+                else : 
+                    self.__config_dict = yaml.load(fi)
 
         except IOError, err:
             return err
