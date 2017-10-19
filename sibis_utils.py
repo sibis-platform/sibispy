@@ -1,6 +1,8 @@
 # General Util functions
 from sibispy import sibislogger as slog
 
+date_format_ymd = '%Y-%m-%d'
+
 # "Safe" CSV export - this will catch IO errors from trying to write to a file
 # that is currently being read and will retry a number of times before giving
 # up. This function will also confirm whether the newly created file is

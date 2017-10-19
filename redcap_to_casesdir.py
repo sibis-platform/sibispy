@@ -23,8 +23,6 @@ class redcap_to_casesdir(object):
         self.__event_dict = dict()
         self.__forms_dir =  None 
         self.__sibis_defs = None
-        self.__date_format_ymd = None
-
 
     def configure(self, sessionObj, redcap_metadata):
         # Make sure it was set up correctly 
@@ -39,8 +37,6 @@ class redcap_to_casesdir(object):
             return False
 
         self.__sibis_defs = cfgParser.get_category('redcap_to_casesdir')
-
-        self.__date_format_ymd = self.__sibis_defs['date_format_ymd']
 
         # Reading in events 
         self.__event_dict = self.__transform_dict_string_into_tuple__('event_dictionary')
@@ -457,13 +453,7 @@ class redcap_to_casesdir(object):
         pipeline_workdir_rel = os.path.join( subject_code, arm_code, visit_code )
         return (arm_code,visit_code,pipeline_workdir_rel)
 
-    def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=None):
-        if not  date_format_ymd : 
-             date_format_ymd = self.__date_format_ymd
-
+    def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=sibis_utils.date_format_ymd):
         return (datetime.datetime.strptime( date_to_str, date_format_ymd ) - datetime.datetime.strptime( date_from_str, date_format_ymd ) ).days
-
-    #def get_import_forms(self):
-    #    return self.__import_forms
 
 
