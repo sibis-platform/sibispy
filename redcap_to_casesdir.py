@@ -5,6 +5,7 @@ import glob
 import hashlib
 import pandas 
 import datetime
+import subprocess
 from ast import literal_eval as make_tuple
 
 import sibispy
@@ -338,13 +339,13 @@ class redcap_to_casesdir(object):
 
         # if I read it correctly then this statement is not possible 
         if len(record) > 1:
-            slog.info(subject + visit_code, "ERROR: muliple records for that visit found for form '" + export_name + "'!" )
+            slog.info(subject + "-" + visit_code, "ERROR: muliple records for that visit found for form '" + export_name + "'!" )
             return None
 
         # Nothing to do 
         if not len(record):
             if verbose :
-                slog.info(subject + visit_code, "Info: visit data did not contain records of form '" + export_name + "'!" )
+                slog.info(subject  + "-" + visit_code, "Info: visit data did not contain records of form '" + export_name + "'!" )
                 
             return None
                 
@@ -459,4 +460,29 @@ class redcap_to_casesdir(object):
     def get_event_dictionary(self):
         return self.__event_dict
 
+    def schedule_cluster_job(self,job_script, job_title,log_file=None, verbose=False): 
+        sge_env = os.environ.copy()
+        sge_env['SGE_ROOT'] = '/opt/sge' 
+        sge_param = self.__sibis_defs['cluster_parameters'].split(',')   
+        qsub_args= [ '/opt/sge/bin/lx-amd64/qsub'] + sge_param + ['-N', '%s' % (job_title) ]
+        #stderr=subprocess.STDOUT
+        qsub_command = subprocess.Popen( qsub_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr= subprocess.PIPE, env=sge_env)
+        (stdoutdata, stderrdata) = qsub_command.communicate(job_script)
 
+        cmd_str='echo "%s" | %s\n' % (job_script," ".join(qsub_args)) 
+        if stderrdata : 
+            slog.info(job_title + "-" + hashlib.sha1(str(stderrdata)).hexdigest()[0:6],"ERROR: Failed to schedule job !", cmd = cmd_str, err_msg = str(stderrdata))
+            return False
+
+        if verbose: 
+            print  cmd_str
+            if stdoutdata:
+                print stdoutdata
+
+        if log_file: 
+            with open(log_file, "a") as myfile:
+               myfile.write(cmd_str)
+               myfile.write(stdoutdata) 
+
+
+        return True
