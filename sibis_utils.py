@@ -41,9 +41,8 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
     else:
         # Not equal or no old file: put new file in its final place
         os.rename(fname + '.new', fname)
-
-    if verbose:
-        print "Updated", fname
+        if verbose:
+            print "Updated", fname
 
     return True
     
