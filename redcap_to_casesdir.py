@@ -456,4 +456,7 @@ class redcap_to_casesdir(object):
     def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=sibis_utils.date_format_ymd):
         return (datetime.datetime.strptime( date_to_str, date_format_ymd ) - datetime.datetime.strptime( date_from_str, date_format_ymd ) ).days
 
+    def get_event_dictionary(self):
+        return self.__event_dict
+
 
