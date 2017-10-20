@@ -43,7 +43,7 @@ def main(args=None):
             if args.verbose:
                 print "Attempting to lock form: {0}".format(args.form)
 
-            locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, args.form, out_file = args.outfile, subject_id = args.subject_id)
+            locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, args.form, outfile = args.outfile, subject_id = args.subject_id)
             slog.takeTimer1("script_time","{'records': " + str(locked_record_num) + "}")
             if args.verbose:
                 print "The {0} form has been locked".format(args.form)

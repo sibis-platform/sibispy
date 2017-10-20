@@ -11,8 +11,12 @@ multiple systems. For example, XNAT, REDDCap, and Github.
 import ast
 import os
 import time
+import datetime
 import requests
 import hashlib
+import pandas as pd
+from pandas.io.sql import execute
+
 from sibispy import sibislogger as slog
 from sibispy import config_file_parser as cfg_parser
 
@@ -616,6 +620,129 @@ class Session(object):
             slog.takeTimer2("redcap_import_" + time_label, str(import_response)) 
         
         return import_response
+
+
+    def get_mysql_project_id(self, project_name):
+        """
+        Get the project ID from a project_name
+        
+        :param project_name: str
+        :param engine: sqlalchemy.Engine
+        :return: int
+        """
+        projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
+        project_id = projects[projects.project_name == project_name].project_id
+        return int(project_id)
+
+
+    def get_mysql_arm_id(self,arm_name, project_id):
+        """
+        Get an arm_id using the arm name and project_id
+
+        :param arm_name: str
+        :param project_id: int
+        :return: int
+        """
+        arms = pd.read_sql_table('redcap_events_arms', self.api['redcap_mysql_db'])
+        arm_id = arms[(arms.arm_name == arm_name) & (arms.project_id == project_id)].arm_id
+        return int(arm_id)
+
+
+    def get_mysql_event_id(self, event_descrip, arm_id):
+        """
+        Get an event_id using the event description and arm_id
+        
+        :param event_descrip: str
+        :param arm_id: int
+        :return: int
+        """
+        events = pd.read_sql_table('redcap_events_metadata', self.api['redcap_mysql_db'])
+        event_id = events[(events.descrip == event_descrip) & (events.arm_id == arm_id)].event_id
+        return int(event_id)
+
+    # 'redcap_locking_data'
+    def get_mysql_table_records(self,table_name,project_name, arm_name, event_descrip, form_name=None, subject_id=None):
+        """
+        Get a dataframe of forms for a specific event
+
+        :param project_name: str
+        :param arm_name: str
+        :param event_descrip: str
+        :return: pandas.DataFrame`
+        """
+
+        project_id = self.get_mysql_project_id(project_name)
+        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+        event_id = self.get_mysql_event_id(event_descrip, arm_id)
+        table_records = pd.read_sql_table(table_name, self.api['redcap_mysql_db'])
+        table_forms = table_records[(table_records.project_id == project_id) & (table_records.event_id == event_id)]
+        if form_name :
+            table_forms = table_forms[table_forms.form_name == form_name]
+
+        if subject_id:
+            table_forms = table_forms[table_forms.record == subject_id]
+
+        return table_forms
+
+
+    def get_mysql_project_records(self, project_name, arm_name, event_descrip, subject_id = None ):
+        """
+        Get a dataframe of records for a specific event
+        
+        :param project_name: str
+        :param arm_name: str
+        :param event_descrip: str
+        :param engine: `sqlalchemy.Engine`
+        :return: `pandas.DataFrame`
+        """
+        project_id = self.get_mysql_project_id(project_name)
+        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+        event_id = self.get_mysql_event_id(event_descrip, arm_id)
+        sql = "SELECT DISTINCT record " \
+              "FROM redcap.redcap_data AS rd " \
+              "WHERE rd.project_id = {0} " \
+              "AND rd.event_id = {1}".format(project_id, event_id)
+        if subject_id :
+            sql +=  " AND rd.record = '{0}';".format(subject_id)
+        else :
+            sql +=";"
+        
+        return pd.read_sql(sql, self.api['redcap_mysql_db'])
+    
+
+
+    def delete_mysql_table_records(self, table_name, record_list):
+        sql = 'DELETE FROM ' + table_name + ' WHERE ' + table_name + '.ld_id IN ({0});'.format(record_list)
+        execute(sql, self.api['redcap_mysql_db'])
+        return len(record_list)
+
+    def add_mysql_table_records(self, table_name, project_name, arm_name, event_descrip, form_name, record_list, outfile=None):
+        # get the ids needed to lock the forms
+        project_id = self.get_mysql_project_id(project_name)
+        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+        event_id = self.get_mysql_event_id(event_descrip, arm_id)
+
+        len_list = len(record_list)
+        user_name =  self.__config_usr_data.get_category('redcap')['user'] 
+        
+        project_id_series = [project_id] * len_list
+        event_id_series = [event_id] * len_list
+        form_name_series = [form_name] * len_list
+        username_series = [user_name] * len_list
+        additional_records = dict(project_id=project_id_series,
+                               record=record_list.record.tolist(),
+                               event_id=event_id_series,
+                               form_name=form_name_series,
+                               username=username_series,
+                               timestamp=datetime.datetime.now())
+
+        dataframe = pd.DataFrame(data=additional_records)
+        dataframe.to_sql(table_name, self.api['redcap_mysql_db'], if_exists='append', index=False)
+
+        if outfile : 
+            dataframe.record.to_csv(outfile, index=False)
+
+        return len(record_list)
 
 
 if __name__ == '__main__':
