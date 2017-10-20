@@ -6,5 +6,5 @@ for TEST in test_post_issues_to_github test_sibislogger.py  test_config_file_par
   echo "========================="
   echo "====  ${TEST}"
   echo "========================="
-  ./${TEST} ${CFG_FILE} 
+  ../tests/${TEST} ${CFG_FILE} 
 done 
