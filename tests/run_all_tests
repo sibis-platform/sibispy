@@ -1,0 +1,10 @@
+#!/bin/bash
+CFG_FILE=~/.sibis-general-config.yml 
+for TEST in test_post_issues_to_github test_sibislogger.py  test_config_file_parser.py test_session.py test_sibis_email.py test_check_dti_gradients.py test_redcap_to_casesdir.py; do  
+  echo " " 
+  echo " " 
+  echo "========================="
+  echo "====  ${TEST}"
+  echo "========================="
+  ./${TEST} ${CFG_FILE} 
+done 
