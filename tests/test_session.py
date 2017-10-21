@@ -158,6 +158,7 @@ for project in ['browser_penncnp', 'xnat', 'import_laptops', 'redcap_mysql_db', 
         
         elif project == 'redcap_mysql_db' : 
             pd.read_sql_table('redcap_projects', server)
+            # more detailed testing in test_redcap_locking_data
 
     except AssertionError:
         _, _, tb = sys.exc_info()

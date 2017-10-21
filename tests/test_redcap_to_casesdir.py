@@ -19,7 +19,7 @@ if sys.argv.__len__() > 1 :
 else :
     config_file = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
-slog.init_log(False, False,'test_check_dti_gradient', 'test_check_dti_gradient',None)
+slog.init_log(False, False,'test_redcap_to_casesdir', 'test_redcap_to_casesdir',None)
 
 session = sibispy.Session()
 assert(session.configure(config_file=config_file,ordered_config_load_flag = True))
