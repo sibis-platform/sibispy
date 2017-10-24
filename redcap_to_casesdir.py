@@ -461,13 +461,20 @@ class redcap_to_casesdir(object):
         return self.__event_dict
 
     def schedule_cluster_job(self,job_script, job_title,log_file=None, verbose=False): 
+        qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
+        if not os.path.exists(qsub_cmd):
+            slog.info(job_title + "-" +hashlib.sha1(str(job_script)).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
+            return False
+
         sge_env = os.environ.copy()
         sge_env['SGE_ROOT'] = '/opt/sge' 
         sge_param = self.__sibis_defs['cluster_parameters'].split(',')   
-        qsub_args= [ '/opt/sge/bin/lx-amd64/qsub'] + sge_param + ['-N', '%s' % (job_title) ]
+
+        
+        qsub_args= [ qsub_cmd ] + sge_param + ['-N', '%s' % (job_title) ]
         #stderr=subprocess.STDOUT
-        qsub_command = subprocess.Popen( qsub_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr= subprocess.PIPE, env=sge_env)
-        (stdoutdata, stderrdata) = qsub_command.communicate(job_script)
+        qsub_process = subprocess.Popen( qsub_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr= subprocess.PIPE, env=sge_env)
+        (stdoutdata, stderrdata) = qsub_process.communicate(job_script)
 
         cmd_str='echo "%s" | %s\n' % (job_script," ".join(qsub_args)) 
         if stderrdata : 
