@@ -66,7 +66,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['browser_penncnp', 'xnat', 'import_laptops', 'redcap_mysql_db', 'data_entry'] :
+for project in ['browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_entry', 'xnat'] :
     print "==== Testing " + project + " ====" 
     try : 
         server = session.connect_server(project, True)
