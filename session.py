@@ -630,7 +630,12 @@ class Session(object):
         :param engine: sqlalchemy.Engine
         :return: int
         """
-        projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
+        try : 
+            projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
+        except Exception, err_msg:
+            slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg)).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
+            return None
+            
         project_id = projects[projects.project_name == project_name].project_id
         return int(project_id)
 
@@ -672,6 +677,9 @@ class Session(object):
         """
 
         project_id = self.get_mysql_project_id(project_name)
+        if not project_id : 
+            return None 
+
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
         table_records = pd.read_sql_table(table_name, self.api['redcap_mysql_db'])
@@ -696,6 +704,9 @@ class Session(object):
         :return: `pandas.DataFrame`
         """
         project_id = self.get_mysql_project_id(project_name)
+        if not project_id : 
+            return None 
+
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
         sql = "SELECT DISTINCT record " \
@@ -719,6 +730,9 @@ class Session(object):
     def add_mysql_table_records(self, table_name, project_name, arm_name, event_descrip, form_name, record_list, outfile=None):
         # get the ids needed to lock the forms
         project_id = self.get_mysql_project_id(project_name)
+        if not project_id : 
+            return -1
+
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
