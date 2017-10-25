@@ -195,14 +195,14 @@ class Session(object):
         # Set up Browser
         # Configure Firefox profile for automated file download
         from selenium import webdriver
-       
+        
         fp = webdriver.FirefoxProfile()
         fp.set_preference("browser.download.folderList",2)
         fp.set_preference("browser.download.manager.showWhenStarting",False)
         fp.set_preference("browser.download.dir", os.getcwd())
         fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel")
-        browser = webdriver.Firefox( firefox_profile=fp )
-
+        browser = webdriver.Firefox( firefox_profile=fp, log_path="/tmp/geckodriver.log")       
+ 
         # Log into website
         browser.get(penncnp_srv_data["server"])
         browser.find_element_by_name("adminid").send_keys(penncnp_usr_data['user'] )
