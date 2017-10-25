@@ -678,7 +678,7 @@ class Session(object):
 
         project_id = self.get_mysql_project_id(project_name)
         if not project_id : 
-            return None 
+            return pandas.DataFrame()  
 
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
@@ -705,7 +705,7 @@ class Session(object):
         """
         project_id = self.get_mysql_project_id(project_name)
         if not project_id : 
-            return None 
+            return pandas.DataFrame() 
 
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)

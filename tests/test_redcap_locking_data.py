@@ -55,7 +55,7 @@ project_name = config_test_data.get('project_name')
 
 all_subject_ids = session.get_mysql_project_records(project_name,arm_name, event_name) 
 # if it returned no subject ids than something went wrong
-assert(all_subject_ids)
+assert(not all_subject_ids.empty)
 test_subject = all_subject_ids.record.iloc[0]
 print red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name)
 
