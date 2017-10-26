@@ -355,6 +355,10 @@ class Session(object):
     def get_xnat_dir(self):
         return os.path.join(self.__config_usr_data.get_value('import_dir'),'XNAT')
 
+    # Important for redcap front end - not sibis programs
+    def get_redcap_uploads_dir(self):
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),'redcap')
+
     def get_xnat_server_address(self):
         return self.__config_usr_data.get_value('xnat','server')
 
