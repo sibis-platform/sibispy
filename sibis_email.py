@@ -73,7 +73,7 @@ class sibis_email:
         
             # Send email also to sibis admin if defined
             if self._sibis_admin_email and to_email != self._sibis_admin_email : 
-                print "blub test sibis_email (admin and to_emnail)", self._sibis_admin_email, to_email 
+                # print "blub test sibis_email (admin and to_emnail)", self._sibis_admin_email, to_email 
 
                 s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
         except Exception, err_msg:
