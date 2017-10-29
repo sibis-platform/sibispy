@@ -369,7 +369,8 @@ def main(args=None):
             git_issue= get_issue(repo, subject , label, False)
 
             if git_issue:
-                print "Closing", str(issue) 
+                if args.verbose:
+                    print "Closing", str(issue) 
                 try: 
                     git_issue.edit(state='close')
                 except GithubException as error:

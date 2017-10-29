@@ -41,7 +41,6 @@ smail.add_user_message('testA', 'user-test 1', 't', 'estA', email_adr)
 smail.add_user_message('testA', 'user-test 2')
 smail.add_user_message('testB', 'user-test 3', 'te', 'stB', email_adr)
 smail.add_admin_message('admin-test 1')
-smail.dump_all()
 smail.send_all('test_sibis_email','TEST USER INTRO', 'TEST_PROLOG', 'TEST ADMIN INTRO')
 
 
@@ -60,5 +59,5 @@ else :
     
 xmail.add_user_message(uName, 'xnat-user-test 1')
 xmail.add_user_message(uName, 'xnat-user-test 2')
-xmail.dump_all()
+# xmail.dump_all()
 xmail.send_all()

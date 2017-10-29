@@ -30,7 +30,7 @@ assert(errcode)
 
 # Front end right now 
 print "=== Front End " 
-assert(sutils.dicom2bxh(None,None))
 assert(sutils.htmldoc("-h"))
+assert(sutils.dicom2bxh(None,None))
 assert(sutils.detect_adni_phantom("-man"))
 

@@ -10,7 +10,6 @@ else
     cfg_file="data/.sibis-general-config.yml"
 fi 
 
-python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --config $cfg_file -v
-python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --close --config $cfg_file -v
-
+python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --config $cfg_file 
+python ../post_issues_to_github.py --title "Unit Test (testing)" --body ${tmpfile} --close --config $cfg_file 
 rm -f ${tmpfile}
