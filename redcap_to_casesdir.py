@@ -10,7 +10,7 @@ from ast import literal_eval as make_tuple
 
 import sibispy
 from sibispy import sibislogger as slog
-from sibispy import sibis_utils
+from sibispy import utils as sutils
 from sibispy import config_file_parser as cfg_parser
 
 class redcap_to_casesdir(object):
@@ -324,7 +324,7 @@ class redcap_to_casesdir(object):
             for (key, value) in demographics:
                 series = series.set_value(key, value)
 
-            return sibis_utils.safe_dataframe_to_csv(pandas.DataFrame(series).T,os.path.join(measures_dir, 'demographics.csv'),verbose=verbose)
+            return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,os.path.join(measures_dir, 'demographics.csv'),verbose=verbose)
 
     def export_subject_form(self, export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose = False):
         # Remove the complete field from the list of forms
@@ -387,7 +387,7 @@ class redcap_to_casesdir(object):
         record.columns = output_fields
 
         # Figure out path for CSV file and export this record
-        return sibis_utils.safe_dataframe_to_csv(record,os.path.join(measures_dir, export_name + '.csv'),verbose=verbose)
+        return sutils.safe_dataframe_to_csv(record,os.path.join(measures_dir, export_name + '.csv'),verbose=verbose)
 
     # First get data for all fields across all forms in this event - this
     # speeds up transfers over getting each form separately
@@ -454,7 +454,7 @@ class redcap_to_casesdir(object):
         pipeline_workdir_rel = os.path.join( subject_code, arm_code, visit_code )
         return (arm_code,visit_code,pipeline_workdir_rel)
 
-    def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=sibis_utils.date_format_ymd):
+    def days_between_dates( self, date_from_str, date_to_str, date_format_ymd=sutils.date_format_ymd):
         return (datetime.datetime.strptime( date_to_str, date_format_ymd ) - datetime.datetime.strptime( date_from_str, date_format_ymd ) ).days
 
     def get_event_dictionary(self):
