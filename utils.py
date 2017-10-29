@@ -101,6 +101,19 @@ def Rscript(args) :
     return call_shell_program('/usr/bin/Rscript ' + args)
     
 
+def sas(sas_script) :
+    sas_path = os.path.join( os.path.expanduser("~"), '.wine', 'drive_c', 'Program Files', 'SAS', 'SAS 9.1', 'sas.exe' )
+    if not sas_script : 
+        return not subprocess.call( ['wine', sas_path, '-h'], stderr=devnull )
+
+    sas_script_path = 'S:\\%s' % sas_script
+    return not subprocess.call( ['wine', sas_path, '-SYSIN', sas_script_path, '-NOSPLASH'], stderr=devnull )
+
+
+def manipula(man_script) :
+    return subprocess.call( ['wine', os.path.join( os.path.expanduser("~"), 'src', 'manipula', 'Manipula.exe' ), man_script ], stderr=devnull )
+
+
 def call_shell_program(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = process.communicate()

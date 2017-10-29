@@ -33,4 +33,5 @@ print "=== Front End "
 assert(sutils.htmldoc("-h"))
 assert(sutils.dicom2bxh(None,None))
 assert(sutils.detect_adni_phantom("-man"))
-
+# assert(sutils.sas(None))
+# assert(sutils.manipula('-h'))
