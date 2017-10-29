@@ -41,18 +41,18 @@ log.takeTimer1('should be 0:01:001')
 if not os.path.isfile('/tmp/test_sibislogger-time_log.csv') :
    sys.exit(1)
 
-log.verbose = True
+log.verbose = False
 
 # just normal 
 
-print "============== Test 1 ==================="
-print "Push issue to logger"
+#print "============== Test 1 ==================="
+#print "Push issue to logger"
 blub = log.info('sibislogger_test_1',"Unit Testing 1", msg="Please ignore message")
 
 # find out how to close issues from api 
 # post to github 
-print "============== Test 2 ==================="
-print "Post issue on GitHub"
+#print "============== Test 2 ==================="
+#print "Post issue on GitHub"
 log.startTimer2()
 issue_label_text='testing'
 log.post_to_github('Unit Test', issue_label_text)
@@ -63,12 +63,12 @@ if log.postGithubRepo :
   iID="sibislogger_test_2"
   iTitle= "Testing 2"
 
-  print "Issue exists:",
+  # print "Issue exists:",
   log.startTimer2()
   issue=pig.get_issue(log.postGithubRepo, iID + ", " +  iTitle,issue_label)
   log.takeTimer2("Test 2: Post Github: Get Issue")
   if issue:
-    print "yes, closed"
+    # print "yes, closed"
     log.startTimer2()
     issue.edit(state='close')
     log.takeTimer2("Test 2: Post Github: Change State")
@@ -76,8 +76,8 @@ if log.postGithubRepo :
     print "No" 
 
   log.info(iID,iTitle, msg="Please ignore message")
-  print "============== Test 3 ==================="
-  print "Issue should already exist!"
+  #print "============== Test 3 ==================="
+  #print "Issue should already exist!"
   log.info('sibislogger_test_2',"Testing 2", msg="Please ignore message")
 
   # Close issue 
