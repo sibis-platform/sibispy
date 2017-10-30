@@ -57,24 +57,24 @@ def dicom2bxh(dicom_path, bhx_file) :
     return not subprocess.call(cmd, shell=True)
 
 def htmldoc(args) :
-    return not subprocess.call("htmldoc " + args, shell=True)
+    return call_shell_program("htmldoc " + args)
 
 dcm2image_cmd = 'cmtk dcm2image '
 def dcm2image(args, verbose = False) :
     cmd = dcm2image_cmd + args
     if verbose : 
         print cmd 
-    return not subprocess.call(cmd, shell=True)
+    return call_shell_program(cmd)
  
 def detect_adni_phantom(args) : 
     return not subprocess.call('cmtk detect_adni_phantom ' + args, shell=True)
 
-def gzip(opt,file_path) :
-    return not subprocess.call( [ 'gzip', opt, file_path ] )
+def gzip(args) :
+    return  call_shell_program('gzip ' + args)
 
 def zip(baseDir,zipFile,fileNames): 
     cmd = 'cd %s; /usr/bin/zip -rqu %s %s' % (baseDir, zipFile, fileNames)
-    return not subprocess.call(cmd, shell=True)
+    return  call_shell_program(cmd)
 
 def tar(args) :
     return call_shell_program('tar ' + args)

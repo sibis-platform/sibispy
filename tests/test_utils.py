@@ -18,19 +18,44 @@ from sibispy import session as sess
 
 slog.init_log(False, False,'test_sibis_utils', 'test_sibis_utils',None)
 
-assert(sutils.dcm2image("--man"))
-assert(sutils.gzip("-h",""))
-assert(sutils.zip(".","-h",""))
-(errcode, stdout, stderr) = sutils.tar("-h")
-assert(errcode)
-(errcode, stdout, stderr) = sutils.make_nifti("-h")
-assert(errcode)
+(errcode, stdout, stderr) = sutils.dcm2image("--man")
+if errcode : 
+    print "Error; dcm2image: ", stderr
+    sys.exit(1) 
+
+
+(errcode, stdout, stderr) = sutils.gzip("-h")
+if errcode : 
+    print "Error; gzip: ", stderr
+    sys.exit(1) 
+
+(errcode, stdout, stderr) = sutils.zip(".","--help","")
+if errcode : 
+    print "Error; zip: ", stderr
+    sys.exit(1) 
+
+(errcode, stdout, stderr) = sutils.tar("--help")
+if errcode : 
+    print "Error; tar: ", stderr
+    sys.exit(1) 
+
 (errcode, stdout, stderr) = sutils.Rscript("-h")
-assert(errcode)
+if errcode : 
+    print "Error; Rscript: ", stderr
+    sys.exit(1) 
+
+(errcode, stdout, stderr) = sutils.make_nifti("-h")
+if errcode : 
+    print "Error; make_nifti: ", stderr
+    sys.exit(1) 
 
 # Front end right now 
 print "=== Front End " 
-assert(sutils.htmldoc("-h"))
+(ecode,sout,eout) = sutils.htmldoc("--help")
+if ecode > 1 : 
+    print "Error; htmldoc: ", eout
+    sys.exit(1) 
+
 assert(sutils.dicom2bxh(None,None))
 assert(sutils.detect_adni_phantom("-man"))
 # assert(sutils.sas(None))
