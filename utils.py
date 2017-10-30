@@ -1,7 +1,12 @@
 # General Util functions
 from sibispy import sibislogger as slog
-
 import subprocess
+import re
+import tempfile
+import shutil
+import os.path
+import pandas
+import hashlib
 
 date_format_ymd = '%Y-%m-%d'
 
@@ -118,3 +123,46 @@ def call_shell_program(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = process.communicate()
     return process.returncode, out, err
+
+
+#
+# Formarly in Rwrapper.py 
+#
+
+# Label translation function - LimeSurvey to SRI/old REDCap style
+def label_of_limesurvey_to_redcap( prefix, ls_label ):
+    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( '[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
+
+# Map labels in a list according to a dictionary
+def map_labels_to_dict( labels, ldict ):
+    new_labels = list()
+    for label in labels:
+        if label in ldict.keys():
+            new_labels.append( ldict[label] )
+        else:
+            new_labels.append( label )
+    return new_labels
+
+# Score one record by running R script
+def run_rscript( row, scores_key=None ):
+    tmpdir = tempfile.mkdtemp()
+
+    data_csv = os.path.join( tmpdir, 'data.csv' )
+    scores_csv = os.path.join( tmpdir, 'scores.csv' )
+
+    pandas.DataFrame( row ).T.to_csv( data_csv )
+
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+
+    (errcode, stdout, stderr) = Rscript(str(os.path.join( module_dir, Rscript )) + " " +  data_csv + " " + scores_csv)
+    if errcode : 
+        slog.info("Rwrapper.runscript." + hashlib(str(stderr)).hexdigest()[0:6],"Error: Rscript failed !" , err_msg = str(stderr) )
+        return None
+        
+    scores = pandas.read_csv( scores_csv, index_col=None )
+    shutil.rmtree( tmpdir )
+    if scores_key : 
+        return pandas.Series( name = row.name, data = scores.to_dict()[scores_key] )
+    else : 
+        return scores.ix[0]
+
