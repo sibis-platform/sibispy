@@ -36,27 +36,31 @@ class sibisLogging():
         self.fileTime=None
         self.verbose = False
 
+    def create_log(self,uid, message, **kwargs):
+        # Turn message into a ordered dictionary
+        self.log.update(experiment_site_id=uid,
+                        error=message)
+        self.log.update(kwargs)
+        jlog = json.dumps(self.log)
+        self.log.clear()
+        return jlog
+        
     def info(self, uid, message, **kwargs):
         """
         Replaces logging.info
         if postGithubRepo is defined then posts it to github instead of logger
         """
-        # Turn message into a ordered dictionary
-        self.log.update(experiment_site_id=uid,
-                        error=message)
-        self.log.update(kwargs)
-        log = json.dumps(self.log)
-        self.log.clear()
+        jlog = self.create_log(uid, message, **kwargs)
 
         if self.postGithubRepo :
             if self.verbose:
                 print "Posting", uid, str(message)
 
-            return pig.create_issues_from_list(self.postGithubRepo, self.postGithubTitle, self.postGithubLabel, [log],self.verbose)
+            return pig.create_issues_from_list(self.postGithubRepo, self.postGithubTitle, self.postGithubLabel, [jlog],self.verbose)
 
         # Post output to logger 
         # return self.logging.info(log)
-        print log 
+        print jlog 
 
     def post_to_github(self,general_title,git_label):
         if self.verbose:
@@ -145,6 +149,28 @@ class sibisLogging():
 
     def takeTimer2(self,label=None,info=None):
         self._stopTimerGeneral(2,label,info)
+
+
+#
+# Specifically to raise an error that then can be easily posted to slgo.info ! 
+#
+class sibisExecutionError(Exception):
+    def __init__(self, uid, msg, **kwargs):
+        self.uid = uid 
+        self.msg = msg
+        self.info =kwargs
+
+    def slog_post(self):
+        if self.info :
+            log.info(self.uid, self.msg, **self.info)
+        else : 
+            log.info(self.uid, self.msg)
+
+    def __str__(self):
+        if self.info :
+            return str(log.create_log(self.uid, self.msg, **self.info))
+        else : 
+            return str(log.create_log(self.uid, self.msg))
 
 
 def init_log(verbose=False,post_to_github=False,github_issue_title="",github_issue_label="",timerDir=None):

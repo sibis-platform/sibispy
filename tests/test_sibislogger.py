@@ -10,7 +10,7 @@
 # otherwise will run with data/.sibis-general-config.yml
 
 
-from sibispy import sibislogger
+from sibispy import sibislogger as slog
 from sibispy import post_issues_to_github as pig
 import os 
 import sys
@@ -21,7 +21,17 @@ if sys.argv.__len__() > 1 :
 else :
     config_file= os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
 
-log = sibislogger.sibisLogging(config_file=config_file)
+
+# does not require config file as we do not parse to github 
+slog.init_log(False, False,'test_sibislogger', 'test_sibislogger',None)
+try : 
+    raise slog.sibisExecutionError('label','title', test1 = '2', test2 = '4')
+except slog.sibisExecutionError as err:
+    print str(err)
+    err.slog_post()
+
+# test timer and posting to github 
+log = slog.sibisLogging(config_file=config_file)
 
 if os.path.isfile('/tmp/test_sibislogger-time_log.csv') : 
    os.remove('/tmp/test_sibislogger-time_log.csv') 
