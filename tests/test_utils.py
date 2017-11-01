@@ -34,16 +34,16 @@ if errcode :
 if errcode : 
     print "Error: tar: ", stderr
 
-(errcode, stdout, stderr) = sutils.Rscript("--help")
-if errcode : 
-    print "Error: Rscript: ", stderr
-
 (errcode, stdout, stderr) = sutils.make_nifti("-h")
 if errcode : 
     print "Error: make_nifti: ", stderr
 
 # Front end right now 
 print "=== Front End " 
+(errcode, stdout, stderr) = sutils.Rscript("--help")
+if errcode : 
+    print "Error: Rscript: ", stderr
+
 (ecode,sout,eout) = sutils.htmldoc("--help")
 if ecode > 1 : 
     print "Error: htmldoc: ", eout
