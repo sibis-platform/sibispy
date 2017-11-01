@@ -322,7 +322,6 @@ class Session(object):
 
         return (sys_file_parser, None)
 
-        
     def get_cases_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
