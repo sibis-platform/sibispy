@@ -24,6 +24,8 @@ class redcap_to_casesdir(object):
         self.__event_dict = dict()
         self.__forms_dir =  None 
         self.__sibis_defs = None
+        self.__scanner_dict = None
+
 
     def configure(self, sessionObj, redcap_metadata):
         # Make sure it was set up correctly 
@@ -38,6 +40,11 @@ class redcap_to_casesdir(object):
             return False
 
         self.__sibis_defs = cfgParser.get_category('redcap_to_casesdir')
+
+        self.__scanner_dict = self.__sibis_defs['scanner_dict']
+        for TYPE in self.__scanner_dict.keys() : 
+            self.__scanner_dict[TYPE] = self.__scanner_dict[TYPE].split(",")
+
 
         # Reading in events 
         self.__event_dict = self.__transform_dict_string_into_tuple__('event_dictionary')
@@ -261,24 +268,18 @@ class redcap_to_casesdir(object):
         else:
             return age_in
 
-    # NCANDA SPECIFIC - Generalize later
     def __get_scanner_mfg_and_model__(self, mri_scanner, expid):
         if mri_scanner == 'nan' :
-            return "",""
+            return ["",""]
 
         mri_scanner= mri_scanner.upper()
-        if 'DISCOVERY MR750' in mri_scanner :
-            return 'ge', 'MR750'
-        elif 'PRISMA_FIT' in mri_scanner :
-            return 'siemens', 'Prisma_Fit'
-        elif 'TRIOTRIM' in mri_scanner or 'TRIOTIM' in mri_scanner:
-            return 'siemens', 'TrioTim'
-        else :
-            slog.info(expid, "Error: Do not know scanner type",
-                       script='redcap_to_casesdir.py',
-                       mri_scanner = mri_scanner)
+        for TYPE in self.__scanner_dict.keys() : 
+            if TYPE in mri_scanner :
+                return self.__scanner_dict[TYPE]
 
-        return "",""
+        slog.info(expid, "Error: Do not know scanner type", script='redcap_to_casesdir.py', mri_scanner = mri_scanner)
+        return ["",""]
+
 
     # NCANDA SPECIFIC - Generalize later
     # Create "demographics" file "by hand" - this includes some text fields
