@@ -78,6 +78,11 @@ def gzip(args) :
     return  call_shell_program('gzip ' + args)
 
 def zip(baseDir,zipFile,fileNames): 
+    # if file already exists then first delete it otherwise zip returns code other than 0 ! 
+    absZipFile = os.path.join(baseDir,zipFile)
+    if os.path.exists(absZipFile):
+        os.remove(absZipFile)
+ 
     cmd = 'cd %s; /usr/bin/zip -rqu %s %s' % (baseDir, zipFile, fileNames)
     return  call_shell_program(cmd)
 
