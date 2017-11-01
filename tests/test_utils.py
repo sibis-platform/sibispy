@@ -20,43 +20,41 @@ slog.init_log(False, False,'test_sibis_utils', 'test_sibis_utils',None)
 
 (errcode, stdout, stderr) = sutils.dcm2image("--man")
 if errcode : 
-    print "Error; dcm2image: ", stderr
-    sys.exit(1) 
-
+    print "Error: dcm2image: ", stderr
 
 (errcode, stdout, stderr) = sutils.gzip("-h")
 if errcode : 
-    print "Error; gzip: ", stderr
-    sys.exit(1) 
+    print "Error: gzip: ", stderr
 
 (errcode, stdout, stderr) = sutils.zip(".","--help","")
 if errcode : 
-    print "Error; zip: ", stderr
-    sys.exit(1) 
+    print "Error: zip: ", stderr
 
 (errcode, stdout, stderr) = sutils.tar("--help")
 if errcode : 
-    print "Error; tar: ", stderr
-    sys.exit(1) 
+    print "Error: tar: ", stderr
 
-(errcode, stdout, stderr) = sutils.Rscript("-h")
+(errcode, stdout, stderr) = sutils.Rscript("--help")
 if errcode : 
-    print "Error; Rscript: ", stderr
-    sys.exit(1) 
+    print "Error: Rscript: ", stderr
 
 (errcode, stdout, stderr) = sutils.make_nifti("-h")
 if errcode : 
-    print "Error; make_nifti: ", stderr
-    sys.exit(1) 
+    print "Error: make_nifti: ", stderr
 
 # Front end right now 
 print "=== Front End " 
 (ecode,sout,eout) = sutils.htmldoc("--help")
 if ecode > 1 : 
-    print "Error; htmldoc: ", eout
-    sys.exit(1) 
+    print "Error: htmldoc: ", eout
 
-assert(sutils.dicom2bxh(None,None))
-assert(sutils.detect_adni_phantom("-man"))
+(ecode,sout,eout) = sutils.dicom2bxh(None,None)
+if ecode : 
+    print "Error: dicom2bxh: ", eout
+
+(ecode,sout,eout) = sutils.detect_adni_phantom("--man")
+if ecode : 
+    print "Error: detect_adni_phantom: ", eout
+
 # assert(sutils.sas(None))
 # assert(sutils.manipula('-h'))

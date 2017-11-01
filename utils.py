@@ -59,7 +59,7 @@ def dicom2bxh(dicom_path, bhx_file) :
         cmd += "%s/* %s >& /dev/null" % ( dicom_path, bxh_file )
         
     # Everything but 0 indicates an error occured 
-    return not subprocess.call(cmd, shell=True)
+    return call_shell_program(cmd)
 
 def htmldoc(args) :
     return call_shell_program("htmldoc " + args)
@@ -71,8 +71,8 @@ def dcm2image(args, verbose = False) :
         print cmd 
     return call_shell_program(cmd)
  
-def detect_adni_phantom(args) : 
-    return not subprocess.call('cmtk detect_adni_phantom ' + args, shell=True)
+def detect_adni_phantom(args) :
+    return call_shell_program('cmtk detect_adni_phantom ' + args)
 
 def gzip(args) :
     return  call_shell_program('gzip ' + args)
@@ -121,8 +121,8 @@ def manipula(man_script) :
 
 def call_shell_program(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = process.communicate()
-    return process.returncode, out, err
+    (out, err) = process.communicate()
+    return (process.returncode, out, err)
 
 
 #
@@ -130,7 +130,7 @@ def call_shell_program(cmd):
 #
 
 # Label translation function - LimeSurvey to SRI/old REDCap style
-def label_of_limesurvey_to_redcap( prefix, ls_label ):
+def limesurvey_label_in_redcap( prefix, ls_label ):
     return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( '[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
 
 # Map labels in a list according to a dictionary
@@ -144,7 +144,7 @@ def map_labels_to_dict( labels, ldict ):
     return new_labels
 
 # Score one record by running R script
-def run_rscript( row, scores_key=None ):
+def run_rscript( row, script, scores_key = None):
     tmpdir = tempfile.mkdtemp()
 
     data_csv = os.path.join( tmpdir, 'data.csv' )
@@ -152,17 +152,18 @@ def run_rscript( row, scores_key=None ):
 
     pandas.DataFrame( row ).T.to_csv( data_csv )
 
-    module_dir = os.path.dirname(os.path.abspath(__file__))
+    args = script + " " +  data_csv + " " + scores_csv 
+    (errcode, stdout, stderr) = Rscript(args)
+    if errcode :
+        # because it is run by apply we need to raise error 
+        raise slog.sibisExecutionError('utils.run_rscript.' + hashlib.sha1(str(stderr)).hexdigest()[0:6], 'Error: Rscript failed !', err_msg= str(stderr), args= args)
 
-    (errcode, stdout, stderr) = Rscript(str(os.path.join( module_dir, Rscript )) + " " +  data_csv + " " + scores_csv)
-    if errcode : 
-        slog.info("Rwrapper.runscript." + hashlib(str(stderr)).hexdigest()[0:6],"Error: Rscript failed !" , err_msg = str(stderr) )
-        return None
-        
+    if scores_key : 
+        scores = pandas.read_csv( scores_csv, index_col=0 )
+        shutil.rmtree( tmpdir )
+        return pandas.Series( name = row.name, data = scores.to_dict()[scores_key] )
+
     scores = pandas.read_csv( scores_csv, index_col=None )
     shutil.rmtree( tmpdir )
-    if scores_key : 
-        return pandas.Series( name = row.name, data = scores.to_dict()[scores_key] )
-    else : 
-        return scores.ix[0]
+    return scores.ix[0]
 
