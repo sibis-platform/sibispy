@@ -262,7 +262,7 @@ class redcap_to_casesdir(object):
             return age_in
 
     # NCANDA SPECIFIC - Generalize later
-    def __get_scanner_mfg_and_model__(self, mri_scanner, subject):
+    def __get_scanner_mfg_and_model__(self, mri_scanner, expid):
         if mri_scanner == 'nan' :
             return "",""
 
@@ -274,7 +274,7 @@ class redcap_to_casesdir(object):
         elif 'TRIOTRIM' in mri_scanner or 'TRIOTIM' in mri_scanner:
             return 'siemens', 'TrioTim'
         else :
-            slog.info(subject, "Error: Do not know scanner type",
+            slog.info(expid, "Error: Do not know scanner type",
                        script='redcap_to_casesdir.py',
                        mri_scanner = mri_scanner)
 
@@ -290,7 +290,7 @@ class redcap_to_casesdir(object):
             race_code = re.sub('(.0)|(nan)', '', str(subject_data['race']))
 
             # scanner manufacturer map
-            scanner_mfg, scanner_model = self.__get_scanner_mfg_and_model__(str(visit_data['mri_scanner']),subject)
+            scanner_mfg, scanner_model = self.__get_scanner_mfg_and_model__(str(visit_data['mri_scanner']), subject + "-" + visit_code)
 
             demographics = [
                 ['subject', subject_code],
