@@ -97,8 +97,8 @@ for instrument in instrument_list:
     if args.verbose:
         print len_scored_records, 'scored records to upload'
 
-    if args.save_to_file:
-        scored_records.to_csv(save_to_file)
+    if args.no_upload:
+        scored_records.to_csv(args.no_upload)
         continue  
 
     uploaded = red_score_update.upload_summary_scores_to_redcap(instrument,scored_records)
