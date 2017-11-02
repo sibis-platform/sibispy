@@ -108,7 +108,7 @@ def sprlioadd(args):
 def make_nifti_from_spiral(spiral_file, outfile):
     errcode, stdout, stderr =  make_nifti("-s 0 %s %s" % (spiral_file, outfile[:-7]))
     if os.path.exists(outfile[:-3]):
-        gzip('-9',outfile[:-3])
+        gzip('-9 ' +  outfile[:-3])
 
     return errcode, stdout, stderr
 
