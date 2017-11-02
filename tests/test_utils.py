@@ -37,6 +37,13 @@ if errcode :
 (errcode, stdout, stderr) = sutils.make_nifti("-h")
 if errcode : 
     print "Error: make_nifti: ", stderr
+else : 
+    # required by make_nifti 
+    (errcode, stdout, stderr) = sutils.sprlioadd("")
+    if errcode : 
+        print "Error: sprlioadd: ", stderr
+
+
 
 # Front end right now 
 print "=== Front End " 

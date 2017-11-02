@@ -87,17 +87,23 @@ def zip(baseDir,zipFile,fileNames):
     return  call_shell_program(cmd)
 
 def tar(args) :
-    return call_shell_program('tar ' + args)
+    cmd = 'tar ' + args
+    return call_shell_program(cmd)
 
 def untar(tarfile, out_dir):
-    args = "-xzf %(tarfile)s --directory=%(out_dir)s"
-    args % {'tarfile':tarfile,
-                 'out_dir':out_dir
-                 }
+    args = "-xzf " + tarfile + " --directory=" + out_dir
     return tar(args)
 
 def make_nifti(args):
-    return call_shell_program("makenifti " + args)
+    cmd = "makenifti " + args
+    return call_shell_program(cmd)
+
+# called by makenifti - we just have it hear for testing that makenifti runs 
+def sprlioadd(args):
+    cmd = "sprlioadd " + args
+    return call_shell_program(cmd)
+
+
 
 def make_nifti_from_spiral(spiral_file, outfile):
     errcode, stdout, stderr =  make_nifti("-s 0 %s %s" % (spiral_file, outfile[:-7]))
