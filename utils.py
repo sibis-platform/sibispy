@@ -57,6 +57,8 @@ def dicom2bxh(dicom_path, bhx_file) :
     cmd = "dicom2bxh " 
     if dicom_path and bhx_file :
         cmd += "%s/* %s >& /dev/null" % ( dicom_path, bxh_file )
+    else :
+        cmd += "--help" 
         
     # Everything but 0 indicates an error occured 
     return call_shell_program(cmd)
