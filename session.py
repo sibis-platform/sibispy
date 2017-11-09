@@ -361,7 +361,8 @@ class Session(object):
     def get_xnat_server_address(self):
         return self.__config_usr_data.get_value('xnat','server')
 
-    def xnat_get_experiment(self,eid): 
+    # makes a difference where later saved file on disk how the function is called 
+    def xnat_get_experiment(self,eid,project=None,subject_label=None): 
         xnat_api = self.__get_xnat_api__()
         if not xnat_api:
             error_msg = "XNAT API is not defined! Cannot retrieve experiment!",
@@ -369,29 +370,43 @@ class Session(object):
                       function = "session.xnat_get_experiment")
             return None
  
+        # makes a difference where later saved file on disk how the function is called 
+        if project and subject_label: 
+            select_object =  self.xnat_get_subject(project,subject_label)
+            if not select_object  :
+                slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
+                return None
+        else :
+            select_object =  xnat_api.select
+
         try : 
-            xnat_experiment = xnat_api.select.experiment(eid)
+            xnat_experiment = select_object.experiment(eid)
 
         except Exception, err_msg:
-            slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: experiment could not be found!",
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: problem with xnat api !",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_experiment")
             return None
-            
+
+        # not sure how this would ever happen
         if not xnat_experiment:
-            slog.info(eid + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6],"ERROR: experiment not found!", 
-            function = "session.xnat_get_experiment")
+            slog.info(eid,"ERROR: session.xnat_get_subject_attribute: experiment not created - problem with xnat api!")
+            return None
+
+        if not xnat_experiment.exists() :
+            slog.info(eid,"ERROR: session.xnat_get_subject_attribute: experiment does not exist !") 
+            return None
+
 
         return xnat_experiment
 
     # replaces xnat_api.select.project(prj).subject( subject_label ).attrs.get(attribute)
-    def xnat_get_subject_attribute(self,project,subject_label,attribute):
+    def xnat_get_subject(self,project,subject_label):
         xnat_api = self.__get_xnat_api__()
         if not xnat_api:
-            error_msg = "XNAT API is not defined! Cannot retrieve value for " + attribute
+            error_msg = "XNAT API is not defined! Cannot retrieve subject !"
             slog.info(subject_label,error_msg,
-                      function = "session.xnat_get_subject_attribute",
-                      attribute = attribute,
+                      function = "session.xnat_get_subject",
                       project = project)
             return None
  
@@ -401,14 +416,12 @@ class Session(object):
         except Exception, err_msg:
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
                       err_msg = str(err_msg),
-                      function = "session.xnat_get_subject_attribute",
+                      function = "session.xnat_get_subject",
                       project = project)
             return None
             
         if not xnat_project:
-            slog.info(subject_label + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6],"ERROR: project not found !",
-                      function = "session.xnat_get_subject_attribute",
-                      project = project)
+            slog.info(subject_label,"ERROR: session.xnat_get_subject: project " + project + " not found !")
             return None
 
         try : 
@@ -418,15 +431,17 @@ class Session(object):
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
                       err_msg = str(err_msg),
                       project = project,
-                      function = "session.xnat_get_subject_attribute",
+                      function = "session.xnat_get_subject",
                       subject = subject_label)
             return None
 
-        if not xnat_subject:
-            slog.info(subject_label + "-" + hashlib.sha1("session.xnat_get_subject_attribute").hexdigest()[0:6] ,"ERROR: subject not found !",
-                      project = project,
-                      function = "session.xnat_get_subject_attribute",
-                      subject = subject_label)
+        return xnat_subject
+
+
+    def xnat_get_subject_attribute(self,project,subject_label,attribute):
+        xnat_subject =  self.xnat_get_subject(project,subject_label)
+        if not xnat_subject: 
+            slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
             return None
 
         try : 

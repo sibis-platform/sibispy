@@ -94,8 +94,42 @@ for project in ['browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_en
             elif searchResult == None : 
                 print "Error: session.xnat_export_general: Test returned empty record"
 
+            #
+            # xnat_get_experiment
+            #
+            eid = "DOES-NOT-EXIST"
+            with sess.Capturing() as xnat_output: 
+                exp = session.xnat_get_experiment(eid) 
 
-            # 2. Stress Test:
+            if exp :
+                print "Error: session.xnat_get_experiment: " + eid + " should not exist!"
+
+            if "xnat_uri_test" in config_test_data.iterkeys() :  
+                [project,subject,eid] = config_test_data["xnat_uri_test"].split(',')
+                experiment = session.xnat_get_experiment(eid)  
+                if not experiment :
+                    print "Error: session.xnat_get_experiment: " + eid + " should exist!"
+                else :
+                    # Difference in the call - which one you use will decide where data is stored on hard drive !
+                    print "URI direct:", experiment.resource('nifti')._uri
+
+                experiment = session.xnat_get_experiment(eid,project = project,subject_label = subject)  
+                if not experiment :
+                    print "Error: session.xnat_get_experiment: " + eid + " should exist in porject", porject, "and subject ", subject_label, "!"
+                else :
+                    print "URI with subject:", experiment.resource('nifti')._uri
+
+                # zip_path="/tmp/tmpQcABtX/1_ncanda-localizer-v1.zip"
+                #file_path= exp.resource('nifti')._uri
+                #if not os.path.exists(file_path) : 
+                #        print "Error: xnat configuration wrong !" + file_path + " does not exist !" 
+                # server.select.project(project).subject(subject).experiment(eid).resource('nifti').put_zip(zip_path, overwrite=True,extract=True)
+            else :
+                print "Warning: Skipping XNAT uri test as it is not defined" 
+
+            #
+            # Stress Test:
+            #
             if "xnat_stress_test" in config_test_data.iterkeys() :  
                 [xnat_eid, resource_id, resource_file_bname] = config_test_data["xnat_stress_test"].split('/')
                 tmpdir = tempfile.mkdtemp()
