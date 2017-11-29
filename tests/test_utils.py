@@ -63,5 +63,11 @@ if ecode != 255 :
 if ecode : 
     print "Error: detect_adni_phantom: ", eout
 
-# assert(sutils.sas(None))
-# assert(sutils.manipula('-h'))
+(ecode,sout,eout) = sutils.sas(None)
+if ecode : 
+    print "Error: sas: ", eout
+
+(ecode,sout,eout) = sutils.manipula('-h')
+if ecode : 
+    print "Error: manipula: ", eout
+
