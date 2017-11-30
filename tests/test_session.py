@@ -160,6 +160,7 @@ for project in ['svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_
 
 
         elif project == 'svn_laptop' :
+            print "Only works on frontend right now" 
             assert(session.run_svn('info'))
 
             # To speed up test
