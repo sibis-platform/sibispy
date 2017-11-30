@@ -70,7 +70,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_entry', 'xnat'] :
+for project in ['svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_entry', 'xnat'] :
     print "==== Testing " + project + " ====" 
     try : 
         server = session.connect_server(project, True)
@@ -78,6 +78,7 @@ for project in ['browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_en
         if not server:
             print "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
             continue 
+            
 
         if project == 'xnat':
             # 1. XNAT Test: Non-Empty querry  
@@ -157,6 +158,15 @@ for project in ['browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_en
             # no xnat tests after this one as it breaks the interface for some reason
             server = None
 
+
+        elif project == 'svn_laptop' :
+            assert(session.run_svn('info'))
+
+            # To speed up test
+            lapDir = os.path.join(session.get_laptop_dir(),'ncanda')
+            svn_dir = [ name for name in os.listdir(lapDir) if name != ".svn" and os.path.isdir(os.path.join(lapDir, name)) ][0]
+            # and now test
+            assert(session.run_svn('log',subDir = svn_dir))
 
         elif project == 'browser_penncnp' :
             wait = session.initialize_penncnp_wait()

@@ -16,6 +16,8 @@ import requests
 import hashlib
 import pandas as pd
 from pandas.io.sql import execute
+import pysvn
+
 
 from sibispy import sibislogger as slog
 from sibispy import config_file_parser as cfg_parser
@@ -62,7 +64,7 @@ class Session(object):
     def __init__(self):
         self.__config_usr_data = cfg_parser.config_file_parser()
         self.__config_srv_data = None 
-        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None} 
+        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None, 'svn_laptop': None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
         self.__active_redcap_project__ = None
         self.__ordered_config_load = False
@@ -104,6 +106,8 @@ class Session(object):
             connectionPtr = self.__connect_xnat__()
         elif api_type == 'browser_penncnp' : 
             connectionPtr = self.__connect_penncnp__()
+        elif api_type == 'svn_laptop' : 
+            connectionPtr = self.__connect_svn_laptop__()
         elif api_type == 'redcap_mysql_db' : 
             connectionPtr = self.__connect_redcap_mysql__()
         else :
@@ -212,6 +216,28 @@ class Session(object):
         # Exit configuration
         self.api['browser_penncnp'] = {"browser": browser, "pip" : int(pip), "display": display} 
         return browser
+
+
+    def __connect_svn_laptop__(self):
+        # Check that config file is correctly defined 
+        if "svn_laptop" not in self.__config_usr_data.keys():
+            slog.info("session.__connnect_svn_laptop__","ERROR: svn laptop user info not defined!")
+            return None
+        usr_data = self.__config_usr_data.get_category('svn_laptop')
+
+
+        def __svn_login_credentials__(realm, username, may_save):
+            svn_api = self.api['svn_laptop']
+            if svn_api :
+                return (True,svn_api['user'],svn_api['password'],False)
+            else:
+                return (False,"","",False)
+
+        client = pysvn.Client()
+        client.callback_get_login = __svn_login_credentials__
+        self.api['svn_laptop'] = {"client": client, "user" : usr_data['user'], "password": usr_data['password']}         
+
+        return client
 
     def __connect_redcap_project__(self,api_type):
         import redcap
@@ -776,6 +802,40 @@ class Session(object):
 
         return len(record_list)
 
+    def run_svn(self, svnFct, callbackNotifyFct = None, subDir=None):
+        svn_laptop = self.api['svn_laptop']
+        if not svn_laptop:
+            slog.info('session.run_svn',"ERROR: svn api is not defined")
+            return False
+
+        client = svn_laptop['client']
+        try:
+            client.callback_notify = callbackNotifyFct
+            svn_method = getattr(client,svnFct)
+            
+            # Kilian: Ommit svn from svn dir name 
+            svnDir = os.path.join(self.get_laptop_dir(),'ncanda')
+            if subDir :
+                svnDir = os.path.join(svnDir, subDir)
+                
+            svn_method(svnDir)
+
+        except pysvn._pysvn.ClientError as e:
+            if svn_laptop['password'] != "" : 
+                psswd = "Defined" 
+            else :
+                psswd = "Undefined" 
+
+
+            slog.info('session.run_svn', "Error: Failed to run '" + svnFct + "' with respect to '" + svnDir + "'!",
+                      callback_notify = callbackNotifyFct,
+                      user = svn_laptop['user'],
+                      passwd = psswd, 
+                      err_msg = str(e))
+
+            return False
+    
+        return True  
 
 if __name__ == '__main__':
     import argparse 
