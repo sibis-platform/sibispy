@@ -63,4 +63,8 @@ if ecode != 255 :
 if ecode : 
     print "Error: detect_adni_phantom: ", eout
 
+(ecode,sout,eout) = sutils.mdb_export("")
+if ecode : 
+    print "Error: mdb_export: (" + str(ecode) +")", eout
+
 

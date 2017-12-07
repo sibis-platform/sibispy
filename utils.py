@@ -105,6 +105,11 @@ def sprlioadd(args):
     cmd = "sprlioadd " + args
     return call_shell_program(cmd)
 
+def mdb_export(args):
+    cmd = "mdb-export " + args
+    return call_shell_program(cmd)
+
+
 
 
 def make_nifti_from_spiral(spiral_file, outfile):
