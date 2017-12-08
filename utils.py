@@ -105,6 +105,11 @@ def sprlioadd(args):
     cmd = "sprlioadd " + args
     return call_shell_program(cmd)
 
+def mdb_export(args):
+    cmd = "mdb-export " + args
+    return call_shell_program(cmd)
+
+
 
 
 def make_nifti_from_spiral(spiral_file, outfile):
@@ -118,20 +123,6 @@ def make_nifti_from_spiral(spiral_file, outfile):
 def Rscript(args) : 
     return call_shell_program('/usr/bin/Rscript ' + args)
     
-
-def sas(sas_script) :
-    sas_path = os.path.join( os.path.expanduser("~"), '.wine', 'drive_c', 'Program Files', 'SAS', 'SAS 9.1', 'sas.exe' )
-    wine_exe = 'wine ' + sas_path 
-    if not sas_script : 
-        return call_shell_program(wine_exe + ' -h')
-
-    sas_script_path = 'S:\\%s' % sas_script
-    return call_shell_program(wine_exe + ' -SYSIN ' + sas_script_path + ' -NOSPLASH')
-
-
-def manipula(man_script) :
-    return call_shell_program('wine ' + os.path.join( os.path.expanduser("~"), 'src', 'manipula', 'Manipula.exe' ) + ' ' +  man_script)
-
 
 def call_shell_program(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -63,11 +63,8 @@ if ecode != 255 :
 if ecode : 
     print "Error: detect_adni_phantom: ", eout
 
-(ecode,sout,eout) = sutils.sas(None)
-if ecode : 
-    print "Error: sas: ", eout
+(ecode,sout,eout) = sutils.mdb_export("")
+if ecode > 1: 
+    print "Error: mdb_export: (" + str(ecode) +")", eout
 
-(ecode,sout,eout) = sutils.manipula('-h')
-if ecode : 
-    print "Error: manipula: ", eout
 
