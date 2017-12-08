@@ -592,9 +592,19 @@ class Session(object):
 
    
 
-    # if time_label is set then will take the time of the operation 
+    # if time_label is set then will take the time of the operation
     def redcap_export_records(self, time_label, **selectStmt):
-        red_api = self.__get_active_redcap_api__()
+        return self.redcap_export_records_from_api(time_label, None, **selectStmt)
+
+    def redcap_export_records_from_api(self, time_label, api_type, **selectStmt):
+        if api_type == None :
+            red_api =  self.__get_active_redcap_api__()
+        else :
+            if api_type in self.api :
+                red_api = self.api[api_type]
+            else :
+                return None
+            
         if not red_api: 
             return None
 
