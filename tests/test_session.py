@@ -51,6 +51,14 @@ for DIR in [ session.get_laptop_dir(), session.get_xnat_dir(), session.get_redca
      if not os.path.exists(DIR) : 
         print "ERROR: " + DIR + " does not exist! Ignore if this is back end" 
 
+bDir = session.get_beta_dir()
+if os.path.exists(bDir):
+    perm = os.stat(bDir).st_mode & 0777 
+    if perm != 0777 :
+        print "ERROR: Permission of " + bDir + " have to be 777 !" 
+else :
+    print "ERROR: " + bDir + " does not exist!" 
+
 # Load in test specific settings : 
 (sys_file_parser,err_msg) = session.get_config_sys_parser()
 if err_msg :

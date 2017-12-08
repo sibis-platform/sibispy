@@ -320,6 +320,12 @@ class Session(object):
     def get_email(self):
         return self.__config_usr_data.get_value('email')
 
+    def get_beta_dir(self):
+        aDir = self.__get_analysis_dir()
+        if aDir :
+            return os.path.join(aDir,'beta')
+        return None
+
     def get_log_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
