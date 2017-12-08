@@ -17,6 +17,7 @@ import hashlib
 import pandas as pd
 from pandas.io.sql import execute
 import pysvn
+import warnings
 
 
 from sibispy import sibislogger as slog
@@ -594,7 +595,15 @@ class Session(object):
         if time_label:
             slog.startTimer2() 
         try:
-            redcap_data = red_api.export_records(**selectStmt)
+            with warnings.catch_warnings(record=True) as w:
+                redcap_data = red_api.export_records(**selectStmt)
+            if len(w):
+                w_str = str(w[-1])
+                if "Specify dtype option on import or set low_memory=False"  not in w_str : 
+                    slog.info("session.redcap_export_records","Waring: exporting data from REDCap caused warning at {}".format(time.asctime()),
+                              warning_msg = w_msg,
+                              **selectStmt)
+
         except Exception, err_msg:
             slog.info("session.redcap_export_records","ERROR: exporting data from REDCap failed at {}".format(time.asctime()),
                       err_msg = str(err_msg),

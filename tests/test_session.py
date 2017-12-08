@@ -70,7 +70,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'data_entry', 'xnat'] :
+for project in ['data_entry', 'svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'xnat'] :
     print "==== Testing " + project + " ====" 
     try : 
         server = session.connect_server(project, True)
@@ -199,7 +199,7 @@ for project in ['svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_
                 print "Start REDCap stress test ..."  
                 slog.startTimer2()  
                 # If tests fails, Mike
-                server.export_records(fields=entry_data_fields,event_name='unique',format='df')
+                session.redcap_export_records("RCStressTest",fields=entry_data_fields,event_name='unique',format='df')
                 slog.takeTimer2("RCStressTest","REDCap Stress Test")            
                 print ".... completed" 
             else : 
