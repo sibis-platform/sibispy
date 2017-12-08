@@ -35,7 +35,8 @@ outdir = "/tmp/test_redcap_to_casedir"
 if not os.path.exists(outdir) :
     os.makedirs(outdir)
 
-assert(red2cas.schedule_cluster_job('touch /tmp/blubber.log', 'test_redcap_to_casesdir', log_file= os.path.join(outdir,'cluster-test.log'), verbose = False))
+#Kilian: NCANDA
+assert(red2cas.schedule_cluster_job('touch /fs/ncanda-share/beta/blubber.log', 'test_redcap_to_casesdir', log_file= os.path.join(outdir,'cluster-test.log'), verbose = False))
 
 # Test creating data dictionaries
 assert(red2cas.create_demographic_datadict(outdir))
