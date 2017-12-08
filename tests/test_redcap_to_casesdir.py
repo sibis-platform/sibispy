@@ -36,8 +36,16 @@ if not os.path.exists(outdir) :
     os.makedirs(outdir)
 
 #Kilian: NCANDA
-assert(red2cas.schedule_cluster_job('touch /fs/ncanda-share/beta/blubber.log', 'test_redcap_to_casesdir', log_file= os.path.join(outdir,'cluster-test.log'), verbose = False))
+cluster_submit_log = os.path.join(outdir,'cluster-submit.log')
+cluster_job_log = os.path.join(session.get_beta_dir(),'cluster-job.log')
+if os.path.exists(cluster_job_log):
+     os.remove(cluster_job_log)
 
+cluster_test_file = os.path.join(session.get_cases_dir(),"test_redcap_to_casesdir.cluster")
+cmd = 'echo "UID: $UID"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file) 
+assert(red2cas.schedule_cluster_job(cmd, "test_redcap_to_casesdir", submit_log=cluster_submit_log, job_log=cluster_job_log, verbose = False))
+print "Please check " +  cluster_job_log + " if cluster job was successfully executed !"
+   
 # Test creating data dictionaries
 assert(red2cas.create_demographic_datadict(outdir))
 
