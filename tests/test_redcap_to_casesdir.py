@@ -13,6 +13,7 @@ import pandas
 import sibispy
 from sibispy import sibislogger as slog
 from sibispy import redcap_to_casesdir as r2c
+import pwd 
 
 if sys.argv.__len__() > 1 : 
     config_file = sys.argv[1]
@@ -42,7 +43,9 @@ if os.path.exists(cluster_job_log):
      os.remove(cluster_job_log)
 
 cluster_test_file = os.path.join(session.get_cases_dir(),"test_redcap_to_casesdir.cluster")
-cmd = 'echo "UID: $UID"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file) 
+user_id =  os.getuid()
+user_name = pwd.getpwuid(user_id )[ 0 ] 
+cmd = 'echo "Submitting User:' + user_name + '(' + str(user_id) + ')"; echo "Executing User: ${LOGNAME}(${UID})"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file) 
 assert(red2cas.schedule_cluster_job(cmd, "test_redcap_to_casesdir", submit_log=cluster_submit_log, job_log=cluster_job_log, verbose = False))
 print "Please check " +  cluster_job_log + " if cluster job was successfully executed !"
    
