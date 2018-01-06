@@ -24,15 +24,13 @@ else :
 
 # does not require config file as we do not parse to github 
 slog.init_log(False, False,'test_sibislogger', 'test_sibislogger',None)
-print "what"
+
 try : 
     raise slog.sibisExecutionError('label','title', test1 = '2', test2 = '4')
 except slog.sibisExecutionError as err:
     print str(err)
+    err.add(test3 = '3')
     err.slog_post()
-    print type(err.info)
-
-sys.exit()
 
 # test timer and posting to github 
 log = slog.sibisLogging(config_file=config_file)

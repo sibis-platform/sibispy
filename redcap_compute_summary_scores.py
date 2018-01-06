@@ -138,12 +138,13 @@ class redcap_compute_summary_scores(object):
         try : 
             scoresDF = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
         except slog.sibisExecutionError as err:
+            err.add(subject_id = subject_id, update_all= update_all)
             err.slog_post()
             return (pandas.DataFrame(), False) 
 
         except Exception as e:
             error = "ERROR: scoring failed!"
-            slog.info("compute_scores.__init__." + instrument + "." + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e),)
+            slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py" )
             return (pandas.DataFrame(), False) 
 
         return (scoresDF, True)    

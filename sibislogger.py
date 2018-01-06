@@ -160,6 +160,9 @@ class sibisExecutionError(Exception):
         self.msg = msg
         self.info =kwargs
 
+    def add(self, **kwargs):
+        self.info.update(kwargs)
+
     def slog_post(self):
         if self.info :
             log.info(self.uid, self.msg, **self.info)
