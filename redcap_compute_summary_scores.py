@@ -134,20 +134,25 @@ class redcap_compute_summary_scores(object):
                                                                  records=records_this_event[idx:idx + 50],
                                                                  events=[event_name], event_name='unique', format='df'))
                 
-                
-        try : 
-            scoresDF = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
-        except slog.sibisExecutionError as err:
-            err.add(subject_id = subject_id, update_all= update_all)
-            err.slog_post()
-            return (pandas.DataFrame(), False) 
 
-        except Exception as e:
-            error = "ERROR: scoring failed!"
-            slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py" )
-            return (pandas.DataFrame(), False) 
+        if False: 
+            print "DEBUGGING:redcap_compute_summary_scores.py:Start ...."
+            (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+            print ".... end" 
+        else : 
+            try: 
+                (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+            except slog.sibisExecutionError as err:
+                err.add(subject_id = subject_id, update_all= update_all)
+                err.slog_post()
+                return (pandas.DataFrame(), False) 
 
-        return (scoresDF, True)    
+            except Exception as e:
+                error = "ERROR: scoring failed!"
+                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py" )
+                return (pandas.DataFrame(), False) 
+
+        return (scoresDF, errFlag)    
 
     def upload_summary_scores_to_redcap(self, instrument, scored_records):
         return self.__session.redcap_import_record(instrument, None, None, None, scored_records)
