@@ -46,6 +46,7 @@ cluster_test_file = os.path.join(session.get_cases_dir(),"test_redcap_to_casesdi
 user_id =  os.getuid()
 user_name = pwd.getpwuid(user_id )[ 0 ] 
 cmd = 'echo "Submitting User:' + user_name + '(' + str(user_id) + ')"; echo "Executing User: ${LOGNAME}(${UID})"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file) 
+print "== Only works on backend ==" 
 assert(red2cas.schedule_cluster_job(cmd, "test_redcap_to_casesdir", submit_log=cluster_submit_log, job_log=cluster_job_log, verbose = False))
 print "Please check " +  cluster_job_log + " if cluster job was successfully executed !"
    
