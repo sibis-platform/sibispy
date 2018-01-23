@@ -47,9 +47,16 @@ for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_cas
     if not os.path.exists(DIR) : 
         print "ERROR: " + DIR + " does not exist!" 
 
-for DIR in [ session.get_laptop_dir(), session.get_xnat_dir(), session.get_redcap_uploads_dir()] :
+for DIR in [ session.get_laptop_imported_dir(),  session.get_laptop_svn_dir(), session.get_xnat_dir(), session.get_redcap_uploads_dir()] :
      if not os.path.exists(DIR) : 
         print "ERROR: " + DIR + " does not exist! Ignore if this is back end" 
+
+# Make sure directories are assigned to the correct user 
+user_id = os.getuid()
+for DIR in [ session.get_laptop_imported_dir(),  session.get_laptop_svn_dir() ]: 
+    path_uid = os.stat(DIR).st_uid  
+    if user_id != path_uid :
+        print "ERROR: Dir '" + DIR + "' owned by user with id", path_uid," and not user running the script (id: " + str(user_id) + ")"
 
 bDir = session.get_beta_dir()
 if os.path.exists(bDir):
@@ -78,7 +85,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['data_entry', 'svn_laptop','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'xnat'] :
+for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'xnat'] :
     print "==== Testing " + project + " ====" 
     try : 
         server = session.connect_server(project, True)
@@ -168,11 +175,12 @@ for project in ['data_entry', 'svn_laptop','browser_penncnp', 'import_laptops', 
 
 
         elif project == 'svn_laptop' :
-            print "Only works on frontend right now" 
+            print "== Only works for frontend right now ! =="
+            
             assert(session.run_svn('info'))
 
             # To speed up test
-            lapDir = os.path.join(session.get_laptop_dir(),'ncanda')
+            lapDir = session.get_laptop_svn_dir()
             svn_dir = [ name for name in os.listdir(lapDir) if name != ".svn" and os.path.isdir(os.path.join(lapDir, name)) ][0]
             # and now test
             assert(session.run_svn('log',subDir = svn_dir))

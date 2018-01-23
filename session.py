@@ -380,9 +380,15 @@ class Session(object):
         return None
 
 
-    def get_laptop_dir(self):
+    def __get_laptop_dir(self):
         return os.path.join(self.__config_usr_data.get_value('import_dir'),'laptops')
 
+    # Kilian: Ommit ncanda from svn dir name 
+    def get_laptop_svn_dir(self):
+        return os.path.join(self.__get_laptop_dir(),'ncanda')
+
+    def get_laptop_imported_dir(self):
+        return os.path.join(self.__get_laptop_dir(),'imported')
 
     def get_xnat_dir(self):
         return os.path.join(self.__config_usr_data.get_value('import_dir'),'XNAT')
@@ -838,8 +844,7 @@ class Session(object):
             client.callback_notify = callbackNotifyFct
             svn_method = getattr(client,svnFct)
             
-            # Kilian: Ommit svn from svn dir name 
-            svnDir = os.path.join(self.get_laptop_dir(),'ncanda')
+            svnDir = self.get_laptop_svn_dir()
             if subDir :
                 svnDir = os.path.join(svnDir, subDir)
                 
