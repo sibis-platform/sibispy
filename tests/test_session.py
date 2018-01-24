@@ -11,6 +11,7 @@
 
 
 import os
+import glob
 import pandas as pd
 import sys
 import sibispy
@@ -54,6 +55,11 @@ for DIR in [ session.get_laptop_imported_dir(),  session.get_laptop_svn_dir(), s
 # Make sure directories are assigned to the correct user 
 user_id = os.getuid()
 for DIR in [ session.get_laptop_imported_dir(),  session.get_laptop_svn_dir() ]: 
+    path_uid = os.stat(DIR).st_uid  
+    if user_id != path_uid :
+        print "ERROR: Dir '" + DIR + "' owned by user with id", path_uid," and not user running the script (id: " + str(user_id) + ")"
+
+for DIR in glob.glob(os.path.join(session.get_log_dir(),"*")):
     path_uid = os.stat(DIR).st_uid  
     if user_id != path_uid :
         print "ERROR: Dir '" + DIR + "' owned by user with id", path_uid," and not user running the script (id: " + str(user_id) + ")"
