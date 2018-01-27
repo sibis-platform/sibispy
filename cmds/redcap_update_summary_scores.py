@@ -45,7 +45,7 @@ parser.add_argument("-t","--time-log-dir",
                     default=None)
 args = parser.parse_args()
 
-slog.init_log(args.verbose, args.post_to_github,'NCANDA REDCap', 'update_summary_scores', args.time_log_dir)
+slog.init_log(args.verbose, args.post_to_github,'NCANDA REDCap', 'redcap_update_summary_scores', args.time_log_dir)
 slog.startTimer1()
 
 count_uploaded = 0
