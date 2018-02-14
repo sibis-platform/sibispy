@@ -46,8 +46,11 @@ class redcap_compute_summary_scores(object):
         except Exception as e:
             slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e)).hexdigest()[0:6],
                       "ERROR: Could not connect to redcap!:", err_msg = str(e))
-            return False 
-
+            return False
+ 
+        if not self.__rc_summary:
+            return False
+            
         self.__form_event_mapping = self.__rc_summary.export_fem(format='df')
 
         # Get record IDs and exclusions
