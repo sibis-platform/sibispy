@@ -15,8 +15,10 @@ import argparse
 parser = argparse.ArgumentParser(description="testing redcap compute scores",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("configFile", help=".sibis-general-config.yml", action="store", default='data/.sibis-general-config.yml')
-parser.add_argument("--id-list", help="subject id list seperated with comma (e.g. E-00000-F-0)", action="store", required=False, default=None)
+parser.add_argument("--id-list", help="subject id list seperated by comma (e.g. E-00000-F-0)", action="store", required=False, default=None)
+parser.add_argument("--form-list", help="list of forms seperated by comma (e.g. ssaga_dsm4,ssaga_dsm5) ", action="store", required=False, default=None)
 parser.add_argument("--dir", help="if defined will write output to that dir", action="store", required=False, default=None)
+parser.add_argument("--allForms", help="should all forms be checked", action="store_true", required=False, default=False)
 
 args = parser.parse_args()
 
@@ -44,8 +46,13 @@ if args.id_list :
 else : 
     subject_id_list = [config_test_data.get('subject_id')]
 
-instruments = config_test_data.get('instruments').split(",")
-# instruments = red_score_update.get_list_of_instruments()
+if args.allForms: 
+  instruments = red_score_update.get_list_of_instruments()  
+else :
+    if args.form_list: 
+        instruments =  args.form_list.split(',') 
+    else :
+        instruments = config_test_data.get('instruments').split(",")
 
 for subj in subject_id_list :
     for inst in instruments: 
