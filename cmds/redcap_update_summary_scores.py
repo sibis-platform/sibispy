@@ -72,7 +72,8 @@ if args.instruments:
         if inst in instrument_list:
             tmp_instrument_list.append(inst)
         else:
-            print "WARNING: no instrument with name '%s' defined.\n" % inst
+            print "WARNING: no instrument with name '%s' defined." % inst
+            print "         Options:", instrument_list,"\n" 
     instrument_list = tmp_instrument_list
     
 
