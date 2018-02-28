@@ -654,7 +654,8 @@ class Session(object):
 
             if len(records) > 1 :
                 slog.info(error_label, error,
-                          requestError=str(e))
+                          requestError=str(e), 
+                          red_api = self.__active_redcap_project__)
 
             else :
                 record = records[0]
@@ -669,7 +670,8 @@ class Session(object):
                                   redcap_event=event,
                                   new_value="'"+str(err_list[2])+"'",
                                   import_record_id=str(record_id), 
-                                  requestError=str(e))
+                                  requestError=str(e),
+                                  red_api = self.__active_redcap_project__)
                     else :
                         slog.info(error_label, error,
                                   redcap_value="'"+str(red_value)+"'",
@@ -678,17 +680,20 @@ class Session(object):
                                   new_value="'"+str(err_list[2])+"'",
                                   xnat_sid=record["mri_xnat_sid"],
                                   xnat_eid=record["mri_xnat_eids"],
-                                  requestError=str(e))
+                                  requestError=str(e),
+                                  red_api = self.__active_redcap_project__)
 
                 elif not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
                     slog.info(error_label, error,
                               import_record_id=str(record_id),  
-                              requestError=str(e))
+                              requestError=str(e),
+                              red_api = self.__active_redcap_project__)
                 else : 
                     slog.info(error_label, error,
                               xnat_sid=record["mri_xnat_sid"], 
                               xnat_eid=record["mri_xnat_eids"],
-                              requestError=str(e))
+                              requestError=str(e),
+                              red_api = self.__active_redcap_project__)
             return None
 
         if time_label:
