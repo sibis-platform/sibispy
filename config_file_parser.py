@@ -70,7 +70,7 @@ class config_file_parser(object):
         return None
 
     def get_value(self,category,subject=None):
-        cfg = self.__config_dict.get(category)
+        cfg = self.get_category(category)
         if cfg and subject:
             return cfg.get(subject)
             
@@ -78,9 +78,15 @@ class config_file_parser(object):
 
 
     def get_category(self,category):
+        if not self.__config_dict :
+            raise RuntimeError("Please run configure first before calling this function!")
+
         return self.__config_dict.get(category)
 
     def keys(self):
+        if not self.__config_dict :
+            raise RuntimeError("Please run configure first before calling this function!")
+
         return self.__config_dict.keys()
 
 
