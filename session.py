@@ -661,16 +661,28 @@ class Session(object):
                           red_api = self.__active_redcap_project__)
 
             else :
-                #record = records[0]
-                record = records.iloc[0]
+                if isinstance(records,(list,)) :
+                    record = records[0]
+                elif isinstance(records, pd.DataFrame): 
+                    record_ser = records.iloc[0]
+                    subject_label = record_ser.name[0]
+                    error_label = "_".join(record_ser.name) + "_" + error_label
+                    record = record_ser.to_dict()
+                else :  
+                    slog.info(error_label, "ERROR: session:redcap_import_record: type is not yet implemented",
+                              import_record_id=str(record_id),  
+                              requestError=str(e),
+                              red_api = self.__active_redcap_project__)
+                    
                 if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
                     red_var = err_list[1]
                     event = err_list[0].split('(')[1][:-1]
-                    red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
-                    if red_value_temp : 
-                        red_value = red_value_temp[0][red_var]
-                        if not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
-                            slog.info(error_label, error,
+                    if subject_label: 
+                        red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
+                        if red_value_temp : 
+                            red_value = red_value_temp[0][red_var]
+                            if not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
+                                slog.info(error_label, error,
                                   redcap_value="'"+str(red_value)+"'",
                                   redcap_variable=red_var,
                                   redcap_event=event,
@@ -678,8 +690,8 @@ class Session(object):
                                   import_record_id=str(record_id), 
                                   requestError=str(e),
                                   red_api = self.__active_redcap_project__)
-                        else :
-                            slog.info(error_label, error,
+                            else :
+                                slog.info(error_label, error,
                                   redcap_value="'"+str(red_value)+"'",
                                   redcap_variable=red_var,
                                   redcap_event=event,
@@ -688,8 +700,16 @@ class Session(object):
                                   xnat_eid=record["mri_xnat_eids"],
                                   requestError=str(e),
                                   red_api = self.__active_redcap_project__)
-                    else : 
+                        else : 
                             slog.info(error_label, error,
+                                  redcap_variable=red_var,
+                                  redcap_event=event,
+                                  new_value="'"+str(err_list[2])+"'",
+                                  import_record_id=str(record_id), 
+                                  requestError=str(e),
+                                  red_api = self.__active_redcap_project__)
+                    else : 
+                        slog.info(error_label, error,
                                   redcap_variable=red_var,
                                   redcap_event=event,
                                   new_value="'"+str(err_list[2])+"'",
@@ -772,7 +792,7 @@ class Session(object):
 
         project_id = self.get_mysql_project_id(project_name)
         if not project_id : 
-            return pandas.DataFrame()  
+            return pd.DataFrame()  
 
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
