@@ -35,6 +35,12 @@ def main(args=None):
     if args.unlock and args.lock:
         raise Exception("Only specify --lock or --unlock, not both!")
 
+    if args.subject_id : 
+        subject_list = args.subject_id.split(',')
+    else : 
+        subject_list = [None]
+
+
     for event_desc in args.event.split(',') :
         if args.verbose: 
             print "Visit: {0}".format(event_desc)
@@ -43,20 +49,25 @@ def main(args=None):
             if args.verbose:
                 print "Attempting to lock form: {0}".format(args.form)
 
-            locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, args.form, outfile = args.outfile, subject_id = args.subject_id)
-            slog.takeTimer1("script_time","{'records': " + str(locked_record_num) + "}")
-            if args.verbose:
-                print "The {0} form has been locked".format(args.form)
-                print "Record of locked files: {0}".format(args.outfile)
+            for sid in  subject_list : 
+                locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, args.form, outfile = args.outfile, subject_id = sid)
+                slog.takeTimer1("script_time","{'records': " + str(locked_record_num) + "}")
+                if args.verbose:
+                    print "The {0} form has been locked".format(args.form)
+                    print "Record of locked files: {0}".format(args.outfile)
 
         elif args.unlock:
             if args.verbose:
                 print "Attempting to unlock form: {0}".format(args.form)
-
-            if not red_lock.unlock_form(args.project, args.arm, event_desc, args.form, subject_id = args.subject_id):
-                print "Warning: Nothing to unlock ! Form '{0}' might not exist".format(args.form)
-            elif args.verbose:
-                print "The {0} form has been unlocked".format(args.form)
+                
+            for sid in  subject_list : 
+                if not red_lock.unlock_form(args.project, args.arm, event_desc, args.form, subject_id = sid):
+                    if sid :
+                        print "Warning: Nothing to unlock ! Form '{0}' or subject '{1}' might not exist".format(args.form,sid)
+                    else : 
+                        print "Warning: Nothing to unlock ! Form '{0}' might not exist".format(args.form)
+                elif args.verbose:
+                    print "The {0} form has been unlocked".format(args.form)
 
         elif args.report:
             form_array = args.form.split(",")
@@ -92,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outfile", dest="outfile",
                         default='/tmp/locked_records.csv',
                         help="Path to write locked records file. {0}".format(default))
-    parser.add_argument("-s", "--subject_id", default=None, help="REDCap subject ID")
+    parser.add_argument("-s", "--subject_id", default=None, help="REDCap subject ID (multiple ones seperated by ,")
     parser.add_argument("--lock", dest="lock", action="store_true",
                         help="Lock form")
     parser.add_argument("--unlock", dest="unlock", action="store_true",
