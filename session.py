@@ -637,6 +637,42 @@ class Session(object):
         
         return redcap_data
 
+
+    def redcap_import_record_to_api(self, records, api_type, error_label, time_label = None): 
+        if len(records) == 0 : 
+            return None
+
+        if api_type == None :
+            api_type = self.__active_redcap_project__
+
+        if api_type in self.api :
+            red_api = self.api[api_type]
+        else :
+            return None
+            
+        if not red_api: 
+            return None
+
+        if time_label:
+            slog.startTimer2() 
+        try:
+            import_response = red_api.import_records(records, overwrite='overwrite')
+
+        except requests.exceptions.RequestException as e:
+            error = 'session:redcap_import_record:Failed to import into REDCap' 
+            err_list = ast.literal_eval(str(e))['error'].split('","')
+            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+
+            slog.info(error_label, error,
+                      requestError=str(e), 
+                      red_api = api_type)
+            return None
+
+        if time_label:
+            slog.takeTimer2("redcap_import_" + time_label, str(import_response)) 
+        
+        return import_response
+
     def redcap_import_record(self, error_label, subject_label, event, time_label, records, record_id=None):
         if len(records) == 0 : 
             return None
