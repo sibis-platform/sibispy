@@ -51,29 +51,17 @@ all_forms = {
 # Because of all of the issues currently not included: 
 # 'plus': 'participant_last_use_summary'}
 
-# Upload new data to REDCap
-def to_redcap(session, form_name, subject_id, event, timelabel, upload_records, record_id=None, verbose=False):
-    if verbose :
-        print "to_redcap: ", form_name, subject_id, event, timelabel, record_id 
-        id_label = '%s_missing' % form_name
+def batch(iterable, n=1):
+        """
+        For batch processing of records
 
-    error_label = subject_id +"-"+ event + "-" + form_name 
-
-    import_response =  session.redcap_import_record(error_label,subject_id,event,timelabel,[upload_records],record_id) 
- 
-    if verbose :
-        print "... done" 
-
-    # If there were any errors, try to print them as well as possible
-    if import_response:
-        if 'error' in import_response.keys():
-            slog.info(error_label + "-" + hashlib.sha1(str(import_response['error'])).hexdigest()[0:6], "ERROR: Uploading Data", error_msg = str(import_response['error']))
-        if 'fields' in import_response.keys():
-            slog.info(error_label + "-" + hashlib.sha1(str(import_response['fields'])).hexdigest()[0:6], "Info: something wrong with fields ! Not sure what to do !", fields =  str(import_response['fields']))
-        if 'records' in import_response.keys():
-            slog.info(error_label + "-" + hashlib.sha1(str(import_response['records'])).hexdigest()[0:6], "Info: something wrong with redcords ! Not sure what to do !", records =  str(import_response['records']))
- 
-    return 0
+        :param iterable:
+        :param n: batch size
+        :return: generator
+        """
+        l = len(iterable)
+        for ndx in range(0, l, n):
+            yield iterable[ndx:min(ndx + n, l)]
 
 #
 # MAIN 
@@ -159,8 +147,7 @@ form_event_mapping = redcap_project.export_fem(format='df')
 #
 
 for form_prefix, form_name in forms.iteritems():
-    if args.verbose:
-        print "Processing form",form_prefix,"/",form_name
+    print "Processing form",form_prefix,"/",form_name
 
     complete_label = '%s_complete' % form_name
     record_label = '%s_record_id' % form_prefix 
@@ -201,30 +188,51 @@ for form_prefix, form_name in forms.iteritems():
 
     # print entry_records[entry_records[complete_label] == 0  ]
     # sys.exit() 
-    entry_records_not_complete = entry_records[entry_records[complete_label] ==1 ]
-    # check if their is an import record associated with it 
-    if  entry_records_not_complete.empty :
-        print "No entries for form '" + form_name + "' found that were unverified" 
-        # continue
  
-    if record_label in entry_records_not_complete.columns :
+    if record_label in entry_records.columns :
+        # check all links of unverivied or complete records out
+        entry_records_unv_or_comp = entry_records[entry_records[complete_label] > 0 ]
+
         # drop any that have import record defined 
-        import_records = entry_records_not_complete.dropna(axis=0,subset=[record_label])
+        import_records = entry_records_unv_or_comp.dropna(axis=0,subset=[record_label])
         if not import_records.empty : 
             import_complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = [complete_label], format='df', records=import_records[record_label].tolist())
-            # for import_id in :
-            #    import_complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = [complete_label], format='df', records=[import_id])
 
             # for all records that the complete label is not 2 turn it into 2 
-            for import_id in  import_complete_records[import_complete_records[complete_label] < 2].index :
-                import_response = session.redcap_import_record_to_api([{'record_id': import_id, '%s_complete' % form_name: '2'}], 'import_laptops', import_id)
-                # import_response = "TEST"
-                print "REDCAP response:", import_id, import_response 
+            upload_id_list = import_complete_records[import_complete_records[complete_label] < 2].index
+            upload_id_len = len(upload_id_list)
+            if upload_id_len :  
+                print "Number of Records", upload_id_len
+                # Upload in batches as if one problem is in one record all of them are not uploaded in the batch
+                for  upload_id_batch in batch(upload_id_list,50): 
+                    upload_records=list() 
+                    for import_id in upload_id_batch :
+                        upload_records.append({'record_id': import_id, '%s_complete' % form_name: '2'})
+                        # import_response = session.redcap_import_record_to_api([{'record_id': import_id, '%s_complete' % form_name: '2'}], 'import_laptops', import_id)
+                    if len(upload_records) : 
+                        import_response = session.redcap_import_record_to_api(upload_records, 'import_laptops', '')
+                        # import_response = "TEST"
+                        print "Upload Records:", upload_id_batch 
+                        print "REDCAP response:", import_response 
     else : 
         print "Warning: '" + record_label + "' does not exist in form '" + form_name + "'"   
     
 
     # Now set entry record to complete
+    entry_records_not_complete = entry_records[entry_records[complete_label] ==1 ]
+    # check if their is an import record associated with it 
+    if  entry_records_not_complete.empty :
+        print "No entries for form '" + form_name + "' found that were unverified" 
+        continue
+
+    
+    print "Number of Records", len(entry_records_not_complete)
+    print "Upload Records:", entry_records_not_complete.index 
+    upload_records=list() 
     for key in entry_records_not_complete.index :
-        print "Modifying ", key 
-        to_redcap(session,form_name, key[0],key[1], '', {'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
+        upload_records.append({'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
+        #to_redcap(session,form_name, '','','', {'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
+
+    import_response = session.redcap_import_record_to_api(upload_records, 'data_entry', '')
+    print "REDCAP response:", import_response 
+
