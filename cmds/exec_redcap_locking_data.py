@@ -96,8 +96,8 @@ if __name__ == "__main__":
                         choices=['Standard Protocol'],default='Standard Protocol',
                         help="Arm Name as appears in UI")
     parser.add_argument("-e", "--event", dest="event", required=False,
-                        choices=['Baseline visit', '1y visit', '2y visit'],
-                        help="Event Name in as appears in UI seperated with comma (if multiple ones)", default='Baseline visit,1y visit,2y visit')
+                        choices=['Baseline visit', '1y visit', '2y visit', '3y visit'],
+                        help="Event Name in as appears in UI seperated with comma (if multiple ones)", default='Baseline visit,1y visit,2y visit,3y visit')
     parser.add_argument("-f", "--form", dest="form", required=True,
                         help="Form Name in lowercase_underscore")
     parser.add_argument("-o", "--outfile", dest="outfile",
