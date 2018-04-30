@@ -26,6 +26,7 @@ assert(session.configure(config_file=config_file))
 
 redcap_project = session.connect_server('data_entry', True) 
 assert(redcap_project)
+form_key = session.get_redcap_form_key()
 
 assert(session.connect_server('redcap_mysql_db', True)) 
 red_lock = redcap_locking_data.redcap_locking_data()
@@ -36,7 +37,7 @@ event_unique = str(event_def['unique_event_name'])
 event_name = str(event_def['event_name'])
 
 form_event_mapping = redcap_project.export_fem( format='df' )
-forms = form_event_mapping[form_event_mapping.unique_event_name == event_unique].form_name.tolist()
+forms = form_event_mapping[form_event_mapping.unique_event_name == event_unique][form_key].tolist()
 
 arm_name = str(redcap_project.arm_names[0])
 

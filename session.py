@@ -276,7 +276,14 @@ class Session(object):
 
         cfg = self.__config_usr_data.get_category('redcap-mysql') 
         if not cfg:
-            slog.info('session.__connect_redcap_mysql__','Error: config file does not contain section recap-mysql',
+            slog.info('session.__connect_redcap_mysql__','Error: config file does not contain section redcap-mysql',
+                      config_file = self.__config_usr_data.get_config_file())
+            return None
+
+        # by default should be set to 3306 
+        port = cfg.get('port')
+        if not port: 
+            slog.info('session.__connect_redcap_mysql__',"Error: config file does not define 'port' in section 'redcap-mysql'",
                       config_file = self.__config_usr_data.get_config_file())
             return None
 
@@ -284,9 +291,11 @@ class Session(object):
         passwd = cfg.get('passwd')
         db = cfg.get('db')
         hostname = cfg.get('hostname')
-        connection_string = "mysql+pymysql://{0}:{1}@{2}/{3}".format(user,
+
+        connection_string = "mysql+pymysql://{0}:{1}@{2}:{3}/{4}".format(user,
                                                                  passwd,
                                                                  hostname,
+                                                                 port,
                                                                  db)
 
         try:
@@ -315,7 +324,6 @@ class Session(object):
 
     def get_project_name(self):
         return self.__config_usr_data.get_value('project_name')
-
 
     def get_email(self):
         return self.__config_usr_data.get_value('email')
@@ -584,6 +592,9 @@ class Session(object):
         return self.__config_usr_data.get_value('redcap','server')
 
 
+    #
+    # REDCAP API CALLS
+    #
     def __get_active_redcap_api__(self):
         project = self.__active_redcap_project__
         if not project :
@@ -597,6 +608,22 @@ class Session(object):
         return self.api[project]
 
    
+    def get_redcap_version(self):
+        api = self.__get_active_redcap_api__()
+        if not api :
+            return None
+        return api.redcap_version
+
+    def get_redcap_form_key(self):
+        rc_version =  self.get_redcap_version()
+        if not rc_version : 
+            return '' 
+
+        if rc_version.major < 8 : 
+            return 'form_name'  
+
+        return 'form'
+
 
     # if time_label is set then will take the time of the operation
     def redcap_export_records(self, time_label, **selectStmt):
@@ -816,7 +843,7 @@ class Session(object):
         return int(event_id)
 
     # 'redcap_locking_data'
-    def get_mysql_table_records(self,table_name,project_name, arm_name, event_descrip, form_name=None, subject_id=None):
+    def get_mysql_table_records(self,table_name,project_name, arm_name, event_descrip, name_of_form=None, subject_id=None):
         """
         Get a dataframe of forms for a specific event
 
@@ -834,8 +861,8 @@ class Session(object):
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
         table_records = pd.read_sql_table(table_name, self.api['redcap_mysql_db'])
         table_forms = table_records[(table_records.project_id == project_id) & (table_records.event_id == event_id)]
-        if form_name :
-            table_forms = table_forms[table_forms.form_name == form_name]
+        if name_of_form :
+            table_forms = table_forms[table_forms.form_name == name_of_form]
 
         if subject_id:
             table_forms = table_forms[table_forms.record == subject_id]
@@ -877,7 +904,7 @@ class Session(object):
         execute(sql, self.api['redcap_mysql_db'])
         return len(record_list)
 
-    def add_mysql_table_records(self, table_name, project_name, arm_name, event_descrip, form_name, record_list, outfile=None):
+    def add_mysql_table_records(self, table_name, project_name, arm_name, event_descrip, name_of_form, record_list, outfile=None):
         # get the ids needed to lock the forms
         project_id = self.get_mysql_project_id(project_name)
         if not project_id : 
@@ -891,7 +918,7 @@ class Session(object):
         
         project_id_series = [project_id] * len_list
         event_id_series = [event_id] * len_list
-        form_name_series = [form_name] * len_list
+        form_name_series = [name_of_form] * len_list
         username_series = [user_name] * len_list
         additional_records = dict(project_id=project_id_series,
                                record=record_list.record.tolist(),

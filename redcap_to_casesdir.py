@@ -65,9 +65,9 @@ class redcap_to_casesdir(object):
             file.close()
 
             export_name = re.sub('\.txt$', '', os.path.basename(f))
-            import_form_name = re.sub('\n', '', contents[0])
-            self.__import_forms[export_name] = import_form_name
-            self.__export_forms[export_name] = [re.sub('\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form_name]
+            import_form = re.sub('\n', '', contents[0])
+            self.__import_forms[export_name] = import_form
+            self.__export_forms[export_name] = [re.sub('\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form]
             self.__export_rename[export_name] = dict()
 
             for field in contents[1:]:
@@ -174,7 +174,8 @@ class redcap_to_casesdir(object):
                     field_dict[code_label[0]] = ', '.join(code_label[1:])
                 self.__code_to_label_dict[field['field_name']] = field_dict
 
-    def get_export_form_names(self):
+    # used to be get_export_form_names
+    def get_export_names_of_forms(self):
         return self.__export_forms.keys()
 
     def create_datadict(self, export_name, datadict_dir):
@@ -186,7 +187,7 @@ class redcap_to_casesdir(object):
     # defining entry_list only makes sense if export_forms_list only consists of one
     # entry !
     def create_all_datadicts(self, datadict_dir):
-        for export_name in self.get_export_form_names():
+        for export_name in self.get_export_names_of_forms():
             self.create_datadict(export_name,datadict_dir)
         self.create_demographic_datadict(datadict_dir)
 
@@ -229,10 +230,10 @@ class redcap_to_casesdir(object):
 
         ddict = pandas.DataFrame(index=variable_list,columns=redcap_datadict_columns)
 
-        for form_name, var in zip(export_forms_list, variable_list):
+        for name_of_form, var in zip(export_forms_list, variable_list):
             field_name = re.sub('___.*', '', var)
             ddict["Variable / Field Name"][var] = field_name
-            ddict["Form Name"][var] = form_name
+            ddict["Form Name"][var] = name_of_form
 
             # Check if var is in data dict ('FORM_complete' fields are NOT)
             if field_name in self.__metadata_dict.keys():

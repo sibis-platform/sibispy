@@ -27,6 +27,7 @@ assert(session.configure(config_file=config_file,ordered_config_load_flag = True
 
 redcap_project = session.connect_server('data_entry', True) 
 assert(redcap_project)
+form_key = session.get_redcap_form_key()
 
 red2cas = r2c.redcap_to_casesdir() 
 if not red2cas.configure(session,redcap_project.metadata) :
@@ -102,19 +103,19 @@ assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_c
 # Test creating another form dictionary 
 #
 form_event_mapping = redcap_project.export_fem( format='df' )
-forms_this_event = set( form_event_mapping[form_event_mapping['unique_event_name'] ==  subject_event_id ]['form_name'].tolist() )
-form_name = next(iter(forms_this_event))
-assert(red2cas.create_datadict(form_name,outdir))
+forms_this_event = set( form_event_mapping[form_event_mapping['unique_event_name'] ==  subject_event_id ][form_key].tolist() )
+name_of_form = next(iter(forms_this_event))
+assert(red2cas.create_datadict(name_of_form,outdir))
 
 #
 # Test writing out a case specific measurement file 
 # 
 
 
-(all_records,export_list) = red2cas.get_subject_specific_form_data(subject_red_id, subject_event_id, forms_this_event, redcap_project, select_exports=[form_name])
+(all_records,export_list) = red2cas.get_subject_specific_form_data(subject_red_id, subject_event_id, forms_this_event, redcap_project, select_exports=[name_of_form])
 assert((not all_records.empty) and export_list)
 
-assert(red2cas.export_subject_form(form_name, subject_red_id, subject_xnat_id,arm_code,visit_code, all_records, outdir, verbose=True))
+assert(red2cas.export_subject_form(name_of_form, subject_red_id, subject_xnat_id,arm_code,visit_code, all_records, outdir, verbose=True))
 
 red2cas.export_subject_all_forms(redcap_project,  subject_site_id, subject_red_id, subject_event_id, this_subject_data, visit_age, subject_visit_data, arm_code, visit_code, subject_xnat_id, outdir,forms_this_event)
 

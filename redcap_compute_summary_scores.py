@@ -95,7 +95,8 @@ class redcap_compute_summary_scores(object):
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
 
         # Get events for which this instrument is present, and drop all records from other events
-        instrument_events_list = self.__form_event_mapping[self.__form_event_mapping['form_name'] == scoring.output_form[instrument]]['unique_event_name'].tolist()
+        form_key = self.__session.get_redcap_form_key() 
+        instrument_events_list = self.__form_event_mapping[self.__form_event_mapping[form_key] == scoring.output_form[instrument]]['unique_event_name'].tolist()
 
         record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
         if not len(record_ids):

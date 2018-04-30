@@ -9,6 +9,17 @@
 # for example test_session.py ~/.sibis-general-config.yml 
 # otherwise will run with data/.sibis-general-config.yml
 
+#
+# short sample script 
+#
+if False: 
+  import sibispy
+  from sibispy import sibislogger as slog
+  slog.init_log(False, False,'test_session', 'test_session','/tmp')
+  session = sibispy.Session()
+  session.configure(config_file='/home/ncanda/.sibis-general-config.yml')
+  server = session.connect_server('data_entry', True)
+
 
 import os
 import glob
@@ -39,9 +50,6 @@ slog.init_log(False, False,'test_session', 'test_session','/tmp')
 
 session = sess.Session()
 assert session.configure(config_file)
-
-# Make sure that config file is correctly defined 
-assert(session.get_log_dir())
 
 # Check that the file infrastructure is setup correctly
 for DIR in [session.get_log_dir(), session.get_operations_dir(), session.get_cases_dir(), session.get_summaries_dir(), session.get_dvd_dir(), session.get_datadict_dir()] :
@@ -137,7 +145,7 @@ for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 
 
                 experiment = session.xnat_get_experiment(eid,project = project,subject_label = subject)  
                 if not experiment :
-                    print "Error: session.xnat_get_experiment: " + eid + " should exist in porject", porject, "and subject ", subject_label, "!"
+                    print "Error: session.xnat_get_experiment: " + eid + " should exist in project", project, "and subject ", subject_label, "!"
                 else :
                     print "URI with subject:", experiment.resource('nifti')._uri
 
@@ -197,8 +205,8 @@ for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 
 
         elif project == 'import_laptops' :
             if "redcap_version_test" in config_test_data.iterkeys() :  
-                (form_prefix, form_name) = config_test_data["redcap_version_test"].split(',')
-                complete_label = '%s_complete' % form_name
+                (form_prefix, name_of_form) = config_test_data["redcap_version_test"].split(',')
+                complete_label = '%s_complete' % name_of_form
                 exclude_label = '%s_exclude' % form_prefix
 
                 # If test fails Mike with message that redord_id is missing than it uses wrong redcap lib - use egg version  
@@ -207,15 +215,20 @@ for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 
                 print "Warning: Skipping REDCap version test as it is not defined" 
             
         elif project == 'data_entry' :
-            assert not server.export_fem( format='df' ).empty
+            print "Testing REDCap Version:", session.get_redcap_version()
+
+            form_event_mapping = server.export_fem( format='df' )
+            assert not form_event_mapping.empty
+            # Note: the name of form_name is version-independent in mysql tables - see for example server.metadata 
+            assert session.get_redcap_form_key() in form_event_mapping
             assert len(server.export_records(fields=['study_id'],event_name='unique',format='df'))
 
             if "redcap_stress_test" in config_test_data.iterkeys() :  
                 all_forms = config_test_data["redcap_stress_test"]
                 form_prefixes = all_forms.keys()
-                form_names = all_forms.values()
+                names_of_forms = all_forms.values()
 
-                entry_data_fields = [('%s_complete' % form) for form in form_names] + [('%s_missing' % form) for form in form_prefixes] + [('%s_record_id' % form) for form in form_prefixes]
+                entry_data_fields = [('%s_complete' % form) for form in names_of_forms] + [('%s_missing' % form) for form in form_prefixes] + [('%s_record_id' % form) for form in form_prefixes]
                 entry_data_fields += ['study_id', 'dob', 'redcap_event_name', 'visit_date', 'exclude', 'sleep_date']
                 entry_data_fields += ['parentreport_manual'] 
                 print "Start REDCap stress test ..."  

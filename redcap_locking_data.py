@@ -18,43 +18,43 @@ class redcap_locking_data(object):
     def configure(self, sessionObj):
         self.__session__ = sessionObj
 
-    def unlock_form(self,project_name, arm_name, event_descrip, form_name, subject_id = None):
+    def unlock_form(self,project_name, arm_name, event_descrip, name_of_form, subject_id = None):
         """
         Unlock a given form be removing records from table
 
         :param project_name: str
         :param arm_name: str
         :param event_descrip: str
-        :param form_name: str
+        :param name_of_form: str
         :param subject_id: str
         :return: None
         """
-        locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data', project_name, arm_name, event_descrip,form_name = form_name, subject_id = subject_id)
+        locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data', project_name, arm_name, event_descrip,form_name = name_of_form, subject_id = subject_id)
         locked_list = ', '.join([str(i) for i in locked_forms.ld_id.values.tolist()])
         if locked_list:
             return self.__session__.delete_mysql_table_records('redcap_locking_data', locked_list)
  
         return 0
 
-    def lock_form(self,project_name, arm_name, event_descrip, form_name, outfile = None, subject_id = None):
+    def lock_form(self,project_name, arm_name, event_descrip, name_of_form, outfile = None, subject_id = None):
         """
         Lock all records for a given form for a project and event
 
         :param project_name: str
         :param arm: str
         :param event_descrip: str
-        :param form_name: str
+        :param name_of_form: str
         :return:
         """
         
         # first make sure that all those forms are unlocked 
-        self.unlock_form(project_name, arm_name, event_descrip, form_name, subject_id)
+        self.unlock_form(project_name, arm_name, event_descrip, name_of_form, subject_id)
         # Then get records to lock 
         project_records = self.__session__.get_mysql_project_records(project_name, arm_name, event_descrip, subject_id = subject_id)
         # Lock them 
         # lock all the records for this form by appending entries to locking table
         # Kilian: Problem this table is created regardless if the form really exists in redcap or not
-        return self.__session__.add_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, form_name, project_records, outfile) 
+        return self.__session__.add_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, name_of_form, project_records, outfile) 
 
     def report_locked_forms(self,subject_id, xnat_id, forms, project_name, arm_name, event_descrip):
         """
@@ -77,10 +77,11 @@ class redcap_locking_data(object):
         dataframe = pd.DataFrame(data=data, index=[0], columns=columns)
         locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, subject_id=subject_id)
         for _, row in locked_forms.iterrows():
-            form_name = row.get('form_name')
-            if form_name in forms: 
+            # form_name is not version dependent as it did not change in redcap table only api ! 
+            name_of_form = row.get('form_name')
+            if name_of_form in forms: 
                 timestamp = row.get('timestamp')
-                dataframe.set_value(0, form_name, timestamp)
+                dataframe.set_value(0, name_of_form, timestamp)
 
         return dataframe
     
