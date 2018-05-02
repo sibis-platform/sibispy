@@ -488,25 +488,24 @@ class Session(object):
     def xnat_get_subject_attribute(self,project,subject_label,attribute):
         xnat_subject =  self.xnat_get_subject(project,subject_label)
         if not xnat_subject: 
-            slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
-            return None
+            issue_url = slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
+            return [None,issue_url]
 
         try : 
             if attribute == "label" :
-                return xnat_subject.label()
+                return [xnat_subject.label(),None]
             else :
-                return xnat_subject.attrs.get(attribute)
+                return [xnat_subject.attrs.get(attribute),None]
 
         except Exception, err_msg:
-            slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
+            issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
                       err_msg = str(err_msg),
                       project = project,
                       subject = subject_label,
                       function = "session.xnat_get_subject_attribute",
                       attribute = attribute)
             
-        return None
-
+        return [None,issue_url]
 
     # if time_label is set then will take the time of the operation 
     def xnat_export_general(self,form, fields, conditions, time_label = None): 

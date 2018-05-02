@@ -93,7 +93,7 @@ if not config_test_data :
 
 # Check that the servers are accessible 
 with sess.Capturing() as xnat_output: 
-    assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
+    assert (session.xnat_get_subject_attribute('blub','blub','blub')[0] == None)
 if "Error: XNAT api not defined" not in xnat_output.__str__():
     print "Error: session.xnat_get_subject_attribute: Test did not return correct error message"
     print xnat_output.__str__()
@@ -178,7 +178,7 @@ for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 
 
             # 3. XNAT Test: Failed querry  
             with sess.Capturing() as xnat_output: 
-                assert (session.xnat_get_subject_attribute('blub','blub','blub') == None)
+                assert (session.xnat_get_subject_attribute('blub','blub','blub')[0] == None)
                 
             if "ERROR: attribute could not be found" not in xnat_output.__str__():
                 print "Error: session.xnat_get_subject_attribute: Test returned wrong error message"

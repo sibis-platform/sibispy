@@ -153,7 +153,7 @@ def is_open_issue(repo, subject, label=None, verbose=None):
         if issue.state == 'open':
             if verbose:
                 print "Open issue already exists... See: {0}".format(issue.url)
-            return True
+            return issue
 
         if verbose:
             print "Closed issue already exists, reopening... " \
@@ -162,12 +162,12 @@ def is_open_issue(repo, subject, label=None, verbose=None):
             issue.edit(state='open')
         except GithubException as error:
             print("Error:post_issues_to_github: Edit open issue failed for subject ({}), title ({}): {}".format(subject, issue.title, error))
-        return True
+        return issue
 
     if verbose:
-        print "Issue does not already exist... Creating.".format(subject)
+        print "Issue does not exist.".format(subject)
 
-    return False
+    return None
 
 def generate_body(issue):
     """Generate Markdown for body of issue.
@@ -208,7 +208,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
         verbose (bool): True turns on verbose
 
     Returns:
-        None
+        issue number
     """
 
     if not issue_list or not label:
@@ -225,6 +225,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
                      message=string)
         issue_list = [json.dumps(error, sort_keys=True)]
 
+    github_issue_list = [] 
     for issue in issue_list:
         # Check for new format
         try:
@@ -248,19 +249,24 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
 
         except Exception as e:
             print 'Error:post_issues_to_github: Failed to check for open issue on github!' + ' Title: ' +  subject + ", Exception: " + str(e)
-            pass
-        else:
-            if open_issue:
-                pass
-            else:
-                try:
-                    github_issue = repo.create_issue(subject, body=body, labels=label)
-                except Exception as e:
-                    print 'Error:post_github_issues: Failed to post the following issue on github!' + ' Title: ' + subject + ", Body: " + body + ", Exception: " + str(e)
-                else:
-                    if verbose:
-                        print "Created issue... See: {0}".format(github_issue.url)
-    return None
+            continue
+
+        
+        if open_issue:
+            github_issue_list.append(open_issue.url)
+        else :
+            try:
+                github_issue = repo.create_issue(subject, body=body, labels=label)
+            except Exception as e:
+                print 'Error:post_github_issues: Failed to post the following issue on github!' + ' Title: ' + subject + ", Body: " + body + ", Exception: " + str(e)
+                continue
+
+            if verbose:
+                print "Created issue... See: {0}".format(github_issue.url)
+                
+            github_issue_list.append(github_issue.url)
+
+    return github_issue_list
 
 def get_issues_from_file(file_name, verbose=None):
     """get issues 
@@ -380,7 +386,10 @@ def main(args=None):
             else :
                 "Warning: Issue '" + str(issue) +"' does not exist!"  
     else :
-        create_issues_from_list(repo, args.title, label, issue_list, args.verbose)
+        issue_url_list = create_issues_from_list(repo, args.title, label, issue_list, args.verbose)
+        if  len(issue_url_list) and args.verbose:
+            print "Issues:", issue_url_list
+
 
     if args.verbose:
         print "Finished!"

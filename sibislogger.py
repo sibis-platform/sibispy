@@ -61,6 +61,7 @@ class sibisLogging():
         # Post output to logger 
         # return self.logging.info(log)
         print jlog 
+        return []
 
     def post_to_github(self,general_title,git_label):
         if self.verbose:
