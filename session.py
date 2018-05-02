@@ -421,7 +421,7 @@ class Session(object):
         if project and subject_label: 
             select_object =  self.xnat_get_subject(project,subject_label)
             if not select_object  :
-                slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
+                slog.info(subject_label,"ERROR: session.xnat_get_experiment: subject " + subject_label + " not found !",project = project)
                 return None
         else :
             select_object =  xnat_api.select
@@ -437,11 +437,11 @@ class Session(object):
 
         # not sure how this would ever happen
         if not xnat_experiment:
-            slog.info(eid,"ERROR: session.xnat_get_subject_attribute: experiment not created - problem with xnat api!")
+            slog.info(eid,"ERROR: session.xnat_get_experiment: experiment not created - problem with xnat api!")
             return None
 
         if not xnat_experiment.exists() :
-            slog.info(eid,"ERROR: session.xnat_get_subject_attribute: experiment does not exist !") 
+            slog.info(eid,"ERROR: session.xnat_get_experiment: experiment does not exist !") 
             return None
 
 
@@ -503,9 +503,10 @@ class Session(object):
                       project = project,
                       subject = subject_label,
                       function = "session.xnat_get_subject_attribute",
+                      info = "Did subject change site ? Make sure that site of subject ID matches project !",  
                       attribute = attribute)
             
-        return [None,issue_url]
+            return [None,issue_url]
 
     # if time_label is set then will take the time of the operation 
     def xnat_export_general(self,form, fields, conditions, time_label = None): 
