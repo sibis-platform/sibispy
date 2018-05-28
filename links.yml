@@ -1,0 +1,54 @@
+data_entry:
+  type: redcap
+  base_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/index.php?pid=20"
+  dashboard_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/record_home.php?pid=20"
+  pid: 20
+  arms:
+    standard:  &entry_standard_arm
+      arm_id: 1
+      events:
+        baseline: 70
+        6month_followup: 71
+        1y_visit: 72
+        18month_followup: 73
+        2y_visit: 74
+        30month_followup: 75
+        3y_visit: 76
+        42month_followup: 77
+        4y_visit: 78
+        54month_followup: 79
+        5y_visit: 80
+    __default:  *entry_standard_arm
+    sleep:
+      arm_id: 3
+      events:
+        baseline_night_1: 89
+        baseline_night_2: 90
+        baseline_night_3: 91
+        1y_visit_night_1: 466
+        1y_visit_night_2: 467
+        2y_visit_night_1: 468
+        2y_visit_night_2: 469
+        3y_visit_night_1: 470
+        3y_visit_night_2: 471
+        4y_visit_night_1: 472
+        4y_visit_night_2: 473
+import_laptops:
+  type: redcap
+  pid: 6
+  base_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/index.php?pid=6"
+  dashboard_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/record_home.php?pid=6"
+  arms:
+    __default:
+      arm_id: 1
+import_webcnp:
+  type: redcap
+  pid: 21
+  base_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/index.php?pid=21"
+  dashboard_url: "https://ncanda.sri.com/redcap/redcap_v8.4.0/DataEntry/record_home.php?pid=21"
+  arms:
+    __default:
+      arm_id: 1
+xnat:
+  type: xnat
+  base_url: "https://ncanda.sri.com/xnat/app/action/DisplayItemAction/"
