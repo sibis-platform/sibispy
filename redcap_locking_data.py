@@ -29,7 +29,7 @@ class redcap_locking_data(object):
         :param subject_id: str
         :return: None
         """
-        locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data', project_name, arm_name, event_descrip,form_name = name_of_form, subject_id = subject_id)
+        locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data', project_name, arm_name, event_descrip, name_of_form=name_of_form, subject_id=subject_id)
         locked_list = ', '.join([str(i) for i in locked_forms.ld_id.values.tolist()])
         if locked_list:
             return self.__session__.delete_mysql_table_records('redcap_locking_data', locked_list)
