@@ -65,7 +65,7 @@ class Session(object):
     def __init__(self):
         self.__config_usr_data = cfg_parser.config_file_parser()
         self.__config_srv_data = None 
-        self.api = {'xnat': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None, 'svn_laptop': None} 
+        self.api = {'xnat': None, 'xnat_http': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None, 'svn_laptop': None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
         self.__active_redcap_project__ = None
         self.__ordered_config_load = False
@@ -105,6 +105,8 @@ class Session(object):
 
         if api_type == 'xnat' :
             connectionPtr = self.__connect_xnat__()
+        elif api_type == 'xnat_http' :
+            connectionPtr = self.__connect_xnat_http__()
         elif api_type == 'browser_penncnp' : 
             connectionPtr = self.__connect_penncnp__()
         elif api_type == 'svn_laptop' : 
@@ -119,6 +121,26 @@ class Session(object):
 
         return connectionPtr
 
+    # Access xnat directly through http calls 
+    def __connect_xnat_http__(self):
+        import requests
+        cfg = self.__config_usr_data.get_category('xnat')
+        jsessionid = ''.join([self.get_xnat_data_address(), '/JSESSIONID'])
+
+        http_session = requests.session()
+        http_session.auth = (cfg['user'], cfg['password'])
+        try : 
+            http_session.get(jsessionid)
+
+        except Exception as err_msg: 
+            slog.info('session.__connect_xnat_http__', str(err_msg), server=cfg.get('server'))
+            return None
+
+        self.api['xnat_http'] = http_session
+        return http_session
+
+
+    # Access xnat through pyxnat 
     def __connect_xnat__(self):
         import pyxnat
         cfg = self.__config_usr_data.get_category('xnat')
@@ -408,6 +430,34 @@ class Session(object):
     def get_xnat_server_address(self):
         return self.__config_usr_data.get_value('xnat','server')
 
+    def get_xnat_data_address(self):
+        return self.get_xnat_server_address()  + '/data'
+
+    def xnat_http_get_all_experiments(self): 
+        xnat_http_api = self.__get_xnat_http_api__()
+        if not xnat_http_api: 
+            return None
+
+        server = self.get_xnat_data_address()
+        collections = dict(projects=lambda: server + '/projects',
+                       subjects=lambda x: server + '/{0}/subjects'.format(x),
+                       experiments=lambda: server + '/experiments')
+
+        return xnat_http_api.get(collections.get('experiments')() + '?format=csv')
+
+    def xnat_http_get_experiment_xml(self,experiment_id): 
+        xnat_http_api = self.__get_xnat_http_api__()
+        if not xnat_http_api: 
+            return None
+
+        server = self.get_xnat_data_address()
+        entities = dict(project=lambda x: server + '/projects/{0}'.format(x),
+                    subject=lambda x: server + '/subjects/{0}'.format(x),
+                    experiment=lambda x:
+                    server + '/experiments/{0}'.format(x))
+
+        return xnat_http_api.get(entities.get('experiment')(experiment_id) +  '?format=csv')
+
     # makes a difference where later saved file on disk how the function is called 
     def xnat_get_experiment(self,eid,project=None,subject_label=None): 
         xnat_api = self.__get_xnat_api__()
@@ -548,6 +598,15 @@ class Session(object):
             return None
 
         return self.api['xnat']
+
+
+    def __get_xnat_http_api__(self): 
+        if not self.api['xnat_http'] : 
+            slog.info('__get_xnat_http_api__','Error: XNAT_HTTP api not defined')  
+            return None
+
+        return self.api['xnat_http']
+
 
     def initialize_penncnp_wait(self) : 
         from selenium.webdriver.support.ui import WebDriverWait

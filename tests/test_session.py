@@ -17,7 +17,7 @@ if False:
   from sibispy import sibislogger as slog
   slog.init_log(False, False,'test_session', 'test_session','/tmp')
   session = sibispy.Session()
-  session.configure(config_file='/home/ncanda/.sibis-general-config.yml')
+  session.configure()
   server = session.connect_server('data_entry', True)
 
 
@@ -99,7 +99,7 @@ if "Error: XNAT api not defined" not in xnat_output.__str__():
     print xnat_output.__str__()
     sys.exit(1)
 
-for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 'redcap_mysql_db', 'xnat'] :
+for project in ['xnat','xnat_http', 'svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 'redcap_mysql_db'] :
     print "==== Testing " + project + " ====" 
     try : 
         server = session.connect_server(project, True)
@@ -108,7 +108,20 @@ for project in ['svn_laptop', 'data_entry','browser_penncnp', 'import_laptops', 
             print "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
             continue 
             
+        if project == 'xnat_http':
+            
+            experiments = session.xnat_http_get_all_experiments()
+            
+            if not experiments or experiments.text.count('\n') < 2:
+                print "Error: session.xnat_http_get_all_experiments: failed to perform querry"
+                continue 
 
+            experiment_id=experiments.text.splitlines()[1].split(',')[0].replace("\"", "") 
+            exp_html=session.xnat_http_get_experiment_xml(experiment_id).text
+            if not [x for x in exp_html.splitlines() if "xnat:MRSession" in x] : 
+              print "Error: session.xnat_http_get_experiment_xml: failed to perform querry"
+              continue 
+              
         if project == 'xnat':
             # 1. XNAT Test: Non-Empty querry  
             with sess.Capturing() as xnat_output: 
