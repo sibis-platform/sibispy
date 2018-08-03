@@ -294,10 +294,13 @@ class check_dti_gradients(object):
                     # report it.
                     gtf = truth_gradient[idx]
                     if not ( gtf == frame).all():
+                        absDiff = np.sum(np.sum(np.absolute(gtf - frame)[:]))
+                        if absDiff <= 0.06:  # TODO: define threshold in config
+                            continue
                         errorsFrame.append(idx)
                         errorsActual.append(frame)
                         errorsExpected.append(gtf)
-                        errorsAbsDiff.append('%.3f' % np.sum(np.sum(np.absolute(gtf - frame)[:])))
+                        errorsAbsDiff.append('%.3f' % absDiff)
                         
             else:
                 slog.info(session_label +"-"+ sequence_label,"ERROR: Incorrect number of frames.",
