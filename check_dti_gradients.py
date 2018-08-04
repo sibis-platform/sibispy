@@ -288,7 +288,12 @@ class check_dti_gradients(object):
         try:
             (evaluated_gradients,errorFlag) = self.__get_all_gradients(session_label,eid,scan_id,xml_file_list)
 
-            if len(evaluated_gradients) == len(truth_gradient):
+            if errorFlag:
+                # Skip ground truth comparison because evaluated_gadients
+                # cannot be trusted
+                pass
+
+            elif len(evaluated_gradients) == len(truth_gradient):
                 for idx, frame in enumerate(evaluated_gradients):
                     # if there is a frame that doesn't match,
                     # report it.
