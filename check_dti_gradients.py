@@ -174,7 +174,7 @@ class check_dti_gradients(object):
         else:
             errorFlag = False
  
-            return (gradients_as_array, errorFlag)
+        return (gradients_as_array, errorFlag)
 
     #----------------------------------------------------
     def _get_ground_truth_gradients_(self,session_label,scanner,scanner_model,sequence_label):
