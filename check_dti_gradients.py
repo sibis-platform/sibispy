@@ -174,7 +174,7 @@ class check_dti_gradients(object):
         else:
             errorFlag = False
  
-            return (gradients_as_array, errorFlag)
+        return (gradients_as_array, errorFlag)
 
     #----------------------------------------------------
     def _get_ground_truth_gradients_(self,session_label,scanner,scanner_model,sequence_label):
@@ -288,16 +288,24 @@ class check_dti_gradients(object):
         try:
             (evaluated_gradients,errorFlag) = self.__get_all_gradients(session_label,eid,scan_id,xml_file_list)
 
-            if len(evaluated_gradients) == len(truth_gradient):
+            if errorFlag:
+                # Skip ground truth comparison because evaluated_gadients
+                # cannot be trusted
+                pass
+
+            elif len(evaluated_gradients) == len(truth_gradient):
                 for idx, frame in enumerate(evaluated_gradients):
                     # if there is a frame that doesn't match,
                     # report it.
                     gtf = truth_gradient[idx]
                     if not ( gtf == frame).all():
+                        absDiff = np.sum(np.sum(np.absolute(gtf - frame)[:]))
+                        if absDiff <= 0.06:  # TODO: define threshold in config
+                            continue
                         errorsFrame.append(idx)
                         errorsActual.append(frame)
                         errorsExpected.append(gtf)
-                        errorsAbsDiff.append('%.3f' % np.sum(np.sum(np.absolute(gtf - frame)[:])))
+                        errorsAbsDiff.append('%.3f' % absDiff)
                         
             else:
                 slog.info(session_label +"-"+ sequence_label,"ERROR: Incorrect number of frames.",
