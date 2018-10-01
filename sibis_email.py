@@ -35,9 +35,13 @@ class sibis_email:
         self._admin_messages.append( msg )
 
     # Send pre-formatted mail message 
-    def send( self, subject, from_email, to_email, html ):
+    def send( self, subject, from_email, to_email, html, sendToAdminFlag=True ):
         if not self._smtp_server : 
             slog.info("sibis_email.send","ERROR: smtp server not defined - email will not be sent!")
+            return False
+
+        if not to_email :
+            slog.info("sibis_email.send","ERROR: no email address for recipient defined - email will not be sent!")
             return False
 
         # Create message container - the correct MIME type is multipart/alternative.
@@ -72,10 +76,9 @@ class sibis_email:
             s.sendmail( from_email, to_email, msg.as_string() )
         
             # Send email also to sibis admin if defined
-            if self._sibis_admin_email and to_email != self._sibis_admin_email : 
-                # print "blub test sibis_email (admin and to_emnail)", self._sibis_admin_email, to_email 
-
+            if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
                 s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
+
         except Exception, err_msg:
             slog.info("sibis_email.send","ERROR: failed to send email at {} ".format(time.asctime()),
                       err_msg = str(err_msg),
