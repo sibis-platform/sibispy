@@ -43,10 +43,6 @@ else :
     if errcode : 
         print "Error: sprlioadd: ", stderr
 
-
-
-# Front end right now 
-print "=== Front End " 
 (errcode, stdout, stderr) = sutils.Rscript("--help")
 if errcode : 
     print "Error: Rscript: ", stderr
