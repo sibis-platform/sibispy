@@ -81,7 +81,7 @@ class redcap_locking_data(object):
             name_of_form = row.get('form_name')
             if name_of_form in forms: 
                 timestamp = row.get('timestamp')
-                dataframe.set_value(0, name_of_form, timestamp)
+                dataframe.at[0, name_of_form] = timestamp
 
         return dataframe
     
