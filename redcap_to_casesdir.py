@@ -324,7 +324,7 @@ class redcap_to_casesdir(object):
 
             series = pandas.Series()
             for (key, value) in demographics:
-                series = series.set_value(key, value)
+                series.at[key] = value
 
             return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,os.path.join(measures_dir, 'demographics.csv'),verbose=verbose)
 
@@ -334,10 +334,10 @@ class redcap_to_casesdir(object):
         fields = [column for column in self.__export_forms.get(export_name)
                   if column != complete]
 
-        # Select data for this form - "reindex_axis" is necessary to put
+        # Select data for this form - "reindex" is necessary to put
         # fields in listed order - REDCap returns them lexicographically sorted
         fields = [i for i in fields if i not in ['subject', 'arm', 'visit']]
-        record = all_records[fields].reindex_axis(fields, axis=1)
+        record = all_records[fields].reindex(fields, axis=1)
 
         # if I read it correctly then this statement is not possible 
         if len(record) > 1:
