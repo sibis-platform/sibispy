@@ -19,6 +19,7 @@ parser.add_argument("--id-list", help="subject id list seperated by comma (e.g. 
 parser.add_argument("--form-list", help="list of forms seperated by comma (e.g. ssaga_dsm4,ssaga_dsm5) ", action="store", required=False, default=None)
 parser.add_argument("--dir", help="if defined will write output to that dir", action="store", required=False, default=None)
 parser.add_argument("--allForms", help="should all forms be checked", action="store_true", required=False, default=False)
+parser.add_argument("--uploadScores", help="should computed scores be uploaded to redcap", action="store_true", required=False, default=False)
 
 args = parser.parse_args()
 
@@ -57,6 +58,10 @@ else :
 for subj in subject_id_list :
     for inst in instruments: 
         (recorded_scores,errorFlag) = red_score_update.compute_summary_scores(inst, subject_id = subj, update_all = True, verbose = False)
+
+        if args.uploadScores:
+            red_score_update.upload_summary_scores_to_redcap(inst, recorded_scores)
+
         if not errorFlag and args.dir: 
             fileName = os.path.join(args.dir,inst + "_" + subj + '_out.csv') 
             with open(fileName, 'w') as csvfile:
