@@ -35,13 +35,12 @@ def main(args=None):
     if args.unlock and args.lock:
         raise Exception("Only specify --lock or --unlock, not both!")
 
-    if args.subject_id : 
-        subject_list = args.subject_id.split(',')
-    else : 
+    subject_list = args.subject_id
+    if subject_list is None:
         subject_list = [None]
 
 
-    for event_desc in args.event.split(',') :
+    for event_desc in args.event:
         if args.verbose: 
             print "Visit: {0}".format(event_desc)
 
@@ -49,35 +48,38 @@ def main(args=None):
             if args.verbose:
                 print "Attempting to lock form: {0}".format(args.form)
 
-            for sid in  subject_list : 
-                locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, args.form, outfile = args.outfile, subject_id = sid)
-                slog.takeTimer1("script_time","{'records': " + str(locked_record_num) + "}")
-                if args.verbose:
-                    print "The {0} form has been locked".format(args.form)
-                    print "Record of locked files: {0}".format(args.outfile)
+            for sid in subject_list:
+                for form in args.form:
+                    locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, form, outfile=args.outfile, subject_id=sid)
+                    slog.takeTimer1("script_time", "{'records': " + str(locked_record_num) + "}")
+                    if args.verbose:
+                        print "The {0} form has been locked".format(form)
+                        print "Record of locked files: {0}".format(args.outfile)
 
         elif args.unlock:
             if args.verbose:
                 print "Attempting to unlock form: {0}".format(args.form)
                 
-            for sid in  subject_list : 
-                if not red_lock.unlock_form(args.project, args.arm, event_desc, args.form, subject_id = sid):
-                    if sid :
-                        print "Warning: Nothing to unlock ! Form '{0}' or subject '{1}' might not exist".format(args.form,sid)
-                    else : 
-                        print "Warning: Nothing to unlock ! Form '{0}' might not exist".format(args.form)
-                elif args.verbose:
-                    print "The {0} form has been unlocked".format(args.form)
+            for sid in subject_list:
+                for form in args.form:
+                    if not red_lock.unlock_form(args.project, args.arm, event_desc, form, subject_id=sid):
+                        if sid:
+                            print "Warning: Nothing to unlock! Form '{0}' or subject '{1}' might not exist".format(form, sid)
+                        else:
+                            print "Warning: Nothing to unlock! Form '{0}' might not exist".format(form)
+                    elif args.verbose:
+                        print "The {0} form has been unlocked".format(form)
 
         elif args.report:
-            form_array = args.form.split(",")
+            if not args.subject_id:
+                raise NotImplementedError("Cannot create report if no subject ID is passed!")
+            form_array = args.form
             if args.verbose:
-                print "Attempting to create a report for form {0} and subject_id {1} ".format(form_array,args.subject_id)
-            print red_lock.report_locked_forms(args.subject_id, args.subject_id, form_array, args.project, args.arm, event_desc)
+                print "Attempting to create a report for form(s) {0} and subject_id {1} ".format(form_array,args.subject_id)
+            for subject in args.subject_id:
+                # FIXME: Currently, Session.get_mysql_table_records cannot take multiple subject IDs
+                print red_lock.report_locked_forms(subject, subject, form_array, args.project, args.arm, event_desc)
 
-        else :
-            raise Exception("Please specify --lock, --unlock, or --report!")
-            
     if args.verbose:
         print "Done!"
 
@@ -87,38 +89,37 @@ def main(args=None):
 if __name__ == "__main__":
     formatter = argparse.RawDescriptionHelpFormatter
     default = 'default: %(default)s'
-    parser = argparse.ArgumentParser(prog="redcap_form_locker.py",
+    parser = argparse.ArgumentParser(prog=__file__,
                                      description=__doc__,
                                      formatter_class=formatter)
     parser.add_argument("--project", dest="project", required=False,
                         help="Project Name in lowercase_underscore.", default='ncanda_subject_visit_log')
     parser.add_argument("-a", "--arm", dest="arm", required=False,
-                        choices=['Standard Protocol'],default='Standard Protocol',
+                        choices=['Standard Protocol'], default='Standard Protocol',
                         help="Arm Name as appears in UI")
-    parser.add_argument("-e", "--event", dest="event", required=False,
+    parser.add_argument("-e", "--event", dest="event", required=False, nargs="*",
                         choices=['Baseline visit', '1y visit', '2y visit', '3y visit'],
-                        help="Event Name in as appears in UI seperated with comma (if multiple ones)", default='Baseline visit,1y visit,2y visit,3y visit')
-    parser.add_argument("-f", "--form", dest="form", required=True,
+                        help="Event Name in as appears in UI", default=['Baseline visit', '1y visit', '2y visit', '3y visit'])
+    parser.add_argument("-f", "--form", dest="form", required=True, nargs="+",
                         help="Form Name in lowercase_underscore")
     parser.add_argument("-o", "--outfile", dest="outfile",
                         default='/tmp/locked_records.csv',
-                        help="Path to write locked records file. {0}".format(default))
-    parser.add_argument("-s", "--subject_id", default=None, help="REDCap subject ID (multiple ones seperated by ,")
-    parser.add_argument("--lock", dest="lock", action="store_true",
-                        help="Lock form")
-    parser.add_argument("--unlock", dest="unlock", action="store_true",
-                        help="Lock forms")
-    parser.add_argument("--report", dest="report", action="store_true",
-                        help="Generate a report for subject")
+                        help="Path to scratch-write current locked records file. {0}".format(default))
+    parser.add_argument("-s", "--subject_id", help="REDCap subject ID(s) (separate with spaces)", nargs="*")
+    action_group = parser.add_argument_group('Action parameters', '(Mutually exclusive)')
+    action_group_exclusives = action_group.add_mutually_exclusive_group(required=True)
+    action_group_exclusives.add_argument("--lock", dest="lock", action="store_true", help="Lock form(s)")
+    action_group_exclusives.add_argument("--unlock", dest="unlock", action="store_true", help="Unlock form(s)")
+    action_group_exclusives.add_argument("--report", dest="report", action="store_true", help="Generate a report of form lock statuses")
 
     parser.add_argument("-v", "--verbose", dest="verbose",
                         help="Turn on verbose", action='store_true')
     parser.add_argument("-p", "--post-to-github", help="Post all issues to GitHub instead of std out.", action="store_true")
-    parser.add_argument("-t","--time-log-dir", help="If set then time logs are written to that directory", action="store", default=None)
+    parser.add_argument("-t", "--time-log-dir", help="If set then time logs are written to that directory", action="store", default=None)
 
     args = parser.parse_args()
 
-    slog.init_log(args.verbose, args.post_to_github,'NCANDA REDCap', 'redcap_form_locker', args.time_log_dir)
+    slog.init_log(args.verbose, args.post_to_github, 'NCANDA REDCap', __file__, args.time_log_dir)
 
     sys.exit(main(args=args))
 
