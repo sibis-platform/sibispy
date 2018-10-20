@@ -77,16 +77,17 @@ for subj in subject_id_list :
 
                 if not os.path.isfile(snapshotFilename):
                     print "ERROR: Missing snapshot file", snapshotFilename
-
-                is_match = filecmp.cmp(fileName, snapshotFilename, shallow=False)
-                if not is_match:
-                    print "ERROR: snapshot differs"
-                    with open(fileName, 'r') as current:
-                        with open(snapshotFilename) as snapshot:
-                            curLines = current.readlines()
-                            snapLines = snapshot.readlines()
-                            sys.stdout.writelines(difflib.unified_diff(snapLines, curLines, snapshotFilename, fileName))
-                            print "\n"
+                    
+                else:
+                    is_match = filecmp.cmp(fileName, snapshotFilename, shallow=False)
+                    if not is_match:
+                        print "ERROR: snapshot differs"
+                        with open(fileName, 'r') as current:
+                            with open(snapshotFilename) as snapshot:
+                                curLines = current.readlines()
+                                snapLines = snapshot.readlines()
+                                sys.stdout.writelines(difflib.unified_diff(snapLines, curLines, snapshotFilename, fileName))
+                                print "\n"
 
                     
 
