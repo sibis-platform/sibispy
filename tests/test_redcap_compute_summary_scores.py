@@ -11,6 +11,8 @@ import sibispy
 from sibispy import sibislogger as slog
 from sibispy import redcap_compute_summary_scores as red_scores
 import argparse
+import difflib
+import filecmp
 
 parser = argparse.ArgumentParser(description="testing redcap compute scores",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -20,6 +22,7 @@ parser.add_argument("--form-list", help="list of forms seperated by comma (e.g. 
 parser.add_argument("--dir", help="if defined will write output to that dir", action="store", required=False, default=None)
 parser.add_argument("--allForms", help="should all forms be checked", action="store_true", required=False, default=False)
 parser.add_argument("--uploadScores", help="should computed scores be uploaded to redcap", action="store_true", required=False, default=False)
+parser.add_argument("--snapshotDir", help="should compare computed scores with versions specified dir", action="store", required=False, default=None)
 
 args = parser.parse_args()
 
@@ -68,6 +71,28 @@ for subj in subject_id_list :
                 recorded_scores.to_csv(csvfile)
 
             print "Wrote output to", fileName
+            
+            if args.snapshotDir:
+                snapshotFilename = os.path.join(args.snapshotDir, inst + "_" + subj + '_out.csv')
+
+                if not os.path.isfile(snapshotFilename):
+                    print "ERROR: Missing snapshot file", snapshotFilename
+                    
+                else:
+                    is_match = filecmp.cmp(fileName, snapshotFilename, shallow=False)
+                    if not is_match:
+                        print "ERROR: snapshot differs"
+                        with open(fileName, 'r') as current:
+                            with open(snapshotFilename) as snapshot:
+                                curLines = current.readlines()
+                                snapLines = snapshot.readlines()
+                                sys.stdout.writelines(difflib.unified_diff(snapLines, curLines, snapshotFilename, fileName))
+                                print "\n"
+
+                    
+
+                
+
 
     # assert(not errorFlag)
     # print recorded_scores
