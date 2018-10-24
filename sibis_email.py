@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##
 ##  See COPYING file distributed along with the ncanda-data-integration package
 ##  for the copyright and license terms
@@ -64,7 +65,7 @@ class sibis_email:
         # Send the message via local SMTP server.
         try : 
             s = smtplib.SMTP( self._smtp_server )
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
                     err_msg = str(err_msg),
                     smtp_server = self._smtp_server) 
@@ -79,7 +80,7 @@ class sibis_email:
             if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
                 s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("sibis_email.send","ERROR: failed to send email at {} ".format(time.asctime()),
                       err_msg = str(err_msg),
                       email_from = from_email, 
@@ -146,10 +147,10 @@ class sibis_email:
             self.mail_admin(title, aIntro_txt)
 
     def dump_all( self ):
-	print "USER MESSAGES:"
-	print self._messages_by_user
-	print "ADMIN_MESSAGES:"
-	print self._admin_messages
+	print("USER MESSAGES:")
+	print(self._messages_by_user)
+	print("ADMIN_MESSAGES:")
+	print(self._admin_messages)
 
 class xnat_email(sibis_email):
     def __init__(self, session): 

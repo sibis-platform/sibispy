@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import argparse 
 import os
 import sys
@@ -34,7 +35,7 @@ def main(args,sibis_session):
     slog.startTimer1()
     cases_dir =  sibis_session.get_cases_dir() 
     if args.verbose:
-      print "Checking cases in " + cases_dir 
+      print("Checking cases in " + cases_dir) 
 
     cases = get_cases(cases_dir, arm=args.arm, event=args.event, case=args.case)
 
@@ -44,7 +45,7 @@ def main(args,sibis_session):
         else :
             case = "*"
 
-        print "Error: Did not find any cases matching :" + "/".join([cases_dir,case,args.arm,args.event])
+        print("Error: Did not find any cases matching :" + "/".join([cases_dir,case,args.arm,args.event]))
         sys.exit(1)
 
     # Demographics from pipeline to grab case to scanner mapping
@@ -63,19 +64,19 @@ def main(args,sibis_session):
         dti_path = os.path.join(case, args.arm, args.event,'diffusion/native',args.sequence)
         if not os.path.exists(dti_path) :
             if args.verbose:
-                print "Warning: " + dti_path + " does not exist!"
+                print("Warning: " + dti_path + " does not exist!")
 
             continue 
 
         if args.verbose:
-            print "Processing: " + "/".join([case,args.arm, args.event])
+            print("Processing: " + "/".join([case,args.arm, args.event]))
 
         sid = os.path.basename(case)
         try:
             scanner = demographics.xs([sid, args.arm, args.event])['scanner']
             scanner_model = demographics.xs([sid, args.arm, args.event])['scanner_model']
         except :
-            print "Error: case " + case + "," +  args.arm + "," + args.event +" not in " + demo_path +"!"
+            print("Error: case " + case + "," +  args.arm + "," + args.event +" not in " + demo_path +"!")
             error = 'Case, arm and event not in demo_path'
             slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(case, args.arm, args.event)).hexdigest()[0:6], error,
                       case=str(case),
@@ -85,7 +86,7 @@ def main(args,sibis_session):
             continue
 
         if (isinstance(scanner, float) and math.isnan(scanner)) or (isinstance(scanner_model, float) and math.isnan(scanner_model)) :
-            print "Error: Did not find scanner or model for " + sid + "/" +  args.arm + "/" + args.event +" so cannot check gradient for that scan!"
+            print("Error: Did not find scanner or model for " + sid + "/" +  args.arm + "/" + args.event +" so cannot check gradient for that scan!")
             error = "Did not find any cases matching cases_dir, case, arm, event"
             slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(args.base_dir, args.arm, args.event)).hexdigest()[0:6], error,
                       cases_dir=cases_dir,
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     sibis_session = sibispy.Session()
     if not sibis_session.configure() :
         if verbose:
-            print "Error: session configure file was not found"
+            print("Error: session configure file was not found")
  
         sys.exit()
 

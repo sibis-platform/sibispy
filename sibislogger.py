@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 ##
 ##  Copyright 2016 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
@@ -9,7 +11,7 @@ import json
 import collections
 import time 
 import os
-import post_issues_to_github as pig
+from . import post_issues_to_github as pig
 # set logger of python packages to warning so that we avoid info messages being printed out 
 #logging.getLogger("urllib3").setLevel(logging.WARNING)
 #logging.getLogger("requests").setLevel(logging.WARNING)
@@ -65,19 +67,19 @@ class sibisLogging():
 
         if self.postGithubRepo :
             if self.verbose:
-                print "Posting", uid, str(message)
+                print("Posting", uid, str(message))
 
             return pig.create_issues_from_list(self.postGithubRepo, self.postGithubTitle, self.postGithubLabel, [jlog],self.verbose)
 
         # Post output to logger 
         # return self.logging.info(log)
-        print jlog 
+        print(jlog) 
         return []
 
     def post_to_github(self,general_title,git_label):
         if self.verbose:
-            print "================================"
-            print "== Setting up posting to GitHub "
+            print("================================")
+            print("== Setting up posting to GitHub ")
 
         # Create Connection
         if not self.postGithubRepo :
@@ -88,14 +90,14 @@ class sibisLogging():
 
         self.postGithubLabel=pig.get_github_label(self.postGithubRepo, git_label, self.verbose)
         if not self.postGithubLabel :
-            print "Warning: Github label does not exist so not creating issues on github!"
+            print("Warning: Github label does not exist so not creating issues on github!")
             self.postGithubRepo = None
             return False
 
         self.postGithubTitle=general_title + " (" + git_label + ")"
         if self.verbose:
-            print "== Posting to GitHub is ready "
-            print "================================"
+            print("== Posting to GitHub is ready ")
+            print("================================")
 
         return True
 

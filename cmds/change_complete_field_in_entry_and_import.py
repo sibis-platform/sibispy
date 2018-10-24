@@ -5,6 +5,7 @@
 ##  for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -96,7 +97,7 @@ session = sibispy.Session()
 
 if not session.configure():
     if args.verbose:
-        print "Error: session configure file was not found"
+        print("Error: session configure file was not found")
 
     sys.exit()
 
@@ -110,17 +111,17 @@ if args.forms:
             lookup = [k for (k, v) in all_forms.iteritems() if v == f]
             forms[lookup[0]] = f
         else:
-            print "WARNING: no form with name or prefix '%s' defined.\n" % f
+            print("WARNING: no form with name or prefix '%s' defined.\n" % f)
 
 if args.all_forms: 
     forms = all_forms
 
 if forms == None : 
-    print "Please define forms to run this script for" 
+    print("Please define forms to run this script for") 
     sys.exit(1)
 
 if args.verbose:
-    print "Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values()))
+    print("Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values())))
 
 form_prefixes = forms.keys()
 form_names = forms.values()
@@ -129,7 +130,7 @@ form_names = forms.values()
 import_project = session.connect_server('import_laptops', True)
 if not import_project :
     if args.verbose:
-        print "Error: Could not connect to Redcap for Import Project"
+        print("Error: Could not connect to Redcap for Import Project")
 
     sys.exit()
 
@@ -137,7 +138,7 @@ if not import_project :
 redcap_project = session.connect_server('data_entry', True)
 if not redcap_project :
     if args.verbose:
-        print "Error: Could not connect to Redcap for Data Entry"
+        print("Error: Could not connect to Redcap for Data Entry")
 
     sys.exit()
 
@@ -147,7 +148,7 @@ form_event_mapping = redcap_project.export_fem(format='df')
 #
 
 for form_prefix, form_name in forms.iteritems():
-    print "Processing form",form_prefix,"/",form_name
+    print("Processing form",form_prefix,"/",form_name)
 
     complete_label = '%s_complete' % form_name
     record_label = '%s_record_id' % form_prefix 
@@ -165,7 +166,7 @@ for form_prefix, form_name in forms.iteritems():
     event_mapping =  event_mapping_tmp[event_mapping_tmp.str.startswith(args.event, na=False)].tolist()
 
     if len(event_mapping) == 0 : 
-        print "ERROR: Event name starting with '"+ args.event + "' for '" + form_name + "' could not be found !"
+        print("ERROR: Event name starting with '"+ args.event + "' for '" + form_name + "' could not be found !")
         continue 
 
     fields_list = [complete_label,record_label,'visit_ignore']
@@ -175,7 +176,7 @@ for form_prefix, form_name in forms.iteritems():
 
     entry_records = entry_records[entry_records.index.map( lambda key: key[1] in event_mapping) ]
     if entry_records.empty : 
-        print "No records could be found for form '" + form_name + "'" 
+        print("No records could be found for form '" + form_name + "'") 
         continue 
 
     # print entry_records.columns
@@ -202,7 +203,7 @@ for form_prefix, form_name in forms.iteritems():
             upload_id_list = import_complete_records[import_complete_records[complete_label] < 2].index
             upload_id_len = len(upload_id_list)
             if upload_id_len :  
-                print "Number of Records", upload_id_len
+                print("Number of Records", upload_id_len)
                 # Upload in batches as if one problem is in one record all of them are not uploaded in the batch
                 for  upload_id_batch in batch(upload_id_list,50): 
                     upload_records=list() 
@@ -212,27 +213,27 @@ for form_prefix, form_name in forms.iteritems():
                     if len(upload_records) : 
                         import_response = session.redcap_import_record_to_api(upload_records, 'import_laptops', '')
                         # import_response = "TEST"
-                        print "Upload Records:", upload_id_batch 
-                        print "REDCAP response:", import_response 
+                        print("Upload Records:", upload_id_batch) 
+                        print("REDCAP response:", import_response) 
     else : 
-        print "Warning: '" + record_label + "' does not exist in form '" + form_name + "'"   
+        print("Warning: '" + record_label + "' does not exist in form '" + form_name + "'")   
     
 
     # Now set entry record to complete
     entry_records_not_complete = entry_records[entry_records[complete_label] ==1 ]
     # check if their is an import record associated with it 
     if  entry_records_not_complete.empty :
-        print "No entries for form '" + form_name + "' found that were unverified" 
+        print("No entries for form '" + form_name + "' found that were unverified") 
         continue
 
     
-    print "Number of Records", len(entry_records_not_complete)
-    print "Upload Records:", entry_records_not_complete.index 
+    print("Number of Records", len(entry_records_not_complete))
+    print("Upload Records:", entry_records_not_complete.index) 
     upload_records=list() 
     for key in entry_records_not_complete.index :
         upload_records.append({'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
         #to_redcap(session,form_name, '','','', {'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
 
     import_response = session.redcap_import_record_to_api(upload_records, 'data_entry', '')
-    print "REDCAP response:", import_response 
+    print("REDCAP response:", import_response) 
 

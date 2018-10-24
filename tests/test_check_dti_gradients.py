@@ -5,6 +5,7 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import sys
 import glob
@@ -24,7 +25,7 @@ assert(session.configure(config_file))
 
 check = chk.check_dti_gradients()
 if not check.configure(session,check_decimals=2) :
-    print "If it fails bc it cannot find ground truth files please execute ../cmd/download_dti_groundtruth.py"
+    print("If it fails bc it cannot find ground truth files please execute ../cmd/download_dti_groundtruth.py")
     sys.exit(1)
 
 gt_path_dict = check.get_ground_truth_gradient_path_dict()

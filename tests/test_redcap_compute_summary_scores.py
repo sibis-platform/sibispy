@@ -5,6 +5,7 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from __future__ import print_function
 import sys
 import os 
 import sibispy
@@ -37,12 +38,12 @@ assert(red_score_update.configure(session))
 # Load in test specific settings : 
 (sys_file_parser,err_msg) = session.get_config_test_parser()
 if err_msg :
-    print "Error: session.get_config_test_parser:" + err_msg
+    print("Error: session.get_config_test_parser:" + err_msg)
     sys.exit(1)
  
 config_test_data = sys_file_parser.get_category('test_redcap_compute_summary_scores')
 if not config_test_data : 
-    print "Error: test_session specific settings not defined!"
+    print("Error: test_session specific settings not defined!")
     sys.exit(1)
 
 if args.id_list : 
@@ -70,24 +71,24 @@ for subj in subject_id_list :
             with open(fileName, 'w') as csvfile:
                 recorded_scores.to_csv(csvfile)
 
-            print "Wrote output to", fileName
+            print("Wrote output to", fileName)
             
             if args.snapshotDir:
                 snapshotFilename = os.path.join(args.snapshotDir, inst + "_" + subj + '_out.csv')
 
                 if not os.path.isfile(snapshotFilename):
-                    print "ERROR: Missing snapshot file", snapshotFilename
+                    print("ERROR: Missing snapshot file", snapshotFilename)
                     
                 else:
                     is_match = filecmp.cmp(fileName, snapshotFilename, shallow=False)
                     if not is_match:
-                        print "ERROR: snapshot differs"
+                        print("ERROR: snapshot differs")
                         with open(fileName, 'r') as current:
                             with open(snapshotFilename) as snapshot:
                                 curLines = current.readlines()
                                 snapLines = snapshot.readlines()
                                 sys.stdout.writelines(difflib.unified_diff(snapLines, curLines, snapshotFilename, fileName))
-                                print "\n"
+                                print("\n")
 
                     
 

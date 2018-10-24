@@ -5,6 +5,7 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import sys
 import glob
@@ -47,9 +48,9 @@ cluster_test_file = os.path.join(session.get_cases_dir(),"test_redcap_to_casesdi
 user_id =  os.getuid()
 user_name = pwd.getpwuid(user_id )[ 0 ] 
 cmd = 'echo "Submitting User:' + user_name + '(' + str(user_id) + ')"; echo "Executing User: ${LOGNAME}(${UID})"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file) 
-print "== Only works on backend ==" 
+print("== Only works on backend ==") 
 assert(red2cas.schedule_cluster_job(cmd, "test_redcap_to_casesdir", submit_log=cluster_submit_log, job_log=cluster_job_log, verbose = False))
-print "Please check " +  cluster_job_log + " if cluster job was successfully executed !"
+print("Please check " +  cluster_job_log + " if cluster job was successfully executed !")
    
 # Test creating data dictionaries
 assert(red2cas.create_demographic_datadict(outdir))
@@ -119,4 +120,4 @@ assert(red2cas.export_subject_form(name_of_form, subject_red_id, subject_xnat_id
 
 red2cas.export_subject_all_forms(redcap_project,  subject_site_id, subject_red_id, subject_event_id, this_subject_data, visit_age, subject_visit_data, arm_code, visit_code, subject_xnat_id, outdir,forms_this_event)
 
-print "Wrote results to " + outdir
+print("Wrote results to " + outdir)

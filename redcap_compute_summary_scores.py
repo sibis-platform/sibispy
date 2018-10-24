@@ -5,6 +5,7 @@
 ##  for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -101,7 +102,7 @@ class redcap_compute_summary_scores(object):
         record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
         if not len(record_ids):
             if verbose : 
-                print "No records to score" 
+                print("No records to score") 
             return (scored_records,False)
 
         # Unless instructed otherwise, drop all records that already exist
@@ -120,7 +121,7 @@ class redcap_compute_summary_scores(object):
             return (scored_records,False)
 
         if verbose:
-            print len(record_ids), 'records to score'
+            print(len(record_ids), 'records to score')
 
         # Now get the imported records referenced by each record in the summary table
         import_fields = []
@@ -140,9 +141,9 @@ class redcap_compute_summary_scores(object):
                 
 
         if False: 
-            print "DEBUGGING:redcap_compute_summary_scores.py:Start ...."
+            print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
             (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
-            print ".... end" 
+            print(".... end") 
         else : 
             try: 
                 (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
