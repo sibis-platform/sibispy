@@ -10,6 +10,7 @@
 # otherwise will run with data/.sibis-general-config.yml
 
 
+from __future__ import print_function
 from sibispy import sibislogger as slog
 from sibispy import post_issues_to_github as pig
 import os 
@@ -28,7 +29,7 @@ slog.init_log(False, False,'test_sibislogger', 'test_sibislogger',None)
 try : 
     raise slog.sibisExecutionError('label','title', test1 = '2', test2 = '4')
 except slog.sibisExecutionError as err:
-    print str(err)
+    print(str(err))
     err.add(test3 = '3')
     err.slog_post()
 
@@ -85,7 +86,7 @@ if log.postGithubRepo :
     issue.edit(state='close')
     log.takeTimer2("Test 2: Post Github: Change State")
   else : 
-    print "No" 
+    print("No") 
 
   log.info(iID,iTitle, msg="Please ignore message")
   #print "============== Test 3 ==================="
@@ -99,10 +100,10 @@ if log.postGithubRepo :
   issue.edit(state='close')
 
 else : 
-   print "ERROR: Failed test posting issue to gtihub" 
+   print("ERROR: Failed test posting issue to gtihub") 
 
 log.takeTimer1()
-print "Output of time log written to "  + log.fileTime 
+print("Output of time log written to "  + log.fileTime) 
 
 # log.info('Unit Test (testing)', 'sibislogger_test_2 (TESTING)',"Testing 2", msg="Please ignore message")
 

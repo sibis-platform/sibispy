@@ -5,6 +5,7 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import sys
 from sibispy import sibislogger as slog
@@ -20,47 +21,47 @@ slog.init_log(False, False,'test_sibis_utils', 'test_sibis_utils',None)
 
 (errcode, stdout, stderr) = sutils.dcm2image("--man")
 if errcode : 
-    print "Error: dcm2image: ", stderr
+    print("Error: dcm2image: ", stderr)
 
 (errcode, stdout, stderr) = sutils.gzip("-h")
 if errcode : 
-    print "Error: gzip: ", stderr
+    print("Error: gzip: ", stderr)
 
 (errcode, stdout, stderr) = sutils.zip(".","--help","")
 if errcode : 
-    print "Error: zip: ", stderr
+    print("Error: zip: ", stderr)
 
 (errcode, stdout, stderr) = sutils.tar("--help")
 if errcode : 
-    print "Error: tar: ", stderr
+    print("Error: tar: ", stderr)
 
 (errcode, stdout, stderr) = sutils.make_nifti("-h")
 if errcode : 
-    print "Error: make_nifti: ", stderr
+    print("Error: make_nifti: ", stderr)
 else : 
     # required by make_nifti 
     (errcode, stdout, stderr) = sutils.sprlioadd("")
     if errcode : 
-        print "Error: sprlioadd: ", stderr
+        print("Error: sprlioadd: ", stderr)
 
 (errcode, stdout, stderr) = sutils.Rscript("--help")
 if errcode : 
-    print "Error: Rscript: ", stderr
+    print("Error: Rscript: ", stderr)
 
 (ecode,sout,eout) = sutils.htmldoc("--help")
 if ecode > 1 : 
-    print "Error: htmldoc: ", eout
+    print("Error: htmldoc: ", eout)
 
 (ecode,sout,eout) = sutils.dicom2bxh(None,None)
 if ecode != 255 : 
-    print "Error: dicom2bxh: ", eout
+    print("Error: dicom2bxh: ", eout)
 
 (ecode,sout,eout) = sutils.detect_adni_phantom("--man")
 if ecode : 
-    print "Error: detect_adni_phantom: ", eout
+    print("Error: detect_adni_phantom: ", eout)
 
 (ecode,sout,eout) = sutils.mdb_export("")
 if ecode > 1: 
-    print "Error: mdb_export: (" + str(ecode) +")", eout
+    print("Error: mdb_export: (" + str(ecode) +")", eout)
 
 

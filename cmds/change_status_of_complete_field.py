@@ -5,6 +5,7 @@
 ##  for the copyright and license terms
 ##
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -88,7 +89,7 @@ session = sibispy.Session()
 
 if not session.configure():
     if args.verbose:
-        print "Error: session configure file was not found"
+        print("Error: session configure file was not found")
 
     sys.exit()
 
@@ -101,13 +102,13 @@ if args.forms:
             lookup = [k for (k, v) in all_forms.iteritems() if v == f]
             forms[lookup[0]] = f
         else:
-            print "WARNING: no form with name or prefix '%s' defined.\n" % f
+            print("WARNING: no form with name or prefix '%s' defined.\n" % f)
 else:
-    print "Please define form" 
+    print("Please define form") 
     sys.exit(1)
 
 if args.verbose:
-    print "Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values()))
+    print("Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values())))
 
 form_prefixes = forms.keys()
 form_names = forms.values()
@@ -116,7 +117,7 @@ form_names = forms.values()
 import_project = session.connect_server('import_laptops', True)
 if not import_project :
     if args.verbose:
-        print "Error: Could not connect to Redcap for Import Project"
+        print("Error: Could not connect to Redcap for Import Project")
 
     sys.exit()
 
@@ -126,7 +127,7 @@ if not import_project :
 
 for form_prefix, form_name in forms.iteritems():
     if args.verbose:
-        print "Processing form",form_prefix,"/",form_name
+        print("Processing form",form_prefix,"/",form_name)
 
     complete_label = '%s_complete' % form_name
     fields_list = [complete_label]
@@ -143,4 +144,4 @@ for form_prefix, form_name in forms.iteritems():
 
     # If it does than change value to 2 
     import_response = session.redcap_import_record(args.import_id,"","","", [{'record_id': args.import_id, '%s_complete' % form_name: '2'}])
-    print "REDCAP response:", import_response 
+    print("REDCAP response:", import_response) 

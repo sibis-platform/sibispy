@@ -1,3 +1,4 @@
+from __future__ import print_function
 # General Util functions
 from sibispy import sibislogger as slog
 import subprocess
@@ -31,7 +32,7 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
         except IOError as e:
             if e.errno == 11:
                 if verbose : 
-                    print "Failed to write to csv ! Retrying in 5s..."
+                    print("Failed to write to csv ! Retrying in 5s...")
                 time.sleep(5)
                 retries -= 1
             else:
@@ -49,7 +50,7 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
         # Not equal or no old file: put new file in its final place
         os.rename(fname + '.new', fname)
         if verbose:
-            print "Updated", fname
+            print("Updated", fname)
 
     return True
 
@@ -70,7 +71,7 @@ dcm2image_cmd = 'cmtk dcm2image '
 def dcm2image(args, verbose = False) :
     cmd = dcm2image_cmd + args
     if verbose : 
-        print cmd 
+        print(cmd) 
     return call_shell_program(cmd)
  
 def detect_adni_phantom(args) :

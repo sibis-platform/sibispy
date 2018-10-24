@@ -64,7 +64,7 @@ class config_file_parser(object):
                 else : 
                     self.__config_dict = yaml.load(fi)
 
-        except IOError, err:
+        except IOError as err:
             return err
 
         return None

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import re
 import ast
@@ -255,7 +256,7 @@ class redcap_to_casesdir(object):
         try:
             ddict.to_csv(dicFileName, index=False)
             return dicFileName
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info('redcap_to_casesdir.__create_datadicts_general__',"ERROR: could not export dictionary" + dicFileName, 
                       err_msg = str(err_msg))
             return None
@@ -487,9 +488,9 @@ class redcap_to_casesdir(object):
             return False
 
         if verbose: 
-            print  cmd_str
+            print(cmd_str)
             if stdoutdata:
-                print stdoutdata
+                print(stdoutdata)
 
         if submit_log: 
             with open(submit_log, "a") as myfile:

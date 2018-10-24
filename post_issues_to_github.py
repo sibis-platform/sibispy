@@ -18,6 +18,7 @@ python post_github_issues.py -o sibis-platform -r ncanda-issues \
                              -t "NCANDA: Laptop Data (update_visit_data)" \
                              -b /tmp/test.txt -v
 """
+from __future__ import print_function
 import os
 import sys
 import json
@@ -60,8 +61,8 @@ def get_github_label(repo, label_text, verbose=None):
         try:
             label = [repo.get_label(label_text)]
             if verbose:
-                print "Found label: {0}".format(label)
-        except UnknownObjectException, e:
+                print("Found label: {0}".format(label))
+        except UnknownObjectException as e:
             raise ValueError("Error:post_issues_to_github: The label '{0}' does not exist on Github. {1}".format(label_text, e))
 
         except Exception as e:
@@ -82,27 +83,27 @@ def get_github_label_from_title(repo, title, verbose=None):
 
     """
     if verbose:
-        print "Checking for label..."
+        print("Checking for label...")
 
     label_text = None
     try:
         label_start = 1 + title.index('(')
         label_end = title.index(')')
         label_text = title[label_start:label_end]
-    except ValueError, e:
-        print "Warning: This tile '" + title + "' has no embeded label. "
-        print "  A label embedded in parentheses is currently required. For " 
-        print "  example 'Title of Error (title_tag).' You provided: " + title
-        print "  The following error message was produced when trying to extract label:"
-        print str(e)
+    except ValueError as e:
+        print("Warning: This tile '" + title + "' has no embeded label. ")
+        print("  A label embedded in parentheses is currently required. For ") 
+        print("  example 'Title of Error (title_tag).' You provided: " + title)
+        print("  The following error message was produced when trying to extract label:")
+        print(str(e))
         return None
 
     label = None
     try :  
         label = get_github_label(repo,label_text,verbose)
-    except ValueError, err_msg:
-        print "Error:post_issues_to_github: Could not get label for tile '" + title + "!'"
-        print err_msg
+    except ValueError as err_msg:
+        print("Error:post_issues_to_github: Could not get label for tile '" + title + "!'")
+        print(err_msg)
         
     return label
     
@@ -122,7 +123,7 @@ def get_issue(repo, subject, labelList = None, verbose=None):
         raise ValueError("Error:post_issues_to_github: repo is not defined for subject '" +  subject +"'") 
  
     if verbose:
-        print "Checking for issue: {0}".format(subject)
+        print("Checking for issue: {0}".format(subject))
 
     if labelList: 
         issueList = repo.get_issues(state='all',labels=labelList)
@@ -152,12 +153,12 @@ def is_open_issue(repo, subject, label=None, verbose=None):
     if issue:
         if issue.state == 'open':
             if verbose:
-                print "Open issue already exists... See: {0}".format(issue.url)
+                print("Open issue already exists... See: {0}".format(issue.url))
             return issue
 
         if verbose:
-            print "Closed issue already exists, reopening... " \
-                "See: {0}".format(issue.url)
+            print("Closed issue already exists, reopening... " \
+                "See: {0}".format(issue.url))
         try:
             issue.edit(state='open')
         except GithubException as error:
@@ -165,7 +166,7 @@ def is_open_issue(repo, subject, label=None, verbose=None):
         return issue
 
     if verbose:
-        print "Issue does not exist.".format(subject)
+        print("Issue does not exist.".format(subject))
 
     return None
 
@@ -217,7 +218,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
     # Handle multiline error messages.
     if 'Traceback' in ''.join(issue_list):
         if verbose:
-            print "Issue is a Traceback..."
+            print("Issue is a Traceback...")
         string = "".join(issue_list)
         sha = hashlib.sha1(string).hexdigest()[0:6]
         error = dict(experiment_site_id="Traceback:{}".format(sha),
@@ -248,7 +249,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             open_issue = is_open_issue(repo, subject, label = label, verbose=verbose)
 
         except Exception as e:
-            print 'Error:post_issues_to_github: Failed to check for open issue on github!' + ' Title: ' +  subject + ", Exception: " + str(e)
+            print('Error:post_issues_to_github: Failed to check for open issue on github!' + ' Title: ' +  subject + ", Exception: " + str(e))
             continue
 
         
@@ -258,11 +259,11 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             try:
                 github_issue = repo.create_issue(subject, body=body, labels=label)
             except Exception as e:
-                print 'Error:post_github_issues: Failed to post the following issue on github!' + ' Title: ' + subject + ", Body: " + body + ", Exception: " + str(e)
+                print('Error:post_github_issues: Failed to post the following issue on github!' + ' Title: ' + subject + ", Body: " + body + ", Exception: " + str(e))
                 continue
 
             if verbose:
-                print "Created issue... See: {0}".format(github_issue.url)
+                print("Created issue... See: {0}".format(github_issue.url))
                 
             github_issue_list.append(github_issue.url)
 
@@ -290,14 +291,14 @@ def get_issues_from_file(file_name, verbose=None):
 
 def connect_to_github(config_file=None,verbose=False): 
     if verbose:
-        print "Setting up GitHub..."
-        print "Parsing config: {0}".format(config_file)
+        print("Setting up GitHub...")
+        print("Parsing config: {0}".format(config_file))
 
 
     config_data = cfg_parser.config_file_parser()
     err_msg = config_data.configure(config_file)
     if err_msg:
-        print "Error:post_issues_to_github: Reading config file " + config_file + " (parser tried reading: " + config_data.get_config_file() + ") failed: " + str(err_msg)
+        print("Error:post_issues_to_github: Reading config file " + config_file + " (parser tried reading: " + config_data.get_config_file() + ") failed: " + str(err_msg))
 
         return None
 
@@ -306,32 +307,32 @@ def connect_to_github(config_file=None,verbose=False):
     org_name = config_data.get_value('github', 'org')
     repo_name = config_data.get_value('github', 'repo')
     if not user or not passwd or not org_name or not repo_name: 
-        print "Error:post_issues_to_github: github definition is incomplete in " +  config_data.get_config_file()
+        print("Error:post_issues_to_github: github definition is incomplete in " +  config_data.get_config_file())
         return None
 
     g = github.Github(user, passwd)
 
     if not g: 
-        print "Error:post_issues_to_github: Could not connect to github repository as defined by " +  config_data.get_config_file()
+        print("Error:post_issues_to_github: Could not connect to github repository as defined by " +  config_data.get_config_file())
         return None
 
     if verbose:
-        print "Connected to GitHub"
+        print("Connected to GitHub")
 
     try :
         organization = g.get_organization(org_name)
     except Exception as e :
-        print "Error:post_issues_to_github: getting organization (" + org_name + ") as defined in " + config_data.get_config_file() + " failed with error message: '" + str(e) + "' .  Pinging github (0=OK): " + str(ping_github())  
+        print("Error:post_issues_to_github: getting organization (" + org_name + ") as defined in " + config_data.get_config_file() + " failed with error message: '" + str(e) + "' .  Pinging github (0=OK): " + str(ping_github()))  
         return None
 
     try :
         repo = organization.get_repo(repo_name)
     except Exception as e :
-        print "Error:post_issues_to_github: Getting repo (" + repo_name + ") as defined in " + config_data.get_config_file() + " failed with the following error message: " + str(e)
+        print("Error:post_issues_to_github: Getting repo (" + repo_name + ") as defined in " + config_data.get_config_file() + " failed with the following error message: " + str(e))
         return None
 
     if verbose:
-        print "... ready!"
+        print("... ready!")
 
 
     return repo
@@ -342,7 +343,7 @@ def main(args=None):
 
     repo = connect_to_github(args.config,args.verbose)
     if not repo:
-        print "Error:post_issues_to_github: For `" + str(args.title) + "` could not connect to github repo ! Info: The following issues were not posted/closed: " + str(issue_list)
+        print("Error:post_issues_to_github: For `" + str(args.title) + "` could not connect to github repo ! Info: The following issues were not posted/closed: " + str(issue_list))
         return 1
 
     label = get_github_label_from_title(repo, args.title)
@@ -352,7 +353,7 @@ def main(args=None):
 
     if args.closeFlag : 
         if args.verbose:
-            print "Closing issues!" 
+            print("Closing issues!") 
 
         for issue in issue_list:
             # just copied from code above as I ran out of time - function should be called
@@ -376,7 +377,7 @@ def main(args=None):
 
             if git_issue:
                 if args.verbose:
-                    print "Closing", str(issue) 
+                    print("Closing", str(issue)) 
                 try: 
                     git_issue.edit(state='close')
                 except GithubException as error:
@@ -388,11 +389,11 @@ def main(args=None):
     else :
         issue_url_list = create_issues_from_list(repo, args.title, label, issue_list, args.verbose)
         if  len(issue_url_list) and args.verbose:
-            print "Issues:", issue_url_list
+            print("Issues:", issue_url_list)
 
 
     if args.verbose:
-        print "Finished!"
+        print("Finished!")
 
 def get_argument_parser():
     import argparse
