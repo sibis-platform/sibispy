@@ -105,3 +105,23 @@ log.takeTimer1()
 print "Output of time log written to "  + log.fileTime 
 
 # log.info('Unit Test (testing)', 'sibislogger_test_2 (TESTING)',"Testing 2", msg="Please ignore message")
+
+def some_function():
+  pass
+
+try:
+  slog.info('sibislogger_test_3', "Logging kwargs ",
+                        funkey = some_function,
+                        strkey = "some string",
+                        intkey = int(20),
+                        floatkey = float(12.12345678),
+                        listintkey = [ int(0), int(1), int(2), int(3) ],
+                        liststrkey = [ "a", "b", "c" ],
+                        listfloatkey = [ float(0.1), float(1.0), float(2.12345678) ],
+                        objkey = { 
+                          "strkey": "strval",
+                          "intkey": int(9),
+                          "floatkey":  float(9.87654321)
+                        })
+except Exception as e:
+  print("ERROR: failed to log kwargs", str(e))

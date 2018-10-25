@@ -14,6 +14,17 @@ import post_issues_to_github as pig
 #logging.getLogger("urllib3").setLevel(logging.WARNING)
 #logging.getLogger("requests").setLevel(logging.WARNING)
 
+class sibisJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            return json.JSONEncoder.default(self, obj)
+        except TypeError as e:
+            if hasattr(obj, '__call__') and hasattr(obj, '__name__'):
+                return obj.__name__
+            raise e
+            
+
+
 class sibisLogging():
     """
     SIBIS Logging Module
@@ -41,7 +52,7 @@ class sibisLogging():
         self.log.update(experiment_site_id=uid,
                         error=message)
         self.log.update(kwargs)
-        jlog = json.dumps(self.log)
+        jlog = json.dumps(self.log, cls=sibisJSONEncoder)
         self.log.clear()
         return jlog
         
