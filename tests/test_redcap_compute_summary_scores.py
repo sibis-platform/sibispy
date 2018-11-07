@@ -35,9 +35,9 @@ red_score_update = red_scores.redcap_compute_summary_scores()
 assert(red_score_update.configure(session)) 
 
 # Load in test specific settings : 
-(sys_file_parser,err_msg) = session.get_config_sys_parser()
+(sys_file_parser,err_msg) = session.get_config_test_parser()
 if err_msg :
-    print "Error: session.get_config_sys_parser:" + err_msg
+    print "Error: session.get_config_test_parser:" + err_msg
     sys.exit(1)
  
 config_test_data = sys_file_parser.get_category('test_redcap_compute_summary_scores')
