@@ -42,9 +42,9 @@ forms = form_event_mapping[form_event_mapping.unique_event_name == event_unique]
 arm_name = str(redcap_project.arm_names[0])
 
 # Load in test specific settings : 
-(sys_file_parser,err_msg) = session.get_config_sys_parser()
+(sys_file_parser,err_msg) = session.get_config_test_parser()
 if err_msg :
-    print "Error: session.get_config_sys_parser:" + err_msg
+    print "Error: session.get_config_test_parser:" + err_msg
     sys.exit(1)
  
 config_test_data = sys_file_parser.get_category('test_redcap_locking_data')
