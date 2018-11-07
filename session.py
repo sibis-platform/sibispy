@@ -368,22 +368,28 @@ class Session(object):
             return os.path.join(aDir,'operations')
         return None
 
-    def get_config_sys_parser(self):
+    def get_config_parser_for_file(self, key, filename):
         oDir = self.get_operations_dir()
         if not oDir :
             return (None,"ERROR: could not retrieve operations directory") 
 
-        sys_file = os.path.join(oDir,'sibis_sys_config.yml')
+        sys_file = os.path.join(oDir,filename)
         if not os.path.exists(sys_file) : 
             return (None,"ERROR:", sys_file," does not exist!") 
 
-        # Get procject specific settings for test file 
+        # Get project specific settings for test file 
         sys_file_parser = cfg_parser.config_file_parser()
         err_msg = sys_file_parser.configure(sys_file,ordered_load=self.__ordered_config_load)
         if err_msg:
-            return (None, str(err_msg) + " (config_sys_file : " + str(config_sys_file) + ")")
+            return (None, "{0} ({1} : {2})".format(str(err_msg), key, str(sys_file)))
 
         return (sys_file_parser, None)
+
+    def get_config_test_parser(self):
+        return self.get_config_parser_for_file('config_test_file', 'sibis_test_config.yml')
+
+    def get_config_sys_parser(self):
+        return self.get_config_parser_for_file('config_sys_file', 'sibis_sys_config.yml')
 
     def get_cases_dir(self):
         aDir = self.__get_analysis_dir()
