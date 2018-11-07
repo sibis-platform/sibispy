@@ -228,7 +228,7 @@ class Session(object):
         fp.set_preference("browser.download.manager.showWhenStarting",False)
         fp.set_preference("browser.download.dir", os.getcwd())
         fp.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.ms-excel")
-        browser = webdriver.Firefox( firefox_profile=fp, log_path="/tmp/geckodriver.log")       
+        browser = webdriver.Firefox( firefox_profile=fp, service_log_path="/tmp/geckodriver.log")       
  
         # Log into website
         browser.get(penncnp_srv_data["server"])
