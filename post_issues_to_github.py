@@ -394,7 +394,7 @@ def main(args=None):
     if args.verbose:
         print "Finished!"
 
-if __name__ == "__main__":
+def get_argument_parser():
     import argparse
 
     formatter = argparse.RawDescriptionHelpFormatter
@@ -410,5 +410,10 @@ if __name__ == "__main__":
                         help="Turn on verbose.")
     parser.add_argument("--close", dest="closeFlag", action='store_true',
                         help="Close issues that are in a list.")
+    return parser
+
+
+if __name__ == "__main__":
+    parser.get_argument_parser()
     argv = parser.parse_args()
     sys.exit(main(args=argv))
