@@ -3,8 +3,11 @@ from __future__ import absolute_import, print_function
 import os, yaml
 
 def pytest_addoption(parser):
-  parser.addoption("--config-file", action="store", default=os.path.expanduser("~/.sibis-general-config.yml"), help="Path to SIBIS General Configuration File")
-  parser.addoption("--cluster-job", action="store_true", default=False, help="Running as cluster job")
+  sibis = parser.getgroup('sibis', description='SIBIS specific test options', after='usage')
+  sibis.addoption("--config-file", action="store", default=os.path.expanduser("~/.sibis-general-config.yml"), help="Path to SIBIS General Configuration File")
+  sibis.addoption("--cluster-job", action="store_true", default=False, help="Running as cluster job")
+  sibis.addoption("--enable-special", nargs="*", choices=['sample_session', 'default_general_config'])
+  
 
 def pytest_generate_tests(metafunc):
   option_value = metafunc.config.option.config_file
@@ -18,3 +21,9 @@ def pytest_generate_tests(metafunc):
   option_value = metafunc.config.option.cluster_job
   if 'cluster_job' in metafunc.fixturenames and option_value is not None:
     metafunc.parametrize("cluster_job", [option_value])
+
+  special_opts = metafunc.config.option.enable_special or ['none']
+
+  if 'special_opts' in metafunc.fixturenames and special_opts is not None:
+    metafunc.parametrize('special_opts', special_opts)
+
