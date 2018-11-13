@@ -7,13 +7,13 @@
 Unit tests for sibispy.svn module.
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import pytest
 from pytest_shutil.workspace import Workspace
 from path import Path
 from datetime import datetime
-from ..svn import SibisSvnClient
+from ..svn import SibisSvnClient, UpdateActionTypes
 import tempfile
 
 # pytest_plugins = ['pytest_svn']
@@ -104,7 +104,51 @@ def test_sibis_svn_update(mock_repo):
     assert changes.target == '.', "Expected target of . for rev {}, got: {}".format(rev, changes.target)
     assert diff == set_diff, "Change actions for rev {} expected {}, difference {}".format(rev, repr(commit), repr(set_diff))
 
+def test_sibis_svn_update_conflict(mock_repo):
+  mock_ws, co_dir = mock_repo
+  mock_ws.run("svn up -r1", cd=co_dir)
 
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+  
+  txt_file2 = co_dir / 'file2'
+  txt_file2.write_text('local conflict\n', append=True)
+  changes = client.update(revision=2)
+
+  assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
+  assert (UpdateActionTypes.conflicted, 'file2') in changes.actions, "Expected to find a conflict"
+  
+
+def test_sibis_svn_update_merge(mock_repo):
+  mock_ws, co_dir = mock_repo
+  mock_ws.run("svn up -r1", cd=co_dir)
+
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+  
+  txt_file2 = co_dir / 'file2'
+  ext_contents = txt_file2.bytes()
+  txt_file2.write_text('local conflict\n'+ext_contents)
+  changes = client.update(revision=2)
+
+  assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
+  assert (UpdateActionTypes.merged, 'file2') in changes.actions, "Expected to find a merge"
+
+
+def test_sibis_svn_update_no_change(mock_repo):
+  mock_ws, co_dir = mock_repo
+
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+
+  changes = client.update()
+  assert changes.revision == len(mock_repo_commits), "updated revision is incorrect"
+  assert changes.actions == set([]), "should be an empty set"
+
+
+  changes = client.update()
+  assert changes.revision == len(mock_repo_commits), "updated revision is incorrect"
+  assert changes.actions == set([]), "should be an empty set"
 
 
 
