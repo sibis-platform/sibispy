@@ -13,7 +13,7 @@ import pytest
 from pytest_shutil.workspace import Workspace
 from path import Path
 from datetime import datetime
-from ..svn import SibisSvnClient, UpdateActionTypes
+from ..svn import SibisSvnClient, UpdateActionTypes, SibisSvnException, UpdateAction
 import tempfile
 
 # pytest_plugins = ['pytest_svn']
@@ -50,15 +50,15 @@ def mod_file(svn_repo, repo_name, rel_file):
   return msg
 
 mock_repo_commits = [
-  ({ ('A', 'file1'), ('A', 'file2'), ('A', 'file3') }, set()),
-  ({ ('D', 'file1'), ('U', 'file2'), ('A', 'file4') }, set()),
-  ({ ('A', 'file1'), ('U', 'file2'), ('U', 'file4') }, set()),
-  ({ ('A', 'alpha/file5'), ('A', 'alpha/file6'), ('A', 'alpha/file7') }, set([('A', 'alpha')])),
-  ({ ('D', 'alpha/file5'), ('U', 'alpha/file6'), ('U', 'alpha/file7') }, set()),
-  ({ ('A', 'alpha/file5'), ('U', 'alpha/file6'), ('D', 'alpha/file7') }, set()),
-  ({ ('A', 'beta/file5'), ('A', 'beta/file6'), ('A', 'beta/file7') }, set([('A', 'beta')])),
-  ({ ('D', 'beta/file5'), ('U', 'beta/file6'), ('U', 'beta/file7') }, set()),
-  ({ ('A', 'beta/file5'), ('U', 'beta/file6'), ('D', 'beta/file7') }, set())
+  ({ UpdateAction('A', 'file1', 'file'), UpdateAction('A', 'file2', 'file'), UpdateAction('A', 'file3', 'file') }, set()),
+  ({ UpdateAction('D', 'file1', 'none'), UpdateAction('U', 'file2', 'file'), UpdateAction('A', 'file4', 'file') }, set()),
+  ({ UpdateAction('A', 'file1', 'file'), UpdateAction('U', 'file2', 'file'), UpdateAction('U', 'file4', 'file') }, set()),
+  ({ UpdateAction('A', 'alpha/file5', 'file'), UpdateAction('A', 'alpha/file6', 'file'), UpdateAction('A', 'alpha/file7', 'file') }, set([UpdateAction('A', 'alpha', 'dir')])),
+  ({ UpdateAction('D', 'alpha/file5', 'none'), UpdateAction('U', 'alpha/file6', 'file'), UpdateAction('U', 'alpha/file7', 'file') }, set()),
+  ({ UpdateAction('A', 'alpha/file5', 'file'), UpdateAction('U', 'alpha/file6', 'file'), UpdateAction('D', 'alpha/file7', 'none') }, set()),
+  ({ UpdateAction('A', 'beta/file5', 'file'), UpdateAction('A', 'beta/file6', 'file'), UpdateAction('A', 'beta/file7', 'file') }, set([UpdateAction('A', 'beta', 'dir')])),
+  ({ UpdateAction('D', 'beta/file5', 'none'), UpdateAction('U', 'beta/file6', 'file'), UpdateAction('U', 'beta/file7', 'file') }, set()),
+  ({ UpdateAction('A', 'beta/file5', 'file'), UpdateAction('U', 'beta/file6', 'file'), UpdateAction('D', 'beta/file7', 'none') }, set())
 ]
 
 repo_actions = {
@@ -83,7 +83,7 @@ def mock_repo(svn_workdir):
 
   for commit, _ in mock_repo_commits:
     commit_msg = []
-    for action, filename in commit:
+    for action, filename, _ in commit:
       commit_msg.append(repo_actions[action](workdir, repo_name, filename))
     workdir.run("svn ci -m \"{}\"".format("\\n".join(commit_msg)), cd=co_dir)
   return (workdir, co_dir)
@@ -116,7 +116,7 @@ def test_sibis_svn_update_conflict(mock_repo):
   changes = client.update(revision=2)
 
   assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
-  assert (UpdateActionTypes.conflicted, 'file2') in changes.actions, "Expected to find a conflict"
+  assert UpdateAction(UpdateActionTypes.conflicted, 'file2', 'file') in changes.actions, "Expected to find a conflict"
   
 
 def test_sibis_svn_update_merge(mock_repo):
@@ -132,7 +132,7 @@ def test_sibis_svn_update_merge(mock_repo):
   changes = client.update(revision=2)
 
   assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
-  assert (UpdateActionTypes.merged, 'file2') in changes.actions, "Expected to find a merge"
+  assert UpdateAction(UpdateActionTypes.merged, 'file2', 'file') in changes.actions, "Expected to find a merge"
 
 
 def test_sibis_svn_update_no_change(mock_repo):
@@ -150,5 +150,69 @@ def test_sibis_svn_update_no_change(mock_repo):
   assert changes.revision == len(mock_repo_commits), "updated revision is incorrect"
   assert changes.actions == set([]), "should be an empty set"
 
+def test_sibis_svn_info(mock_repo):
+  mock_ws, co_dir = mock_repo
 
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+
+  resp = client.info()
+  assert resp != None, "Response from `svn info` should not be None"
+  assert len(list(resp)) > 0, "Response from `svn info` should have keys"
+
+
+def test_sibis_svn_log(mock_repo):
+  mock_ws, co_dir = mock_repo
+
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+
+  resp = client.log()
+  assert resp != None, "Response from `svn log` should not be None"
+  print('\n'.join(resp))
+  # assert len(list(resp)) > 0, "Response from `svn info` should have keys"
+
+  resp = client.log(rel_filepath='./alpha')
+  assert resp != None, "Response from `svn log ./alpha` should not be None"
+  print(repr(resp))
+  # assert len(list(resp)) > 0, "Response from `svn info` should have keys"
+
+
+def test_sibis_svn_diff_path(mock_repo):
+  mock_ws, co_dir = mock_repo
+
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+
+  resp = client.diff_path(revision=0)
+
+  assert resp, "Response should not be None"
+
+  assert len(resp.files_changed()) == 8, "There should have been 8 files changed."
+
+  resp = client.diff_path(revision=7)
+  assert len(resp.files_changed()) == 2, "There should have been 2 files changed."
+
+  with pytest.raises(SibisSvnException, message="Expecting a revision error"):
+    resp = client.diff_path(revision=10)
+ 
+
+def test_sibis_info_update_diff(mock_repo):
+  mock_ws, co_dir = mock_repo
+  mock_ws.run("svn up -r2", cd=co_dir)
+
+  client = SibisSvnClient(co_dir)
+  assert client, "Client should not be None"
+
+  info = client.info()
+  start_rev = info['entry_revision']
+  assert int(start_rev) == 2, "Should be commit version 2, got: "+start_rev
+
+  changes = client.update()
+  assert changes.revision == 9, "Should be at revision 9, got: "+str(changes.revision)
+
+  diff = client.diff_path(start_rev)
+  changed_files = diff.files_changed(True)
+  delta = {x.path for x in changes.actions }.difference(set(changed_files)) 
+  assert delta == set(['alpha', 'beta']), "Expected only the directories to be different: got: {}".format(repr(delta))
 
