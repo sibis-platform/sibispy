@@ -18,7 +18,7 @@ import hashlib
 import pandas as pd
 from pandas.io.sql import execute
 import warnings
-from .svn import SibisSvnClient
+from sibispy.svn_util import SibisSvnClient
 
 
 from sibispy import sibislogger as slog
