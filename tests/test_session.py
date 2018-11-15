@@ -16,6 +16,9 @@ import warnings
 
 @pytest.fixture
 def session(config_file):
+    '''
+    Return a sibispy.Session configured by the provided config_file fixture.
+    '''
     from sibispy import session as sess
     session = sess.Session()
     assert session.configure(config_file), "Configuration File `{}` is missing or not readable.".format(config_file)
@@ -24,6 +27,9 @@ def session(config_file):
 
 @pytest.fixture
 def slog():
+    '''
+    Return a sibislogger instance initialized for a test session.
+    '''
     from sibispy import sibislogger as slog
     timeLogFile = '/tmp/test_session-time_log.csv'
     if os.path.isfile(timeLogFile) : 
@@ -72,6 +78,42 @@ def test_config_sys_parser(session):
     
     session_data = sys_file_parser.get_category('session')
     assert session_data, "`session_data` should not be None"
+
+@pytest.mark.parametrize('api_type', [
+    'svn_laptop'
+])
+def test_connect_server(session, api_type):
+    connection = session.connect_server(api_type)
+    assert connection != None, "Expected to have a connection"
+
+
+def test_session_api_svn_laptop(session, config):
+    laptop_cfg = config['svn_laptop']
+    if laptop_cfg == None:
+        warnings.warn(UserWarning("Expected config file to have `svn_laptop` config"))
+        pytest.skip("Skipping test, `svn_laptop` config missing.")
+
+    connected_client = session.connect_server('svn_laptop')
+
+    client_info = session.api['svn_laptop']
+    assert client_info != None, "Expected client_info to not be None"
+
+    user = client_info['user']
+    assert user == laptop_cfg['user'] and user != None, "Expected user to be {} and not be None. got: {} ".format(laptop_cfg['user'], user)
+
+    password = client_info['password']
+    assert password == laptop_cfg['password'] and password != None, "Expected password to be {} and not be None. got: {} ".format(laptop_cfg['password'], password)
+
+    client = client_info['client']
+    assert client != None, "Expected client to not be None"
+    assert connected_client == client, "Clients should be the same object"
+
+def test_session_connect_server_info(session):
+    connected_client = session.connect_server('svn_laptop')
+    svn_info = connected_client.info()
+    assert svn_info != None, "Response sholuld not be None"
+    assert svn_info['wcinfo_wcroot_abspath'] == session.get_laptop_svn_dir(), "SVN Working directories should match."
+
 
 def test_session_legacy(config_file, special_opts):
     import os
@@ -218,7 +260,7 @@ def test_session_legacy(config_file, special_opts):
                     print("Error: session.xnat_get_experiment: " + eid + " should not exist!")
                     errors = True
 
-                if "xnat_uri_test" in config_test_data.iterkeys() :  
+                if "xnat_uri_test" in list(config_test_data):  
                     [project,subject,eid] = config_test_data["xnat_uri_test"].split(',')
                     experiment = session.xnat_get_experiment(eid)  
                     if not experiment :
@@ -246,7 +288,8 @@ def test_session_legacy(config_file, special_opts):
                 #
                 # Stress Test:
                 #
-                if "xnat_stress_test" in config_test_data.iterkeys() :  
+
+                if "xnat_stress_test" in list(config_test_data) :  
                     [xnat_eid, resource_id, resource_file_bname] = config_test_data["xnat_stress_test"].split('/')
                     tmpdir = tempfile.mkdtemp()
 
@@ -264,7 +307,7 @@ def test_session_legacy(config_file, special_opts):
 
                 # 3. XNAT Test: Failed querry  
                 with sess.Capturing() as xnat_output: 
-                    assert (session.xnat_get_subject_attribute('blub','blub','blub')[0] == None)
+                    assert session.xnat_get_subject_attribute('blub','blub','blub')[0] == None
                     
                 if "ERROR: attribute could not be found" not in xnat_output.__str__():
                     print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
@@ -278,20 +321,25 @@ def test_session_legacy(config_file, special_opts):
             elif project == 'svn_laptop' :
                 print("== Only works for frontend right now ! ==")
                 
-                assert(session.run_svn('info'))
+                svn_client = session.svn_client()
+                assert svn_client, "Client should not be None"
+
+                svn_info = svn_client.info()
+                assert svn_info, "Info should not be None"
+
 
                 # To speed up test
                 lapDir = session.get_laptop_svn_dir()
                 svn_dir = [ name for name in os.listdir(lapDir) if name != ".svn" and os.path.isdir(os.path.join(lapDir, name)) ][0]
                 # and now test
-                assert(session.run_svn('log',subDir = svn_dir))
+                assert svn_client.log(rel_filepath = svn_dir)
 
             elif project == 'browser_penncnp' :
                 wait = session.initialize_penncnp_wait()
                 assert session.get_penncnp_export_report(wait)
 
             elif project == 'import_laptops' :
-                if "redcap_version_test" in config_test_data.iterkeys() :  
+                if "redcap_version_test" in list(config_test_data) :  
                     (form_prefix, name_of_form) = config_test_data["redcap_version_test"].split(',')
                     complete_label = '%s_complete' % name_of_form
                     exclude_label = '%s_exclude' % form_prefix
@@ -310,7 +358,7 @@ def test_session_legacy(config_file, special_opts):
                 assert session.get_redcap_form_key() in form_event_mapping
                 assert len(server.export_records(fields=['study_id'],event_name='unique',format='df'))
 
-                if "redcap_stress_test" in config_test_data.iterkeys() :  
+                if "redcap_stress_test" in list(config_test_data):  
                     all_forms = config_test_data["redcap_stress_test"]
                     form_prefixes = all_forms.keys()
                     names_of_forms = all_forms.values()

@@ -8,6 +8,7 @@ Create the SIBIS Session Object
 The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
+from __future__ import print_function, absolute_import
 import ast
 import os
 import time
@@ -16,8 +17,8 @@ import requests
 import hashlib
 import pandas as pd
 from pandas.io.sql import execute
-import pysvn
 import warnings
+from sibispy.svn_util import SibisSvnClient
 
 
 from sibispy import sibislogger as slog
@@ -164,7 +165,7 @@ class Session(object):
             p = Popen(check_cmd, shell = True, stdout = PIPE,  stderr = PIPE)
             return p.communicate()
             
-        except Exception,err_msg:
+        except Exception as err_msg:
             return (None,str(err_msg))
             
         
@@ -201,7 +202,7 @@ class Session(object):
         display_cmd = "X" + vfb_cmd + " &> /dev/null & "
         try:
             err_msg = subprocess.check_output(display_cmd,shell=True)
-        except Exception, err_msg:
+        except Exception as err_msg:
             pass
             
         if err_msg: 
@@ -248,16 +249,8 @@ class Session(object):
             return None
         usr_data = self.__config_usr_data.get_category('svn_laptop')
 
-
-        def __svn_login_credentials__(realm, username, may_save):
-            svn_api = self.api['svn_laptop']
-            if svn_api :
-                return (True,svn_api['user'],svn_api['password'],False)
-            else:
-                return (False,"","",False)
-
-        client = pysvn.Client()
-        client.callback_get_login = __svn_login_credentials__
+        svnDir = self.get_laptop_svn_dir()
+        client = SibisSvnClient(svnDir, username=usr_data['user'], password=usr_data['password'])
         self.api['svn_laptop'] = {"client": client, "user" : usr_data['user'], "password": usr_data['password']}         
 
         return client
@@ -277,13 +270,13 @@ class Session(object):
                                         verify_ssl=cfg.get('verify_ssl'))
             self.api[api_type] = data_entry
 
-        except KeyError, err:
+        except KeyError as err:
             slog.info('session.__connect_redcap_project__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
             return None 
 
-        except requests.RequestException, err:
+        except requests.RequestException as err:
             slog.info('session.__connect_redcap_project__',str(err),
                       server=cfg.get('server'),
                       api_type = api_type)
@@ -322,7 +315,7 @@ class Session(object):
 
         try:
             engine = create_engine(connection_string, pool_recycle=3600)
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info('session.__connect_redcap_mysql__',str(err_msg),
                       database = db,
                       hostname = hostname)
@@ -485,7 +478,7 @@ class Session(object):
         try : 
             xnat_experiment = select_object.experiment(eid)
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: problem with xnat api !",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_experiment")
@@ -516,7 +509,7 @@ class Session(object):
         try : 
             xnat_project = xnat_api.select.project(project)
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_subject",
@@ -530,7 +523,7 @@ class Session(object):
         try : 
             xnat_subject = xnat_project.subject( subject_label )
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
                       err_msg = str(err_msg),
                       project = project,
@@ -553,7 +546,7 @@ class Session(object):
             else :
                 return [xnat_subject.attrs.get(attribute),None]
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
                       err_msg = str(err_msg),
                       project = project,
@@ -577,7 +570,7 @@ class Session(object):
             with Capturing() as xnat_output: 
                 xnat_data = xnat_api.select(form, fields).where(conditions).items()
         
-        except Exception, err_msg:
+        except Exception as err_msg:
             if xnat_output : 
                 slog.info("session.xnat_export_general","ERROR: querying XNAT failed most likely due disconnect to server ({})".format(time.asctime()),
                           xnat_api_output = str(xnat_output),
@@ -645,7 +638,7 @@ class Session(object):
         kill_cmd = "kill -9 " + str(self.api['browser_penncnp']['pip']) 
         try:
             err_msg = subprocess.check_output(kill_cmd,shell=True)
-        except Exception, err_msg:
+        except Exception as err_msg:
             pass
             
         
@@ -718,7 +711,7 @@ class Session(object):
                               warning_msg = w_msg,
                               **selectStmt)
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("session.redcap_export_records","ERROR: exporting data from REDCap failed at {}".format(time.asctime()),
                       err_msg = str(err_msg),
                       **selectStmt)
@@ -789,7 +782,7 @@ class Session(object):
                           red_api = self.__active_redcap_project__)
 
             else :
-                if isinstance(records,(list,)) :
+                if isinstance(records,list) :
                     record = records[0]
                 elif isinstance(records, pd.DataFrame): 
                     record_ser = records.iloc[0]
@@ -812,7 +805,7 @@ class Session(object):
                         red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
                         if red_value_temp : 
                             red_value = red_value_temp[0][red_var]
-                            if not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
+                            if "mri_xnat_sid" not in record or "mri_xnat_eids" not in record :
                                 slog.info(error_label, error,
                                   redcap_value="'"+str(red_value)+"'",
                                   redcap_variable=red_var,
@@ -848,7 +841,7 @@ class Session(object):
                                   requestError=str(e),
                                   red_api = self.__active_redcap_project__)
 
-                elif not record.has_key("mri_xnat_sid") or not record.has_key("mri_xnat_eids") :
+                elif "mri_xnat_sid" not in record or "mri_xnat_eids" not in record :
                     slog.info(error_label, error,
                               import_record_id=str(record_id),  
                               requestError=str(e),
@@ -877,7 +870,7 @@ class Session(object):
         """
         try : 
             projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg)).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
             return None
             
@@ -1003,39 +996,14 @@ class Session(object):
 
         return len(record_list)
 
-    def run_svn(self, svnFct, callbackNotifyFct = None, subDir=None):
+    def svn_client(self):
         svn_laptop = self.api['svn_laptop']
         if not svn_laptop:
-            slog.info('session.run_svn',"ERROR: svn api is not defined")
-            return False
+            slog.info('session.svn_client',"ERROR: svn api is not defined")
+            return None
 
         client = svn_laptop['client']
-        try:
-            client.callback_notify = callbackNotifyFct
-            svn_method = getattr(client,svnFct)
-            
-            svnDir = self.get_laptop_svn_dir()
-            if subDir :
-                svnDir = os.path.join(svnDir, subDir)
-                
-            svn_method(svnDir)
-
-        except pysvn._pysvn.ClientError as e:
-            if svn_laptop['password'] != "" : 
-                psswd = "Defined" 
-            else :
-                psswd = "Undefined" 
-
-
-            slog.info('session.run_svn', "Error: Failed to run '" + svnFct + "' with respect to '" + svnDir + "'!",
-                      callback_notify = callbackNotifyFct,
-                      user = svn_laptop['user'],
-                      passwd = psswd, 
-                      err_msg = str(e))
-
-            return False
-    
-        return True  
+        return client
 
 if __name__ == '__main__':
     import argparse 
@@ -1052,7 +1020,7 @@ if __name__ == '__main__':
     slog.init_log(False, False,'session', 'session',None)
     sInstance = Session()
     sInstance.configure(argv.config)
-    print getattr(sInstance,argv.function_call)()
+    print(getattr(sInstance,argv.function_call)())
     sys.exit()
 
 
