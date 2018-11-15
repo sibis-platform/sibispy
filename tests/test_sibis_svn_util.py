@@ -13,7 +13,7 @@ import pytest
 from pytest_shutil.workspace import Workspace
 from path import Path
 from datetime import datetime
-from ..svn import SibisSvnClient, UpdateActionTypes, SibisSvnException, UpdateAction
+from ..svn_util import SibisSvnClient, UpdateActionTypes, SibisSvnException, UpdateAction
 import tempfile
 
 # pytest_plugins = ['pytest_svn']

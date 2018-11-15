@@ -2,8 +2,6 @@
 ##  Copyright 2018 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
-
-
 from __future__ import absolute_import, print_function
 from svn.local import LocalClient
 from svn.exception import SvnException
