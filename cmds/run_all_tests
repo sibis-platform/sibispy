@@ -1,7 +1,7 @@
 #!/bin/bash
 CFG_FILE=~/.sibis-general-config.yml 
 LEGACY_TESTS=(test_sibislogger.py test_utils.py test_config_file_parser.py  test_sibis_email.py test_check_dti_gradients.py test_redcap_to_casesdir.py test_redcap_locking_data.py test_redcap_compute_summary_scores.py)
-MODERN_TESTS=(test_post_issues_to_github.py test_session.py)
+MODERN_TESTS=(test_post_issues_to_github.py test_session.py test_sibis_svn_util.py)
 
 for TEST in ${MODERN_TESTS[@]}; do  
   echo " " 
