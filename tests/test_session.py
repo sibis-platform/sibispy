@@ -13,16 +13,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 import pytest
 import warnings
+from . import utils
 
 @pytest.fixture
 def session(config_file):
     '''
     Return a sibispy.Session configured by the provided config_file fixture.
     '''
-    from sibispy import session as sess
-    session = sess.Session()
-    assert session.configure(config_file), "Configuration File `{}` is missing or not readable.".format(config_file)
-    return session
+    return utils.get_session(config_file)
 
 
 @pytest.fixture

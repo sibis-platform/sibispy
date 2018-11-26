@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import pytest
 import tempfile
 import os
+from . import utils
 from .. import post_issues_to_github as gh
 
 from sibispy import session as sess
@@ -16,25 +17,10 @@ def pytest_generate_tests(metafunc):
   config_file = metafunc.config.option.config_file
   if config_file is not None:
     if 'github_label' in metafunc.fixturenames:
-      session = get_session(config_file)
-      test_config = get_test_config(session)
+      session = utils.get_session(config_file)
+      test_config = utils.get_test_config('test_post_to_github', session)
       github_labels = test_config['github_labels']
       metafunc.parametrize('github_label', github_labels)
-
-
-####################
-## HELPERS
-####################
-
-def get_session(config_file):
-  session = sess.Session()
-  assert session.configure(config_file), "Configuration File `{}` is missing or not readable.".format(config_file)
-  return session
-
-def get_test_config(session):
-  parser, error = session.get_config_test_parser()
-  assert error is None, "Error: getting test config: "+error
-  return parser.get_category('test_post_to_github')
 
 ####################
 ## FIXTURES
