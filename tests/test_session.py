@@ -11,8 +11,12 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+import os
 import pytest
+import shutil
+import tempfile
 import warnings
+from sibispy import session as sess
 from . import utils
 
 @pytest.fixture
@@ -35,6 +39,24 @@ def slog():
 
     slog.init_log(False, False,'test_session', 'test_session','/tmp')
     return slog
+
+@pytest.fixture
+def sys_file_parser(session):
+    # Load in test specific settings : 
+    (parser,err_msg) = session.get_config_test_parser()
+    assert err_msg is None, "Error: session.get_config_test_parser:" + err_msg
+
+    return parser
+
+
+@pytest.fixture
+def config_test_data(sys_file_parser):
+    config_test_data = sys_file_parser.get_category('test_session')
+    if not config_test_data : 
+        warnings.warn(UserWarning("Warning: test_session specific settings not defined!"))
+        config_test_data = dict()
+    return config_test_data
+
 
 #
 # short sample script 
@@ -113,6 +135,148 @@ def test_session_connect_server_info(session):
     assert svn_info['wcinfo_wcroot_abspath'] == session.get_laptop_svn_dir(), "SVN Working directories should match."
 
 
+def test_session_xnat_non_empty_query(slog, config_file, session):
+    project = 'xnat'
+    server = session.connect_server(project, True)
+
+    assert server, "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
+      
+    # 1. XNAT Test: Non-Empty querry  
+    with sess.Capturing() as xnat_output: 
+        searchResult = session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
+
+    if '"err_msg": "Apache Tomcat' in xnat_output.__str__():
+        warnings.warn(UserWarning("Info: username or password might be incorrect - check crudentials by using them to manually log in XNAT! "))
+
+    assert xnat_output.__str__() == '[]', "Error: session.xnat_export_general: failed to perform querry. Got: {}".format(xnat_output.__str__())
+
+    assert searchResult != None, "Error: session.xnat_export_general: Test returned empty record"
+
+
+def test_session_xnat_get_experiment(slog, config_file, session, config_test_data):
+    project = 'xnat'
+    server = session.connect_server(project, True)
+
+    assert server, "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
+    #
+    # xnat_get_experiment
+    #
+    eid = "DOES-NOT-EXIST"
+    with sess.Capturing() as xnat_output: 
+        exp = session.xnat_get_experiment(eid) 
+
+    assert None == exp, "Error: session.xnat_get_experiment: " + eid + " should not exist!"
+
+
+    if "xnat_uri_test" in list(config_test_data):  
+        [project,subject,eid] = config_test_data["xnat_uri_test"].split(',')
+        experiment = session.xnat_get_experiment(eid)  
+        assert None != experiment, "Error: session.xnat_get_experiment: " + eid + " should exist!"
+
+        # Difference in the call - which one you use will decide where data is stored on hard drive !
+        print("URI direct:", experiment.resources['nifti'].uri)
+
+        experiment = session.xnat_get_experiment(eid,project = project,subject_label = subject)  
+        assert None !=  experiment, "Error: session.xnat_get_experiment: {} should exist in project {} and subject {} !".format(eid, project, subject)
+   
+        print("URI with subject:", experiment.resources['nifti'].uri)
+
+        # zip_path="/tmp/tmpQcABtX/1_ncanda-localizer-v1.zip"
+        #file_path= exp.resource('nifti')._uri
+        #if not os.path.exists(file_path) : 
+        #        print "Error: xnat configuration wrong !" + file_path + " does not exist !" 
+        # server.select.project(project).subject(subject).experiment(eid).resource('nifti').put_zip(zip_path, overwrite=True,extract=True)
+    else :
+        warnings.warn(RuntimeWarning("Warning: Skipping XNAT uri test as it is not defined"))
+
+
+def test_session_xnat_stress_test(slog, config_file, session, config_test_data):
+    project = 'xnat'
+    client = session.connect_server(project, True)
+    #
+    # Stress Test:
+    #
+
+    if "xnat_stress_test" in list(config_test_data) :  
+        [xnat_eid, resource_id, resource_file_bname] = config_test_data["xnat_stress_test"].split('/')
+        tmpdir = tempfile.mkdtemp()
+
+        print("Start XNAT stress test ...") 
+        slog.startTimer2() 
+        # If fails, MIKE solution 
+        target_file = os.path.join(tmpdir, "blub.tar.gz")
+        client.download_file(xnat_eid, resource_id, resource_file_bname, target_file)
+        assert os.path.exists(target_file) and os.path.isfile(target_file), "Expected file `{}` to download.".format(target_file)
+        slog.takeTimer2("XNATStressTest","XNAT Stress Test")            
+        print("... completed") 
+
+        shutil.rmtree(tmpdir)
+    else :
+        warnings.warn(RuntimeWarning("Warning: Skipping XNAT stress test as it is not defined"))
+
+def test_session_xnat_failed_query(slog, config_file, session, config_test_data):
+    project = 'xnat'
+    server = session.connect_server(project, True)
+
+    test_data = config_test_data['xnat_subject_attribute_test']
+
+    # 3. XNAT Test: Failed querry  
+    response = (1, None)
+    with sess.CapturingTee() as xnat_output: 
+        response = session.xnat_get_subject_attribute('blub','blub','blub')
+
+    assert response[0] == None, "Expected no attribute, got {}".format(response[0])
+    assert response[1] != None, "Expected Error, got None!"
+
+    if "ERROR: session.xnat_get_subject_attribute: subject" not in xnat_output.__str__():
+        print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
+        print(xnat_output.__str__())
+
+    response = (1, None)
+    with sess.CapturingTee() as xnat_output: 
+        response = session.xnat_get_subject_attribute(test_data['project'],'blub','blub')
+
+    assert response[0] == None, "Expected no attribute, got {}".format(response[0])
+    assert response[1] != None, "Expected Error, got None!"
+
+    if "ERROR: session.xnat_get_subject_attribute: subject" not in xnat_output.__str__():
+        print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
+        print(xnat_output.__str__())
+
+    response = (1, None)
+    with sess.CapturingTee() as xnat_output: 
+        response = session.xnat_get_subject_attribute(test_data['project'], test_data['subject'],'blub')
+
+    assert response[0] == None, "Expected no attribute, got {}".format(response[0])
+    assert response[1] != None, "Expected Error, got None!"
+
+    if "ERROR: attribute could not be found" not in xnat_output.__str__():
+        print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
+        print(xnat_output.__str__())
+
+    response = (1, None)
+    with sess.CapturingTee() as xnat_output: 
+        response = session.xnat_get_subject_attribute(test_data['project'], test_data['subject'], 'label')
+
+    assert response[1] == None, "Expected there to be no errors. Got: {}".format(response[1])
+    assert response[0] != None, "Expected response, got Nothing."
+    
+    response = (1, None)
+    with sess.CapturingTee() as xnat_output: 
+        response = session.xnat_get_subject_attribute(test_data['project'], test_data['subject'], 'ID')
+
+    assert response[1] == None, "Expected there to be no errors. Got: {}".format(response[1])
+    assert response[0] != None, "Expected response, got Nothing."
+
+
+def test_session_xnat_search(slog, config_file, session, config_test_data):
+    
+    client = session.connect_server('xnat', True)
+
+    subject_project_list = client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items()
+    import pdb; pdb.set_trace()
+    assert subject_project_list != None, "Search result should not be None."
+
 def test_session_legacy(config_file, special_opts):
     import os
     import glob
@@ -121,7 +285,6 @@ def test_session_legacy(config_file, special_opts):
     import sibispy
     import traceback
     from sibispy import sibislogger as slog
-    from sibispy import session as sess
     from sibispy import config_file_parser as cfg_parser
     import tempfile
     import shutil
@@ -231,88 +394,89 @@ def test_session_legacy(config_file, special_opts):
                     continue 
                 
             if project == 'xnat':
-                # 1. XNAT Test: Non-Empty querry  
-                with sess.Capturing() as xnat_output: 
-                    searchResult = session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
+                print("XNAT Tests moved to different test methods")
+                # # 1. XNAT Test: Non-Empty querry  
+                # with sess.Capturing() as xnat_output: 
+                #     searchResult = session.xnat_export_general( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'], [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')],"subject_list")
 
-                if xnat_output.__str__() != '[]' :
-                    errors = True
-                    print("Error: session.xnat_export_general: failed to perform querry")
-                    if '"err_msg": "Apache Tomcat' in xnat_output.__str__():
-                        warnings.warn(UserWarning("Info: username or password might be incorrect - check crudentials by using them to manually log in XNAT! "))
+                # if xnat_output.__str__() != '[]' :
+                #     errors = True
+                #     print("Error: session.xnat_export_general: failed to perform querry")
+                #     if '"err_msg": "Apache Tomcat' in xnat_output.__str__():
+                #         warnings.warn(UserWarning("Info: username or password might be incorrect - check crudentials by using them to manually log in XNAT! "))
                     
-                    print(xnat_output.__str__())
+                #     print(xnat_output.__str__())
 
-                elif searchResult == None : 
-                    print("Error: session.xnat_export_general: Test returned empty record")
-                    errors = True
+                # elif searchResult == None : 
+                #     print("Error: session.xnat_export_general: Test returned empty record")
+                #     errors = True
 
-                #
-                # xnat_get_experiment
-                #
-                eid = "DOES-NOT-EXIST"
-                with sess.Capturing() as xnat_output: 
-                    exp = session.xnat_get_experiment(eid) 
+                # #
+                # # xnat_get_experiment
+                # #
+                # eid = "DOES-NOT-EXIST"
+                # with sess.Capturing() as xnat_output: 
+                #     exp = session.xnat_get_experiment(eid) 
 
-                if exp :
-                    print("Error: session.xnat_get_experiment: " + eid + " should not exist!")
-                    errors = True
+                # if exp :
+                #     print("Error: session.xnat_get_experiment: " + eid + " should not exist!")
+                #     errors = True
 
-                if "xnat_uri_test" in list(config_test_data):  
-                    [project,subject,eid] = config_test_data["xnat_uri_test"].split(',')
-                    experiment = session.xnat_get_experiment(eid)  
-                    if not experiment :
-                        print("Error: session.xnat_get_experiment: " + eid + " should exist!")
-                        errors = True
-                    else :
-                        # Difference in the call - which one you use will decide where data is stored on hard drive !
-                        print("URI direct:", experiment.resource('nifti')._uri)
+                # if "xnat_uri_test" in list(config_test_data):  
+                #     [project,subject,eid] = config_test_data["xnat_uri_test"].split(',')
+                #     experiment = session.xnat_get_experiment(eid)  
+                #     if not experiment :
+                #         print("Error: session.xnat_get_experiment: " + eid + " should exist!")
+                #         errors = True
+                #     else :
+                #         # Difference in the call - which one you use will decide where data is stored on hard drive !
+                #         print("URI direct:", experiment.resource('nifti')._uri)
 
-                    experiment = session.xnat_get_experiment(eid,project = project,subject_label = subject)  
-                    if not experiment :
-                        print("Error: session.xnat_get_experiment: " + eid + " should exist in project", project, "and subject ", subject_label, "!")
-                        errors = True
-                    else :
-                        print("URI with subject:", experiment.resource('nifti')._uri)
+                #     experiment = session.xnat_get_experiment(eid,project = project,subject_label = subject)  
+                #     if not experiment :
+                #         print("Error: session.xnat_get_experiment: " + eid + " should exist in project", project, "and subject ", subject_label, "!")
+                #         errors = True
+                #     else :
+                #         print("URI with subject:", experiment.resource('nifti')._uri)
 
-                    # zip_path="/tmp/tmpQcABtX/1_ncanda-localizer-v1.zip"
-                    #file_path= exp.resource('nifti')._uri
-                    #if not os.path.exists(file_path) : 
-                    #        print "Error: xnat configuration wrong !" + file_path + " does not exist !" 
-                    # server.select.project(project).subject(subject).experiment(eid).resource('nifti').put_zip(zip_path, overwrite=True,extract=True)
-                else :
-                    warnings.warn(RuntimeWarning("Warning: Skipping XNAT uri test as it is not defined"))
+                #     # zip_path="/tmp/tmpQcABtX/1_ncanda-localizer-v1.zip"
+                #     #file_path= exp.resource('nifti')._uri
+                #     #if not os.path.exists(file_path) : 
+                #     #        print "Error: xnat configuration wrong !" + file_path + " does not exist !" 
+                #     # server.select.project(project).subject(subject).experiment(eid).resource('nifti').put_zip(zip_path, overwrite=True,extract=True)
+                # else :
+                #     warnings.warn(RuntimeWarning("Warning: Skipping XNAT uri test as it is not defined"))
 
-                #
-                # Stress Test:
-                #
+                # #
+                # # Stress Test:
+                # #
 
-                if "xnat_stress_test" in list(config_test_data) :  
-                    [xnat_eid, resource_id, resource_file_bname] = config_test_data["xnat_stress_test"].split('/')
-                    tmpdir = tempfile.mkdtemp()
+                # if "xnat_stress_test" in list(config_test_data) :  
+                #     [xnat_eid, resource_id, resource_file_bname] = config_test_data["xnat_stress_test"].split('/')
+                #     tmpdir = tempfile.mkdtemp()
 
-                    print("Start XNAT stress test ...") 
-                    slog.startTimer2() 
-                    # If fails, MIKE solution 
-                    server.select.experiment(xnat_eid).resource(resource_id).file(resource_file_bname).get_copy(os.path.join(tmpdir, "blub.tar.gz"))
-                    slog.takeTimer2("XNATStressTest","XNAT Stress Test")            
-                    print("... completed") 
+                #     print("Start XNAT stress test ...") 
+                #     slog.startTimer2() 
+                #     # If fails, MIKE solution 
+                #     server.select.experiment(xnat_eid).resource(resource_id).file(resource_file_bname).get_copy(os.path.join(tmpdir, "blub.tar.gz"))
+                #     slog.takeTimer2("XNATStressTest","XNAT Stress Test")            
+                #     print("... completed") 
 
-                    shutil.rmtree(tmpdir)
-                else :
-                    warnings.warn(RuntimeWarning("Warning: Skipping XNAT stress test as it is not defined"))
+                #     shutil.rmtree(tmpdir)
+                # else :
+                #     warnings.warn(RuntimeWarning("Warning: Skipping XNAT stress test as it is not defined"))
 
 
-                # 3. XNAT Test: Failed querry  
-                with sess.Capturing() as xnat_output: 
-                    assert session.xnat_get_subject_attribute('blub','blub','blub')[0] == None
+                # # 3. XNAT Test: Failed querry  
+                # with sess.Capturing() as xnat_output: 
+                #     assert session.xnat_get_subject_attribute('blub','blub','blub')[0] == None
                     
-                if "ERROR: attribute could not be found" not in xnat_output.__str__():
-                    print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
-                    print(xnat_output.__str__())
-                    errors = True
+                # if "ERROR: attribute could not be found" not in xnat_output.__str__():
+                #     print("Error: session.xnat_get_subject_attribute: Test returned wrong error message")
+                #     print(xnat_output.__str__())
+                #     errors = True
 
-                # no xnat tests after this one as it breaks the interface for some reason
+                # # no xnat tests after this one as it breaks the interface for some reason
                 server = None
 
 

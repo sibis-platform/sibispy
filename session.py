@@ -40,6 +40,52 @@ class Capturing(list):
         del self._stringio    # free up some memory
         sys.stdout = self._stdout
 
+
+class StreamTee(object):
+    '''
+    Allows you to use a single file-like object to write to two file-like objects at the same time.
+
+    > import sys
+    > logfile = file("blah.txt", "w+")
+    > sys.stdout = StreamTee(sys.stdout, logfile)
+    '''
+    def __init__(self, stream1, stream2):
+        self.stream1 = stream1
+        self.stream2 = stream2
+        self.__missing_method_name = None
+
+    def __getattribute__(self, name):
+        return object.__getattribute__(self, name)
+    
+    def __getattr__(self, name):
+        self.__missing_method_name = name
+        return getattr(self, '__methodmissing__')
+    
+    def __methodmissing__(self, *args, **kwargs):
+        callable2 = getattr(self.stream2, self.__missing_method_name)
+        callable2(*args, **kwargs)
+
+        callable1 = getattr(self.stream1, self.__missing_method_name)
+        return callable1(*args, **kwargs)
+
+
+class CapturingTee(list):
+    '''
+    Same thing as Capturing, however it doesn't block stdout from being written to console.
+    '''
+    def __enter__(self):
+        self._stdout = sys.stdout
+        self._stringio = StringIO()
+        sys.stdout = StreamTee(self._stdout, self._stringio)
+        return self
+    
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio
+        sys.stdout = self._stdout
+    
+
+
 # --------------------------------------------
 # CLASS DEFINITION
 
@@ -143,19 +189,27 @@ class Session(object):
 
     # Access xnat through pyxnat 
     def __connect_xnat__(self):
-        import pyxnat
+        # import pyxnat
+        from .xnat_util import XnatUtil
         cfg = self.__config_usr_data.get_category('xnat')
         try : 
-            xnat = pyxnat.Interface(server=cfg.get('server'),
-                                    user=cfg.get('user'),
-                                    password=cfg.get('password'),
-                                    cachedir=cfg.get('cachedir'))
+            util = XnatUtil(
+                server=cfg.get('server'),
+                user=cfg.get('user'),
+                password=cfg.get('password')
+            )
+
+            raw_xnat = util.connect()
+            # xnat = pyxnat.Interface(server=cfg.get('server'),
+            #                         user=cfg.get('user'),
+            #                         password=cfg.get('password'),
+            #                         cachedir=cfg.get('cachedir'))
         except Exception as err_msg: 
             slog.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
             return None
 
-        self.api['xnat'] = xnat
-        return xnat
+        self.api['xnat'] = util
+        return util
 
     def __list_running_process__(self,cmd): 
         from subprocess import Popen, PIPE
@@ -476,7 +530,7 @@ class Session(object):
             select_object =  xnat_api.select
 
         try : 
-            xnat_experiment = select_object.experiment(eid)
+            xnat_experiment = select_object.experiments[eid]
 
         except Exception as err_msg:
             slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: problem with xnat api !",
@@ -489,9 +543,9 @@ class Session(object):
             slog.info(eid,"ERROR: session.xnat_get_experiment: experiment not created - problem with xnat api!")
             return None
 
-        if not xnat_experiment.exists() :
-            slog.info(eid,"ERROR: session.xnat_get_experiment: experiment does not exist !") 
-            return None
+        # if not xnat_experiment.exists() :
+        #     slog.info(eid,"ERROR: session.xnat_get_experiment: experiment does not exist !") 
+        #     return None
 
 
         return xnat_experiment
@@ -505,9 +559,9 @@ class Session(object):
                       function = "session.xnat_get_subject",
                       project = project)
             return None
- 
+
         try : 
-            xnat_project = xnat_api.select.project(project)
+            xnat_project = xnat_api.select.projects[project]
 
         except Exception as err_msg:
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
@@ -521,7 +575,7 @@ class Session(object):
             return None
 
         try : 
-            xnat_subject = xnat_project.subject( subject_label )
+            xnat_subject = xnat_project.subjects[subject_label]
 
         except Exception as err_msg:
             slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
@@ -540,11 +594,12 @@ class Session(object):
             issue_url = slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
             return [None,issue_url]
 
-        try : 
-            if attribute == "label" :
-                return [xnat_subject.label(),None]
-            else :
-                return [xnat_subject.attrs.get(attribute),None]
+        try: 
+
+            try:
+                return [getattr(xnat_subject, attribute),None]
+            except:
+                return [getattr(xnat_subject, attribute.lower()),None]
 
         except Exception as err_msg:
             issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
@@ -568,7 +623,7 @@ class Session(object):
         try:
             #  python if one cannot connect to server then 
             with Capturing() as xnat_output: 
-                xnat_data = xnat_api.select(form, fields).where(conditions).items()
+                xnat_data = xnat_api.search(form, fields).where(conditions).items()
         
         except Exception as err_msg:
             if xnat_output : 
