@@ -57,7 +57,6 @@ def config_test_data(sys_file_parser):
         config_test_data = dict()
     return config_test_data
 
-
 #
 # short sample script 
 #
@@ -105,6 +104,19 @@ def test_config_sys_parser(session):
 def test_connect_server(session, api_type):
     connection = session.connect_server(api_type)
     assert connection != None, "Expected to have a connection"
+
+def test_session_xnat_export_general(session, slog):
+    project = 'xnat'
+    server = session.connect_server(project, True)
+    
+    xnat_sessions_fields = ['xnat:mrSessionData/SESSION_ID','xnat:mrSessionData/SUBJECT_ID','xnat:mrSessionData/PROJECTS','xnat:mrSessionData/DATE','xnat:mrSessionData/SCANNER']
+
+    import pdb; pdb.set_trace()
+    xnat_sessions_list = session.xnat_export_general( 'xnat:mrSessionData', xnat_sessions_fields, [ ('xnat:mrSessionData/SESSION_ID','LIKE', '%') ],"subject_session_data")
+
+    xnat_sessions_dict = dict()
+    for ( session_id, session_subject_id, projects, date, scanner ) in xnat_sessions_list:
+        xnat_sessions_dict[session_id] = ( date, scanner, projects )
 
 
 def test_session_api_svn_laptop(session, config):
@@ -274,7 +286,6 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     client = session.connect_server('xnat', True)
 
     subject_project_list = client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items()
-    import pdb; pdb.set_trace()
     assert subject_project_list != None, "Search result should not be None."
 
 def test_session_legacy(config_file, special_opts):

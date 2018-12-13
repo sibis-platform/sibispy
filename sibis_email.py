@@ -156,7 +156,7 @@ class xnat_email(sibis_email):
     def __init__(self, session): 
         self._interface = session.api['xnat']
         if self._interface :
-            server_config = json.loads( self._interface._exec( '/data/services/settings' ) )[u'ResultSet'][u'Result']
+            server_config = self._interface._get_json( '/data/services/settings' )
             self._site_url = server_config[u'siteUrl']
             self._site_name = server_config[u'siteId']
             sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
@@ -174,11 +174,12 @@ class xnat_email(sibis_email):
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:
             try: 
-                uEmail = self._interface.manage.users.email( uname )
-                user_firstname = self._interface.manage.users.firstname( uname )
-                user_lastname = self._interface.manage.users.lastname( uname )
+                user = self._interface.client.users[uname]
+                uEmail = user.email
+                user_firstname = user.first_name
+                user_lastname = user.last_name
             except:
-                slog.info('xnat_email.add_user_message',"ERROR: failed to get detail information for user " + str(uid) + " at {}".format(time.asctime()),
+                slog.info('xnat_email.add_user_message',"ERROR: failed to get detail information for user " + str(uname) + " at {}".format(time.asctime()),
                           msg = str(msg))
                 return False
 

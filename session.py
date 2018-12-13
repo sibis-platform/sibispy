@@ -187,9 +187,8 @@ class Session(object):
         return http_session
 
 
-    # Access xnat through pyxnat 
+    # Access xnat through XnatUtil 
     def __connect_xnat__(self):
-        # import pyxnat
         from .xnat_util import XnatUtil
         cfg = self.__config_usr_data.get_category('xnat')
         try : 
@@ -200,10 +199,7 @@ class Session(object):
             )
 
             raw_xnat = util.connect()
-            # xnat = pyxnat.Interface(server=cfg.get('server'),
-            #                         user=cfg.get('user'),
-            #                         password=cfg.get('password'),
-            #                         cachedir=cfg.get('cachedir'))
+
         except Exception as err_msg: 
             slog.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
             return None
