@@ -6,6 +6,7 @@
 ##
 
 from __future__ import print_function
+from builtins import range
 import os
 import re
 import sys
@@ -105,10 +106,10 @@ forms = None
 if args.forms:
     forms = dict()
     for f in args.forms.split(','):
-        if f in all_forms.keys():
+        if f in list(all_forms.keys()):
             forms[f] = all_forms[f]
-        elif f in all_forms.values():
-            lookup = [k for (k, v) in all_forms.iteritems() if v == f]
+        elif f in list(all_forms.values()):
+            lookup = [k for (k, v) in all_forms.items() if v == f]
             forms[lookup[0]] = f
         else:
             print("WARNING: no form with name or prefix '%s' defined.\n" % f)
@@ -123,8 +124,8 @@ if forms == None :
 if args.verbose:
     print("Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values())))
 
-form_prefixes = forms.keys()
-form_names = forms.values()
+form_prefixes = list(forms.keys())
+form_names = list(forms.values())
 
 # Open connection with REDCap server - Import Project
 import_project = session.connect_server('import_laptops', True)
@@ -147,7 +148,7 @@ form_event_mapping = redcap_project.export_fem(format='df')
 # MAIN LOOP
 #
 
-for form_prefix, form_name in forms.iteritems():
+for form_prefix, form_name in forms.items():
     print("Processing form",form_prefix,"/",form_name)
 
     complete_label = '%s_complete' % form_name

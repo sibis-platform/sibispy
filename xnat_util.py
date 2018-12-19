@@ -1,6 +1,7 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import map
 from builtins import object
 from .xnat.array import ArrayData
 from .xnat.search import Search
@@ -136,7 +137,7 @@ class XNATSessionElementUtil(object):
 
     replaceSlashS = lambda x : x.replace('\s', ' ')
     if type(jdata.get(header)) == list:
-        return map(replaceSlashS, jdata.get(header))
+        return list(map(replaceSlashS, jdata.get(header)))
     else:
         return jdata.get(header).replace('\s', ' ')
 
@@ -319,7 +320,7 @@ class XnatUtil(object):
 
         if (response is not None and not response.ok) or is_xnat_error(response.content):
             if self._debug:
-                print(response.keys())
+                print(list(response.keys()))
                 print(response.get("status"))
 
             catch_error(response.content, '''XnatUtil._exec failure:

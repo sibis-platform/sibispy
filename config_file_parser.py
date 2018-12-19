@@ -5,6 +5,7 @@
 """
 Parse Arguments From Config File 
 """
+from builtins import object
 import os
 import yaml
 from collections import OrderedDict
@@ -87,7 +88,7 @@ class config_file_parser(object):
         if not self.__config_dict :
             raise RuntimeError("Please run configure first before calling this function!")
 
-        return self.__config_dict.keys()
+        return list(self.__config_dict.keys())
 
 
     def get_config_file(self):

@@ -6,6 +6,9 @@
 ##
 
 from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import sys
@@ -125,7 +128,7 @@ class redcap_compute_summary_scores(object):
 
         # Now get the imported records referenced by each record in the summary table
         import_fields = []
-        for import_instrument in scoring.fields_list[instrument].keys():
+        for import_instrument in list(scoring.fields_list[instrument].keys()):
             import_fields += self.__get_matching_fields__(self.__rc_summary.field_names, scoring.fields_list[instrument][import_instrument])
 
         # Retrieve data from record in chunks of 50 records
@@ -134,7 +137,7 @@ class redcap_compute_summary_scores(object):
         imported = []
         for event_name in set(record_ids.index.map(lambda key: key[1]).tolist()):
             records_this_event = record_ids.xs( event_name, level=1).index.tolist()
-            for idx in xrange(0, len(records_this_event), 50):
+            for idx in range(0, len(records_this_event), 50):
                 imported.append(self.__rc_summary.export_records(fields=import_fields,
                                                                  records=records_this_event[idx:idx + 50],
                                                                  events=[event_name], event_name='unique', format='df'))

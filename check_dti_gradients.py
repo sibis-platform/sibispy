@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 import os
 import glob
 import re
@@ -64,13 +66,13 @@ class check_dti_gradients(object):
         # Load in all ground truth gradients
         sequence_map  = self.__sibis_defs.get('sequence')
         errorFlag = False
-        for SCANNER in gt_path_dict.iterkeys():
+        for SCANNER in gt_path_dict.keys():
             scanner_dict = dict()
             scanner_map = gt_path_dict.get(SCANNER)
-            for MODEL in scanner_map.iterkeys():
+            for MODEL in scanner_map.keys():
                 model_dict = dict()
                 model_map = scanner_map.get(MODEL)
-                for SEQUENCE in sequence_map.iterkeys(): 
+                for SEQUENCE in sequence_map.keys(): 
                     model_dict[SEQUENCE] = self.__load_ground_truth_gradients(model_map[SEQUENCE])
                     if not len(model_dict[SEQUENCE]) : 
                        errorFlag = True 
@@ -179,18 +181,18 @@ class check_dti_gradients(object):
     #----------------------------------------------------
     def _get_ground_truth_gradients_(self,session_label,scanner,scanner_model,sequence_label):
         scanner_u = scanner.upper()
-        if not scanner_u in self.__gt_gradients_dict.iterkeys():
+        if not scanner_u in iter(self.__gt_gradients_dict.keys()):
             slog.info(session_label,'ERROR: _get_ground_truth_gradients_: No ground truth defined for ' + scanner_u + '!')
             return []
         
         gt_scanner_map = self.__gt_gradients_dict[scanner_u]
         scanner_model_u = scanner_model.split('_',1)[0].upper()
-        if  scanner_model_u in gt_scanner_map.iterkeys():
+        if  scanner_model_u in iter(gt_scanner_map.keys()):
             gt_model_map =  gt_scanner_map.get(scanner_model_u)
         else : 
             gt_model_map = gt_scanner_map.get('default')
 
-        if not sequence_label in gt_model_map.iterkeys():
+        if not sequence_label in iter(gt_model_map.keys()):
             slog.info(session_label,'ERROR: _get_ground_truth_gradients_: No ground truth defined for ' + sequence_label + '!')
             return []
 
@@ -206,16 +208,16 @@ class check_dti_gradients(object):
         sequence_map  = self.__sibis_defs.get('sequence')
 
         path_dict = dict()
-        for SCANNER in ground_truth_map.iterkeys(): 
+        for SCANNER in ground_truth_map.keys(): 
             scanner_dict = dict()
             scanner_map = ground_truth_map.get(SCANNER)
-            for MODEL in scanner_map.iterkeys():
+            for MODEL in scanner_map.keys():
                 model_map = scanner_map.get(MODEL)
                 model_event =  model_map.get('event') 
                 model_subject =  model_map.get('subject')
                 model_subject_dir = os.path.join(self.__cases_dir, model_subject) 
                 model_dict = dict()
-                for SEQUENCE in sequence_map.iterkeys(): 
+                for SEQUENCE in sequence_map.keys(): 
                     model_dict[SEQUENCE] = self.get_dti_stack_path(SEQUENCE,model_subject_dir, arm='standard', event=model_event)
 
                 scanner_dict[MODEL] = model_dict
@@ -345,7 +347,7 @@ class check_dti_gradients(object):
                 # KP: only Siemens scans include the directional sign tag
                 if match :
                     sequence_map = self.__sibis_defs.get('sequence')
-                    if not sequence_label in sequence_map.iterkeys():
+                    if not sequence_label in iter(sequence_map.keys()):
                         slog.info(session_label, 
                                   "Check for sequence " +  sequence_label  + " not defined !", 
                                   eid = eid,                   

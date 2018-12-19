@@ -35,6 +35,7 @@
 
 
 
+from builtins import next
 from builtins import str
 from builtins import zip
 from past.builtins import basestring

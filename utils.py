@@ -1,5 +1,6 @@
 from __future__ import print_function
 # General Util functions
+from builtins import str
 from sibispy import sibislogger as slog
 import subprocess
 import re
@@ -143,7 +144,7 @@ def limesurvey_label_in_redcap( prefix, ls_label ):
 def map_labels_to_dict( labels, ldict ):
     new_labels = list()
     for label in labels:
-        if label in ldict.keys():
+        if label in list(ldict.keys()):
             new_labels.append( ldict[label] )
         else:
             new_labels.append( label )
@@ -180,7 +181,7 @@ https://github.com/ActiveState/code/blob/master/recipes/Python/577982_Recursivel
 from collections import Mapping, Set, Sequence 
 
 # dual python 2/3 compatability, inspired by the "six" library
-string_types = (str, unicode) if str is bytes else (str, bytes)
+string_types = (str, str) if str is bytes else (str, bytes)
 iteritems = lambda mapping: getattr(mapping, 'iteritems', mapping.items)()
 
 def objwalk(obj, path=(), memo=None):

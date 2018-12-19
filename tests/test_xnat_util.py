@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import os
 import pytest
 import sys
@@ -90,7 +93,7 @@ def test_raw_text(xnat_util, xnat_test_data):
       for scan in td['scans']:
         element = xnat_util.select.experiments[td['experiment']].scans[scan]
         result = xnat_util.raw_text(element)
-        assert isinstance(result, unicode), "Expected a unicode string. got: {}".format(result)
+        assert isinstance(result, str), "Expected a unicode string. got: {}".format(result)
 
 def test_download_file(xnat_util, xnat_test_data, tmpdir):
   test_data = xnat_test_data['download_file']
@@ -149,8 +152,8 @@ def test_download_upload_file(xnat_util, xnat_test_data, workdir):
 
     assert resource != None, "Resource should exist"
 
-    local_file = workdir.workspace / test_data['file_name']
-    download_file = workdir.workspace / 'downloaded_' + test_data['file_name']
+    local_file = old_div(workdir.workspace, test_data['file_name'])
+    download_file = old_div(workdir.workspace, 'downloaded_') + test_data['file_name']
 
     random_data = str(uuid.uuid1())
 

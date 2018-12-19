@@ -9,6 +9,7 @@ Unit tests for sibispy.svn module.
 
 from __future__ import absolute_import, print_function, division
 
+from builtins import str
 import pytest
 from pytest_shutil.workspace import Workspace
 from path import Path

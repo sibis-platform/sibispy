@@ -6,6 +6,7 @@
 ##
 
 from __future__ import print_function
+from builtins import str
 import sys
 import argparse
 
@@ -107,7 +108,7 @@ for instrument in instrument_list:
     if not uploaded : 
         continue 
 
-    if not 'count' in uploaded.keys() or  uploaded['count'] == 0:
+    if not 'count' in list(uploaded.keys()) or  uploaded['count'] == 0:
         if args.verbose :
             if args.update_all :
                 print('No updates for instrument "%s"' % instrument)

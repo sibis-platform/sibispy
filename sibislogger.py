@@ -1,10 +1,14 @@
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
 ##
 ##  Copyright 2016 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from builtins import str
+from builtins import object
+from past.utils import old_div
 import sys
 import json
 import traceback
@@ -28,7 +32,7 @@ class sibisJSONEncoder(json.JSONEncoder):
             
 
 
-class sibisLogging():
+class sibisLogging(object):
     """
     SIBIS Logging Module
     """
@@ -57,7 +61,7 @@ class sibisLogging():
         self.log.update(kwargs)
         jlog = json.dumps(self.log, cls=sibisJSONEncoder)
         self.log.clear()
-        return jlog
+        return unicode(jlog)
         
     def info(self, uid, message, **kwargs):
         """
@@ -132,8 +136,8 @@ class sibisLogging():
         endTimer=time.time()
         time_date_format = '%Y-%m-%d %H:%M:%S'
         time_diff = int(1000*(endTimer - startTimer))
-        time_diff_sec = int(time_diff / 1000)
-        timeLine= ','.join([time.strftime(time_date_format,time.localtime(startTimer)),time.strftime(time_date_format,time.localtime(endTimer)),str(time_diff_sec/60) + ":" + str(time_diff_sec%60).zfill(2)  + ":" + str(time_diff%1000).zfill(3)])
+        time_diff_sec = int(old_div(time_diff, 1000))
+        timeLine= ','.join([time.strftime(time_date_format,time.localtime(startTimer)),time.strftime(time_date_format,time.localtime(endTimer)),str(old_div(time_diff_sec,60)) + ":" + str(time_diff_sec%60).zfill(2)  + ":" + str(time_diff%1000).zfill(3)])
         timeLine += ','
         if label : 
             timeLine += str(label)

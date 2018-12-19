@@ -1,4 +1,8 @@
 from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import ast
@@ -43,7 +47,7 @@ class redcap_to_casesdir(object):
         self.__sibis_defs = cfgParser.get_category('redcap_to_casesdir')
 
         self.__scanner_dict = self.__sibis_defs['scanner_dict']
-        for TYPE in self.__scanner_dict.keys() : 
+        for TYPE in list(self.__scanner_dict.keys()) : 
             self.__scanner_dict[TYPE] = self.__scanner_dict[TYPE].split(",")
 
 
@@ -80,7 +84,7 @@ class redcap_to_casesdir(object):
    
     def __transform_dict_string_into_tuple__(self,dict_name):
         dict_str = self.__sibis_defs[dict_name]
-        dict_keys = dict_str.keys()
+        dict_keys = list(dict_str.keys())
         if not len(dict_keys):
             slog.info('redcap_to_casesdir.configure',"ERROR: Cannot find '" + dict_name + "'' in config file!")
             return None
@@ -122,7 +126,7 @@ class redcap_to_casesdir(object):
         # Filter each form
         text_list = list()
         non_redcap_list = list()
-        for export_name in self.__export_forms.keys():
+        for export_name in list(self.__export_forms.keys()):
             (form_text_list, form_non_redcap_list)  = self.__check_form__(export_name)
             if form_text_list :
                 text_list += form_text_list
@@ -177,7 +181,7 @@ class redcap_to_casesdir(object):
 
     # used to be get_export_form_names
     def get_export_names_of_forms(self):
-        return self.__export_forms.keys()
+        return list(self.__export_forms.keys())
 
     def create_datadict(self, export_name, datadict_dir):
          export_form_entry_list = self.__export_forms[export_name]
@@ -200,7 +204,7 @@ class redcap_to_casesdir(object):
         self.__metadata_dict.update(meta_data_dict)
 
         dict_str = self.__sibis_defs['demographic_datadict']
-        export_entry_list = dict_str.keys()
+        export_entry_list = list(dict_str.keys())
 
         export_form_list = ['demographics'] * len(export_entry_list)
 
@@ -237,7 +241,7 @@ class redcap_to_casesdir(object):
             ddict["Form Name"][var] = name_of_form
 
             # Check if var is in data dict ('FORM_complete' fields are NOT)
-            if field_name in self.__metadata_dict.keys():
+            if field_name in list(self.__metadata_dict.keys()):
                 ddict["Field Type"][var] = self.__metadata_dict[field_name][0]
                 # need to transfer to utf-8 code otherwise can create problems when
                 # writing dictionary to file it just is a text field so it should
@@ -275,7 +279,7 @@ class redcap_to_casesdir(object):
             return ["",""]
 
         mri_scanner= mri_scanner.upper()
-        for TYPE in self.__scanner_dict.keys() : 
+        for TYPE in list(self.__scanner_dict.keys()) : 
             if TYPE in mri_scanner :
                 return self.__scanner_dict[TYPE]
 
@@ -362,7 +366,7 @@ class redcap_to_casesdir(object):
         output_fields = []
         for field in record.columns:
             # Rename field for output if necessary
-            if field in self.__export_rename[export_name].keys():
+            if field in list(self.__export_rename[export_name].keys()):
                 output_field = self.__export_rename[export_name][field]
             else:
                 output_field = field
@@ -375,10 +379,10 @@ class redcap_to_casesdir(object):
             # If this is a radio or dropdown field
             # (except "FORM_[missing_]why"), add a separate column for the
             # coded label
-            if field in self.__code_to_label_dict.keys() and not re.match('.*_why$', field):
+            if field in list(self.__code_to_label_dict.keys()) and not re.match('.*_why$', field):
                 code = str(record[field].ix[0])
                 label = ''
-                if code in self.__code_to_label_dict[field].keys():
+                if code in list(self.__code_to_label_dict[field].keys()):
                     label = self.__code_to_label_dict[field][code]
                 field_idx += 1
                 record.insert(field_idx, output_field + '_label', label)
@@ -398,7 +402,7 @@ class redcap_to_casesdir(object):
         # define fields and forms to export
         all_fields = ['study_id']
         export_list = []
-        for export_name in self.__export_forms.keys():
+        for export_name in list(self.__export_forms.keys()):
             if (self.__import_forms[export_name] in forms_this_event): 
                 if (not select_exports or export_name in select_exports):
                     all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
@@ -449,7 +453,7 @@ class redcap_to_casesdir(object):
 
     # What Arm and Visit of the study is this event?
     def translate_subject_and_event( self, subject_code, event_label):
-        if event_label in self.__event_dict.keys():
+        if event_label in list(self.__event_dict.keys()):
             (arm_code,visit_code) = self.__event_dict[event_label]
         else:
             slog.info(str(subject_code),"ERROR: Cannot determine study Arm and Visit from event %s" % event_label )
