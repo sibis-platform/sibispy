@@ -11,6 +11,7 @@
 
 
 from __future__ import print_function
+from builtins import str
 from sibispy import sibislogger as slog
 from sibispy import post_issues_to_github as pig
 import os 

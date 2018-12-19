@@ -9,6 +9,10 @@ The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
 from __future__ import print_function, absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import ast
 import os
 import time
@@ -27,7 +31,7 @@ from sibispy import config_file_parser as cfg_parser
 # --------------------------------------------
 # this class was created to capture output from xnat 
 # if one cannot connect to server
-from cStringIO import StringIO
+from io import StringIO
 import sys
 
 class Capturing(list):
@@ -144,7 +148,7 @@ class Session(object):
         """
         if api_type not in self.api :
             slog.info('session.connect_server','api type ' + api_type + ' not defined !',
-                      api_types = str(self.api.keys()))
+                      api_types = str(list(self.api.keys())))
             return None
 
         if timeFlag : 
@@ -221,13 +225,13 @@ class Session(object):
         
     def __connect_penncnp__(self):
         # Check that config file is correctly defined 
-        if "penncnp" not in self.__config_srv_data.keys():
+        if "penncnp" not in list(self.__config_srv_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp server info not defined!")
             return None
 
         penncnp_srv_data = self.__config_srv_data["penncnp"]
 
-        if "penncnp" not in self.__config_usr_data.keys():
+        if "penncnp" not in list(self.__config_usr_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp user info not defined!")
             return None
 
@@ -294,7 +298,7 @@ class Session(object):
 
     def __connect_svn_laptop__(self):
         # Check that config file is correctly defined 
-        if "svn_laptop" not in self.__config_usr_data.keys():
+        if "svn_laptop" not in list(self.__config_usr_data.keys()):
             slog.info("session.__connnect_svn_laptop__","ERROR: svn laptop user info not defined!")
             return None
         usr_data = self.__config_usr_data.get_category('svn_laptop')
@@ -619,7 +623,7 @@ class Session(object):
         try:
             #  python if one cannot connect to server then 
             with Capturing() as xnat_output: 
-                xnat_data = xnat_api.search(form, fields).where(conditions).items()
+                xnat_data = list(xnat_api.search(form, fields).where(conditions).items())
         
         except Exception as err_msg:
             if xnat_output : 
@@ -682,7 +686,7 @@ class Session(object):
   
         self.api['browser_penncnp']['browser'].quit()
 
-        if "DISPLAY" in os.environ.keys() and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
+        if "DISPLAY" in list(os.environ.keys()) and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
             del os.environ['DISPLAY']
  
         import subprocess

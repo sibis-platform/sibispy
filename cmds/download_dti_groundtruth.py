@@ -7,6 +7,7 @@
 
 
 from __future__ import print_function
+from builtins import str
 import os
 import sys
 import sibispy
@@ -34,11 +35,11 @@ print("==== IGNORE ERROR MESSAGES ===")
 check.configure(session,check_decimals=2)
 print("==== DO NOT IGNORE ERRORS BELOW===")
 gt_path_dict = check.get_ground_truth_gradient_path_dict()
-for SCANNER in  gt_path_dict.iterkeys():
+for SCANNER in  gt_path_dict.keys():
     scn_dic= gt_path_dict[SCANNER]
-    for MODEL in scn_dic.iterkeys():
+    for MODEL in scn_dic.keys():
         mod_dic= scn_dic[MODEL]
-        mod_search_path = mod_dic.values()[0]
+        mod_search_path = list(mod_dic.values())[0]
         gt_path=os.path.dirname(os.path.dirname(mod_search_path))
         loc_path=os.path.dirname(gt_path)
         if len(glob.glob(mod_search_path)) :

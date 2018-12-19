@@ -32,6 +32,7 @@
 # arising in any way out of the use of this software, even if advised of the
 # possibility of such damage.
 
+from builtins import next
 from future import standard_library
 standard_library.install_aliases()
 from builtins import zip

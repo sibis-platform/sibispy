@@ -32,6 +32,7 @@
 # arising in any way out of the use of this software, even if advised of the
 # possibility of such damage.
 
+from builtins import object
 from .jsonutil import JsonTable
 from .search import Search
 
@@ -78,13 +79,13 @@ class ArrayData(object):
             queryParams['columns'] = ''
 
         if constraints != {}:
-            queryParams['columns'] += ',' + ','.join(constraints.keys())
+            queryParams['columns'] += ',' + ','.join(list(constraints.keys()))
 
         if columns is not None:
             queryParams['columns'] += ',' + ','.join(columns)
 
         c = {}
-        [c.setdefault(key.lower(), value) for key, value in constraints.items()]
+        [c.setdefault(key.lower(), value) for key, value in list(constraints.items())]
 
 
         full_results = self._intf.get_json(uri, query=queryParams)

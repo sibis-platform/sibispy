@@ -19,6 +19,7 @@ python post_github_issues.py -o sibis-platform -r ncanda-issues \
                              -b /tmp/test.txt -v
 """
 from __future__ import print_function
+from builtins import str
 import os
 import sys
 import json
@@ -180,7 +181,7 @@ def generate_body(issue):
         str: Markdown text.
     """
     markdown = "### {}\n".format(issue.pop('title'))
-    for k, v in issue.iteritems():
+    for k, v in issue.items():
         markdown += "- {}: {}\n".format(k, v)
     return markdown
 

@@ -7,6 +7,8 @@ Create the SIBIS Locking Object
 ===============================
 The SIBIS Locking Object provides functionality to lock, unlock, and report on the locking status of a visit 
 """
+from builtins import str
+from builtins import object
 import pandas as pd 
 import sibispy 
 from sibispy import sibislogger as slog

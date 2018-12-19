@@ -11,6 +11,7 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
+from builtins import str
 import os
 import pytest
 import shutil
@@ -111,9 +112,8 @@ def test_session_xnat_export_general(session, slog):
     
     xnat_sessions_fields = ['xnat:mrSessionData/SESSION_ID','xnat:mrSessionData/SUBJECT_ID','xnat:mrSessionData/PROJECTS','xnat:mrSessionData/DATE','xnat:mrSessionData/SCANNER']
 
-    import pdb; pdb.set_trace()
     xnat_sessions_list = session.xnat_export_general( 'xnat:mrSessionData', xnat_sessions_fields, [ ('xnat:mrSessionData/SESSION_ID','LIKE', '%') ],"subject_session_data")
-
+    assert xnat_sessions_list != None
     xnat_sessions_dict = dict()
     for ( session_id, session_subject_id, projects, date, scanner ) in xnat_sessions_list:
         xnat_sessions_dict[session_id] = ( date, scanner, projects )
@@ -285,7 +285,7 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     
     client = session.connect_server('xnat', True)
 
-    subject_project_list = client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items()
+    subject_project_list = list(client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items())
     assert subject_project_list != None, "Search result should not be None."
 
 def test_session_legacy(config_file, special_opts):
@@ -533,8 +533,8 @@ def test_session_legacy(config_file, special_opts):
 
                 if "redcap_stress_test" in list(config_test_data):  
                     all_forms = config_test_data["redcap_stress_test"]
-                    form_prefixes = all_forms.keys()
-                    names_of_forms = all_forms.values()
+                    form_prefixes = list(all_forms.keys())
+                    names_of_forms = list(all_forms.values())
 
                     entry_data_fields = [('%s_complete' % form) for form in names_of_forms] + [('%s_missing' % form) for form in form_prefixes] + [('%s_record_id' % form) for form in form_prefixes]
                     entry_data_fields += ['study_id', 'dob', 'redcap_event_name', 'visit_date', 'exclude', 'sleep_date']

@@ -6,6 +6,10 @@
 ##
 
 from __future__ import print_function
+from __future__ import division
+from builtins import next
+from builtins import str
+from past.utils import old_div
 import os
 import sys
 import glob
@@ -95,7 +99,7 @@ this_subject_data = subject_data.ix[subject_red_id]
 
 subject_dob_str = str( this_subject_data['dob'] )
 
-visit_age = red2cas.days_between_dates(subject_dob_str, visit_date ) / 365.242
+visit_age = old_div(red2cas.days_between_dates(subject_dob_str, visit_date ), 365.242)
 
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, outdir))

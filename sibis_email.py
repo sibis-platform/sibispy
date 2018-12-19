@@ -5,6 +5,8 @@ from __future__ import print_function
 ##
 
 # Mail-related stuff
+from builtins import str
+from builtins import object
 import smtplib
 import time 
 import json 
@@ -13,7 +15,7 @@ from email.mime.text import MIMEText
 
 from sibispy import sibislogger as slog
 
-class sibis_email:
+class sibis_email(object):
     """ Class handling email communication with XNAT users and admin."""
 
     # Initialize class.
@@ -111,7 +113,7 @@ class sibis_email:
         problem_list = []
         if len( self._messages_by_user ) > 0:
             problem_list.append( '<ul>' )
-            for (uid,info_msglist) in self._messages_by_user.iteritems():
+            for (uid,info_msglist) in self._messages_by_user.items():
                 problem_list.append( '<li>User: %s %s (%s)</li>' % (info_msglist['uFirst'],info_msglist['uLast'],info_msglist['uEmail']) )
                 problem_list.append( '<ol>' )
                 for m in info_msglist['msgList']:
@@ -140,7 +142,7 @@ class sibis_email:
     def send_all( self, title, uIntro_txt, uProlog, aIntro_txt ):
         # Run through list of messages by user
         if len( self._messages_by_user ):
-            for (uid,uInfo_msg) in self._messages_by_user.iteritems():
+            for (uid,uInfo_msg) in self._messages_by_user.items():
                self.mail_user(uInfo_msg['uEmail'],uInfo_msg['uFirst'],uInfo_msg['uLast'], title, uIntro_txt, uProlog,  uInfo_msg['msgList'])
 
         if len( self._messages_by_user ) or len( self._admin_messages ):
@@ -207,7 +209,7 @@ class xnat_email(sibis_email):
     def send_all( self ):
         # Run through list of messages by user
         if len( self._messages_by_user ):
-            for (uname,info_msglist) in self._messages_by_user.iteritems():
+            for (uname,info_msglist) in self._messages_by_user.items():
                 self.mail_user(info_msglist['uEmail'], info_msglist['uFirst'], info_msglist['uLast'], info_msglist['msgList'])
 
         if len( self._messages_by_user ) or len( self._admin_messages ):
