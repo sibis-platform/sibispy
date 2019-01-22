@@ -100,9 +100,9 @@ class check_dti_gradients(object):
             lines = fi.readlines()
             lines.insert(1, '<root>')
             lines.append('</root>')
-        string = ''.join(lines)
-        strip_ge = string.replace('dicom:GE:', '')
-        strip_dicom = strip_ge.replace('dicom:', '')
+        string = r''.join(lines)
+        strip_ge = string.replace(r'dicom:GE:', '')
+        strip_dicom = strip_ge.replace(r'dicom:', '')
         result = objectify.fromstring(strip_dicom)
         return result
 

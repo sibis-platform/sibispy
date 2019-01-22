@@ -382,7 +382,7 @@ class Session(object):
     def __get_analysis_dir(self) :
         analysis_dir = self.__config_usr_data.get_value('analysis_dir')
         if analysis_dir == None :
-            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file())).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
+            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file()).encode('utf-8')).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
                       config_file = self.__config_usr_data.get_config_file())
             
         return  analysis_dir
@@ -526,14 +526,18 @@ class Session(object):
             if not select_object  :
                 slog.info(subject_label,"ERROR: session.xnat_get_experiment: subject " + subject_label + " not found !",project = project)
                 return None
-        else :
+        else:
             select_object =  xnat_api.select
 
-        try : 
+        try: 
             xnat_experiment = select_object.experiments[eid]
-
+        except KeyError as err_msg:
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"WARNING: eid: {} does not exist!".format(eid),
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_experiment")
+            return None
         except Exception as err_msg:
-            slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: problem with xnat api !",
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: problem with xnat api !",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_experiment")
             return None
@@ -560,11 +564,17 @@ class Session(object):
                       project = project)
             return None
 
-        try : 
+        try: 
             xnat_project = xnat_api.select.projects[project]
+        except KeyError as err_msg:
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"WARNING: project:{} could not be found!".format(project),
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_subject",
+                      project = project)
+            return None
 
         except Exception as err_msg:
-            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: project could not be found!",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_subject",
                       project = project)
@@ -578,7 +588,7 @@ class Session(object):
             xnat_subject = xnat_project.subjects[subject_label]
 
         except Exception as err_msg:
-            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: subject could not be found!",
                       err_msg = str(err_msg),
                       project = project,
                       function = "session.xnat_get_subject",
@@ -602,7 +612,7 @@ class Session(object):
                 return [getattr(xnat_subject, attribute.lower()),None]
 
         except Exception as err_msg:
-            issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
+            issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: attribute could not be found!",
                       err_msg = str(err_msg),
                       project = project,
                       subject = subject_label,
@@ -801,7 +811,7 @@ class Session(object):
         except requests.exceptions.RequestException as e:
             error = 'session:redcap_import_record:Failed to import into REDCap' 
             err_list = ast.literal_eval(str(e))['error'].split('","')
-            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+            error_label  += '-' + hashlib.sha1(str(e).encode('utf-8')).hexdigest()[0:6] 
 
             slog.info(error_label, error,
                       requestError=str(e), 
@@ -829,7 +839,7 @@ class Session(object):
         except requests.exceptions.RequestException as e:
             error = 'session:redcap_import_record:Failed to import into REDCap' 
             err_list = ast.literal_eval(str(e))['error'].split('","')
-            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+            error_label  += '-' + hashlib.sha1(str(e).encode('utf-8')).hexdigest()[0:6] 
 
             if len(records) > 1 :
                 slog.info(error_label, error,
@@ -926,7 +936,7 @@ class Session(object):
         try : 
             projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
         except Exception as err_msg:
-            slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg)).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
+            slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
             return None
             
         project_id = projects[projects.project_name == project_name].project_id

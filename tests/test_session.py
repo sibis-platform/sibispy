@@ -173,7 +173,7 @@ def test_session_xnat_get_experiment(slog, config_file, session, config_test_dat
     #
     # xnat_get_experiment
     #
-    eid = "DOES-NOT-EXIST"
+    eid = r"DOES-NOT-EXIST"
     with sess.Capturing() as xnat_output: 
         exp = session.xnat_get_experiment(eid) 
 

@@ -61,7 +61,7 @@ class sibisLogging(object):
         self.log.update(kwargs)
         jlog = json.dumps(self.log, cls=sibisJSONEncoder)
         self.log.clear()
-        return unicode(jlog)
+        return str(jlog)
         
     def info(self, uid, message, **kwargs):
         """

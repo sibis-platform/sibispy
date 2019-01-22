@@ -135,11 +135,11 @@ class XNATSessionElementUtil(object):
     else:
         header = header[0]
 
-    replaceSlashS = lambda x : x.replace('\s', ' ')
+    replaceSlashS = lambda x : x.replace(r'\s', r' ')
     if type(jdata.get(header)) == list:
         return list(map(replaceSlashS, jdata.get(header)))
     else:
-        return jdata.get(header).replace('\s', ' ')
+        return jdata.get(header).replace(r'\s', r' ')
 
   def mget(self, paths):
       """ Set multiple attributes at once.
@@ -181,7 +181,7 @@ class XNATSessionElementUtil(object):
               header = difflib.get_close_matches(path, jdata.headers())[0]
           else:
               header = header[0]
-          results.append(jdata.get(header).replace('\s', ' '))
+          results.append(jdata.get(header).replace(r'\s', r' '))
 
       return results
   

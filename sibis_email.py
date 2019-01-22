@@ -149,10 +149,10 @@ class sibis_email(object):
             self.mail_admin(title, aIntro_txt)
 
     def dump_all( self ):
-	print("USER MESSAGES:")
-	print(self._messages_by_user)
-	print("ADMIN_MESSAGES:")
-	print(self._admin_messages)
+        print("USER MESSAGES:")
+        print(self._messages_by_user)
+        print("ADMIN_MESSAGES:")
+        print(self._admin_messages)
 
 class xnat_email(sibis_email):
     def __init__(self, session): 
