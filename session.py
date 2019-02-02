@@ -248,14 +248,17 @@ class Session(object):
             return None
 
         if pip_list: 
-            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + str(pip_list) + "' before proceeding!")
+            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + pip_list.decode('utf-8') + "' before proceeding!")
             return None 
 
         # Open screen
         import subprocess
-        display_cmd = "X" + vfb_cmd + " &> /dev/null & "
+        display_cmd = "X" + vfb_cmd + " &> /dev/null"
         try:
-            err_msg = subprocess.check_output(display_cmd,shell=True)
+            proc = subprocess.Popen(display_cmd,shell=True)
+            proc.poll()
+            if proc.returncode is not None:
+                (out, err_msg) = proc.communicate(timeout=30)
         except Exception as err_msg:
             pass
             
