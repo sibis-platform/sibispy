@@ -288,6 +288,22 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     subject_project_list = list(client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items())
     assert subject_project_list != None, "Search result should not be None."
 
+@pytest.fixture
+def penncnp_cleanup(session):
+    yield
+    session.disconnect_penncnp()
+
+def test_session_browser_penncnp(slog, config_file, session, config_test_data, penncnp_cleanup):
+    project = 'browser_penncnp'
+    # import pdb; pdb.set_trace()
+    server = session.connect_server(project, True)
+
+    assert server != None, "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
+
+    wait = session.initialize_penncnp_wait()
+    assert session.get_penncnp_export_report(wait)
+
+
 def test_session_legacy(config_file, special_opts):
     import os
     import glob
@@ -508,8 +524,9 @@ def test_session_legacy(config_file, special_opts):
                 assert svn_client.log(rel_filepath = svn_dir)
 
             elif project == 'browser_penncnp' :
-                wait = session.initialize_penncnp_wait()
-                assert session.get_penncnp_export_report(wait)
+                print("browser_penncnp Tests moved to different test methods")
+                # wait = session.initialize_penncnp_wait()
+                # assert session.get_penncnp_export_report(wait)
 
             elif project == 'import_laptops' :
                 if "redcap_version_test" in list(config_test_data) :  
@@ -565,8 +582,8 @@ def test_session_legacy(config_file, special_opts):
             print(str(err_msg))
             errors = True
 
-        if project == 'browser_penncnp' :
-            session.disconnect_penncnp()
+        # if project == 'browser_penncnp' :
+        #     session.disconnect_penncnp()
 
         assert not errors, "Errors occurred, see previous output."
 

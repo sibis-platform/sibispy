@@ -470,7 +470,7 @@ class redcap_to_casesdir(object):
     def schedule_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False): 
         qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
         if not os.path.exists(qsub_cmd):
-            slog.info(job_title + "-" +hashlib.sha1(str(job_script)).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
+            slog.info(job_title + "-" +hashlib.sha1(str(job_script).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
             return False
 
         sge_env = os.environ.copy()
@@ -484,21 +484,21 @@ class redcap_to_casesdir(object):
         qsub_args= [ qsub_cmd ] + sge_param + ['-N', '%s' % (job_title) ]
         #stderr=subprocess.STDOUT
         qsub_process = subprocess.Popen( qsub_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr= subprocess.PIPE, env=sge_env)
-        (stdoutdata, stderrdata) = qsub_process.communicate(job_script)
+        (stdoutdata, stderrdata) = qsub_process.communicate(str(job_script).encode('utf-8'))
 
         cmd_str='echo "%s" | %s\n' % (job_script," ".join(qsub_args)) 
         if stderrdata : 
-            slog.info(job_title + "-" + hashlib.sha1(str(stderrdata)).hexdigest()[0:6],"ERROR: Failed to schedule job !", cmd = cmd_str, err_msg = str(stderrdata))
+            slog.info(job_title + "-" + hashlib.sha1(str(stderrdata).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job !", cmd = cmd_str, err_msg = str(stderrdata))
             return False
 
         if verbose: 
             print(cmd_str)
             if stdoutdata:
-                print(stdoutdata)
+                print(stdoutdata.decode('utf-8'))
 
         if submit_log: 
             with open(submit_log, "a") as myfile:
                myfile.write(cmd_str)
-               myfile.write(stdoutdata) 
+               myfile.write(stdoutdata.decode('utf-8')) 
 
         return True

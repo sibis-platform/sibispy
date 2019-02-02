@@ -100,10 +100,10 @@ class check_dti_gradients(object):
             lines = fi.readlines()
             lines.insert(1, '<root>')
             lines.append('</root>')
-        string = r''.join(lines)
+        string = r''.join(ln.decode('utf-8') if isinstance(ln, bytes) else ln for ln in lines)
         strip_ge = string.replace(r'dicom:GE:', '')
         strip_dicom = strip_ge.replace(r'dicom:', '')
-        result = objectify.fromstring(strip_dicom)
+        result = objectify.fromstring(strip_dicom.encode('utf-8'))
         return result
 
 
