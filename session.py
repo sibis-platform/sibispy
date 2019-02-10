@@ -1024,7 +1024,7 @@ class Session(object):
         else :
             sql +=";"
         
-        return pd.read_sql(sql, self.api['redcap_mysql_db'])
+        return pd.read_sql_query(sql, self.api['redcap_mysql_db'])
     
 
 
