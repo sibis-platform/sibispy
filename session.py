@@ -9,6 +9,10 @@ The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
 from __future__ import print_function, absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import ast
 import os
 import time
@@ -27,7 +31,7 @@ from sibispy import config_file_parser as cfg_parser
 # --------------------------------------------
 # this class was created to capture output from xnat 
 # if one cannot connect to server
-from cStringIO import StringIO
+from io import StringIO
 import sys
 
 class Capturing(list):
@@ -39,6 +43,52 @@ class Capturing(list):
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio    # free up some memory
         sys.stdout = self._stdout
+
+
+class StreamTee(object):
+    '''
+    Allows you to use a single file-like object to write to two file-like objects at the same time.
+
+    > import sys
+    > logfile = file("blah.txt", "w+")
+    > sys.stdout = StreamTee(sys.stdout, logfile)
+    '''
+    def __init__(self, stream1, stream2):
+        self.stream1 = stream1
+        self.stream2 = stream2
+        self.__missing_method_name = None
+
+    def __getattribute__(self, name):
+        return object.__getattribute__(self, name)
+    
+    def __getattr__(self, name):
+        self.__missing_method_name = name
+        return getattr(self, '__methodmissing__')
+    
+    def __methodmissing__(self, *args, **kwargs):
+        callable2 = getattr(self.stream2, self.__missing_method_name)
+        callable2(*args, **kwargs)
+
+        callable1 = getattr(self.stream1, self.__missing_method_name)
+        return callable1(*args, **kwargs)
+
+
+class CapturingTee(list):
+    '''
+    Same thing as Capturing, however it doesn't block stdout from being written to console.
+    '''
+    def __enter__(self):
+        self._stdout = sys.stdout
+        self._stringio = StringIO()
+        sys.stdout = StreamTee(self._stdout, self._stringio)
+        return self
+    
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio
+        sys.stdout = self._stdout
+    
+
 
 # --------------------------------------------
 # CLASS DEFINITION
@@ -98,7 +148,7 @@ class Session(object):
         """
         if api_type not in self.api :
             slog.info('session.connect_server','api type ' + api_type + ' not defined !',
-                      api_types = str(self.api.keys()))
+                      api_types = str(list(self.api.keys())))
             return None
 
         if timeFlag : 
@@ -141,21 +191,25 @@ class Session(object):
         return http_session
 
 
-    # Access xnat through pyxnat 
+    # Access xnat through XnatUtil 
     def __connect_xnat__(self):
-        import pyxnat
+        from .xnat_util import XnatUtil
         cfg = self.__config_usr_data.get_category('xnat')
         try : 
-            xnat = pyxnat.Interface(server=cfg.get('server'),
-                                    user=cfg.get('user'),
-                                    password=cfg.get('password'),
-                                    cachedir=cfg.get('cachedir'))
+            util = XnatUtil(
+                server=cfg.get('server'),
+                user=cfg.get('user'),
+                password=cfg.get('password')
+            )
+
+            raw_xnat = util.connect()
+
         except Exception as err_msg: 
             slog.info('session.__connect_xnat__', str(err_msg), server=cfg.get('server'))
             return None
 
-        self.api['xnat'] = xnat
-        return xnat
+        self.api['xnat'] = util
+        return util
 
     def __list_running_process__(self,cmd): 
         from subprocess import Popen, PIPE
@@ -171,13 +225,13 @@ class Session(object):
         
     def __connect_penncnp__(self):
         # Check that config file is correctly defined 
-        if "penncnp" not in self.__config_srv_data.keys():
+        if "penncnp" not in list(self.__config_srv_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp server info not defined!")
             return None
 
         penncnp_srv_data = self.__config_srv_data["penncnp"]
 
-        if "penncnp" not in self.__config_usr_data.keys():
+        if "penncnp" not in list(self.__config_usr_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp user info not defined!")
             return None
 
@@ -194,14 +248,17 @@ class Session(object):
             return None
 
         if pip_list: 
-            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + str(pip_list) + "' before proceeding!")
+            slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + pip_list.decode('utf-8') + "' before proceeding!")
             return None 
 
         # Open screen
         import subprocess
-        display_cmd = "X" + vfb_cmd + " &> /dev/null & "
+        display_cmd = "X" + vfb_cmd + " &> /dev/null"
         try:
-            err_msg = subprocess.check_output(display_cmd,shell=True)
+            proc = subprocess.Popen(display_cmd,shell=True)
+            proc.poll()
+            if proc.returncode is not None:
+                (out, err_msg) = proc.communicate(timeout=30)
         except Exception as err_msg:
             pass
             
@@ -244,7 +301,7 @@ class Session(object):
 
     def __connect_svn_laptop__(self):
         # Check that config file is correctly defined 
-        if "svn_laptop" not in self.__config_usr_data.keys():
+        if "svn_laptop" not in list(self.__config_usr_data.keys()):
             slog.info("session.__connnect_svn_laptop__","ERROR: svn laptop user info not defined!")
             return None
         usr_data = self.__config_usr_data.get_category('svn_laptop')
@@ -328,7 +385,7 @@ class Session(object):
     def __get_analysis_dir(self) :
         analysis_dir = self.__config_usr_data.get_value('analysis_dir')
         if analysis_dir == None :
-            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file())).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
+            slog.info("session.__get_analysis_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file()).encode('utf-8')).hexdigest()[0:6],"ERROR: 'analysis_dir' is not defined in config file !",
                       config_file = self.__config_usr_data.get_config_file())
             
         return  analysis_dir
@@ -472,14 +529,18 @@ class Session(object):
             if not select_object  :
                 slog.info(subject_label,"ERROR: session.xnat_get_experiment: subject " + subject_label + " not found !",project = project)
                 return None
-        else :
+        else:
             select_object =  xnat_api.select
 
-        try : 
-            xnat_experiment = select_object.experiment(eid)
-
+        try: 
+            xnat_experiment = select_object.experiments[eid]
+        except KeyError as err_msg:
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"WARNING: eid: {} does not exist!".format(eid),
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_experiment")
+            return None
         except Exception as err_msg:
-            slog.info(eid + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: problem with xnat api !",
+            slog.info(eid + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: problem with xnat api !",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_experiment")
             return None
@@ -489,9 +550,9 @@ class Session(object):
             slog.info(eid,"ERROR: session.xnat_get_experiment: experiment not created - problem with xnat api!")
             return None
 
-        if not xnat_experiment.exists() :
-            slog.info(eid,"ERROR: session.xnat_get_experiment: experiment does not exist !") 
-            return None
+        # if not xnat_experiment.exists() :
+        #     slog.info(eid,"ERROR: session.xnat_get_experiment: experiment does not exist !") 
+        #     return None
 
 
         return xnat_experiment
@@ -505,12 +566,18 @@ class Session(object):
                       function = "session.xnat_get_subject",
                       project = project)
             return None
- 
-        try : 
-            xnat_project = xnat_api.select.project(project)
+
+        try: 
+            xnat_project = xnat_api.select.projects[project]
+        except KeyError as err_msg:
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"WARNING: project:{} could not be found!".format(project),
+                      err_msg = str(err_msg),
+                      function = "session.xnat_get_subject",
+                      project = project)
+            return None
 
         except Exception as err_msg:
-            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: project could not be found!",
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: project could not be found!",
                       err_msg = str(err_msg),
                       function = "session.xnat_get_subject",
                       project = project)
@@ -521,10 +588,10 @@ class Session(object):
             return None
 
         try : 
-            xnat_subject = xnat_project.subject( subject_label )
+            xnat_subject = xnat_project.subjects[subject_label]
 
         except Exception as err_msg:
-            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: subject could not be found!",
+            slog.info(subject_label + "-" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: subject could not be found!",
                       err_msg = str(err_msg),
                       project = project,
                       function = "session.xnat_get_subject",
@@ -540,14 +607,15 @@ class Session(object):
             issue_url = slog.info(subject_label,"ERROR: session.xnat_get_subject_attribute: subject " + subject_label + " not found !",project = project)
             return [None,issue_url]
 
-        try : 
-            if attribute == "label" :
-                return [xnat_subject.label(),None]
-            else :
-                return [xnat_subject.attrs.get(attribute),None]
+        try: 
+
+            try:
+                return [getattr(xnat_subject, attribute),None]
+            except:
+                return [getattr(xnat_subject, attribute.lower()),None]
 
         except Exception as err_msg:
-            issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg)).hexdigest()[0:6],"ERROR: attribute could not be found!",
+            issue_url = slog.info("session.xnat_get_subject_attribute" + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6],"ERROR: attribute could not be found!",
                       err_msg = str(err_msg),
                       project = project,
                       subject = subject_label,
@@ -568,7 +636,7 @@ class Session(object):
         try:
             #  python if one cannot connect to server then 
             with Capturing() as xnat_output: 
-                xnat_data = xnat_api.select(form, fields).where(conditions).items()
+                xnat_data = list(xnat_api.search(form, fields).where(conditions).items())
         
         except Exception as err_msg:
             if xnat_output : 
@@ -631,7 +699,7 @@ class Session(object):
   
         self.api['browser_penncnp']['browser'].quit()
 
-        if "DISPLAY" in os.environ.keys() and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
+        if "DISPLAY" in list(os.environ.keys()) and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
             del os.environ['DISPLAY']
  
         import subprocess
@@ -746,7 +814,7 @@ class Session(object):
         except requests.exceptions.RequestException as e:
             error = 'session:redcap_import_record:Failed to import into REDCap' 
             err_list = ast.literal_eval(str(e))['error'].split('","')
-            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+            error_label  += '-' + hashlib.sha1(str(e).encode('utf-8')).hexdigest()[0:6] 
 
             slog.info(error_label, error,
                       requestError=str(e), 
@@ -774,7 +842,7 @@ class Session(object):
         except requests.exceptions.RequestException as e:
             error = 'session:redcap_import_record:Failed to import into REDCap' 
             err_list = ast.literal_eval(str(e))['error'].split('","')
-            error_label  += '-' + hashlib.sha1(str(e)).hexdigest()[0:6] 
+            error_label  += '-' + hashlib.sha1(str(e).encode('utf-8')).hexdigest()[0:6] 
 
             if len(records) > 1 :
                 slog.info(error_label, error,
@@ -871,7 +939,7 @@ class Session(object):
         try : 
             projects = pd.read_sql_table('redcap_projects', self.api['redcap_mysql_db'])
         except Exception as err_msg:
-            slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg)).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
+            slog.info("session.get_mysql_project_id." + hashlib.sha1(str(err_msg).encode('utf-8')).hexdigest()[0:6], "ERROR: could not read sql table redcap_projects!", project_name = project_name, err_msg =str(err_msg) )
             return None
             
         project_id = projects[projects.project_name == project_name].project_id
@@ -956,7 +1024,7 @@ class Session(object):
         else :
             sql +=";"
         
-        return pd.read_sql(sql, self.api['redcap_mysql_db'])
+        return pd.read_sql_query(sql, self.api['redcap_mysql_db'])
     
 
 

@@ -1,9 +1,14 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import ast
 import glob
 import hashlib
-import pandas 
+import pandas
 import datetime
 import subprocess
 from ast import literal_eval as make_tuple
@@ -22,18 +27,18 @@ class redcap_to_casesdir(object):
         self.__code_to_label_dict = dict()
         self.__metadata_dict = dict()
         self.__event_dict = dict()
-        self.__forms_dir =  None 
+        self.__forms_dir =  None
         self.__sibis_defs = None
         self.__scanner_dict = None
 
 
     def configure(self, sessionObj, redcap_metadata):
-        # Make sure it was set up correctly 
+        # Make sure it was set up correctly
         if not sessionObj.get_ordered_config_load() :
             slog.info('recap_to_cases_dir.configure',"ERROR: session has to be configured with ordered_config_load set to True")
             return False
 
-        # reading script specific settings 
+        # reading script specific settings
         (cfgParser,err_msg) = sessionObj.get_config_sys_parser()
         if err_msg:
             slog.info('recap_to_cases_dir.configure',str(err_msg))
@@ -42,23 +47,23 @@ class redcap_to_casesdir(object):
         self.__sibis_defs = cfgParser.get_category('redcap_to_casesdir')
 
         self.__scanner_dict = self.__sibis_defs['scanner_dict']
-        for TYPE in self.__scanner_dict.keys() : 
+        for TYPE in list(self.__scanner_dict.keys()) :
             self.__scanner_dict[TYPE] = self.__scanner_dict[TYPE].split(",")
 
 
-        # Reading in events 
+        # Reading in events
         self.__event_dict = self.__transform_dict_string_into_tuple__('event_dictionary')
-        if not  self.__event_dict: 
+        if not  self.__event_dict:
             return False
 
-        # reading in all forms and variables that should be exported to cases_dir 
+        # reading in all forms and variables that should be exported to cases_dir
         self.__forms_dir  = os.path.join(sessionObj.get_operations_dir(),'redcap_to_casesdir')
         if not os.path.exists(self.__forms_dir) :
             slog.info('redcap_to_casesdir.configure','ERROR: ' + str(self.__forms_dir)  + " does not exist!")
             return False
 
         exports_files = glob.glob(os.path.join(self.__forms_dir, '*.txt'))
- 
+
         for f in exports_files:
             file = open(f, 'r')
             contents = [line.strip() for line in file.readlines()]
@@ -76,17 +81,17 @@ class redcap_to_casesdir(object):
                     self.__export_rename[export_name][match.group(1)] = match.group(2)
 
         return self.__organize_metadata__(redcap_metadata)
-   
+
     def __transform_dict_string_into_tuple__(self,dict_name):
         dict_str = self.__sibis_defs[dict_name]
-        dict_keys = dict_str.keys()
+        dict_keys = list(dict_str.keys())
         if not len(dict_keys):
             slog.info('redcap_to_casesdir.configure',"ERROR: Cannot find '" + dict_name + "'' in config file!")
             return None
 
         dict_tup = dict()
         for key in dict_keys:
-            # turn string into tuple 
+            # turn string into tuple
             dict_tup[key] = make_tuple("(" + dict_str[key] +")")
 
         return dict_tup
@@ -105,7 +110,7 @@ class redcap_to_casesdir(object):
             self.__metadata_dict[field['field_name']] = field_tuple
 
         meta_data_dict = self.__transform_dict_string_into_tuple__('general_datadict')
-        if not  meta_data_dict : 
+        if not  meta_data_dict :
             return False
 
         self.__metadata_dict.update(meta_data_dict)
@@ -121,23 +126,23 @@ class redcap_to_casesdir(object):
         # Filter each form
         text_list = list()
         non_redcap_list = list()
-        for export_name in self.__export_forms.keys():
+        for export_name in list(self.__export_forms.keys()):
             (form_text_list, form_non_redcap_list)  = self.__check_form__(export_name)
             if form_text_list :
                 text_list += form_text_list
             if form_non_redcap_list:
                 non_redcap_list += form_non_redcap_list
 
-        if text_list: 
-            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
+        if text_list:
+            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
                       form_variable_list = str(text_list),
                       info = "Remove it from form file or modify definition in REDCap")
 
-        if non_redcap_list : 
-            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
+        if non_redcap_list :
+            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
                       form_variable_list = str(non_redcap_list),
                       info = "Remove it from form or modify definition REDCap")
-            
+
         if non_redcap_list or text_list:
             return False
 
@@ -148,13 +153,13 @@ class redcap_to_casesdir(object):
     def __check_form__(self, export_name):
         text_list = list()
         non_redcap_list = list()
-    
+
         for field_name in self.__export_forms[export_name]:
             try:
                 (field_type, field_validation, field_label, text_val_min,
                  text_val_max, choices) = self.__metadata_dict[re.sub('___.*', '', field_name)]
                 if (field_type != 'text' and field_type != 'notes') or (field_validation in ['number', 'integer', 'time']):
-                    pass 
+                    pass
                 else:
                     text_list.append([export_name,field_name, field_type, field_validation])
             except:
@@ -176,9 +181,13 @@ class redcap_to_casesdir(object):
 
     # used to be get_export_form_names
     def get_export_names_of_forms(self):
-        return self.__export_forms.keys()
+        return list(self.__export_forms.keys())
 
     def create_datadict(self, export_name, datadict_dir):
+         if export_name not in self.__export_forms.keys() : 
+             slog.info('redcap_to_casesdir.create_datadict',"ERROR: could not create data dictionary for form " + export_name)
+             return None 
+
          export_form_entry_list = self.__export_forms[export_name]
          size_entry_list = len(export_form_entry_list)
          export_form_list = [export_name] * size_entry_list
@@ -191,20 +200,20 @@ class redcap_to_casesdir(object):
             self.create_datadict(export_name,datadict_dir)
         self.create_demographic_datadict(datadict_dir)
 
-    # Create custom form for demographics 
+    # Create custom form for demographics
     def create_demographic_datadict(self, datadict_dir):
         meta_data_dict = self.__transform_dict_string_into_tuple__('demographic_datadict')
-        if not meta_data_dict: 
+        if not meta_data_dict:
             return False
         self.__metadata_dict.update(meta_data_dict)
 
         dict_str = self.__sibis_defs['demographic_datadict']
-        export_entry_list = dict_str.keys()
-
+        export_entry_list = list(dict_str.keys())
+ 
         export_form_list = ['demographics'] * len(export_entry_list)
 
         return self.__create_datadicts_general__(datadict_dir, 'demographics', export_form_list,export_entry_list)
-            
+
     # for each entry in the form list you have to define a variable
     def __create_datadicts_general__(self,datadict_dir, datadict_base_file,export_forms_list, variable_list):
         redcap_datadict_columns = ["Variable / Field Name", "Form Name",
@@ -236,7 +245,7 @@ class redcap_to_casesdir(object):
             ddict["Form Name"][var] = name_of_form
 
             # Check if var is in data dict ('FORM_complete' fields are NOT)
-            if field_name in self.__metadata_dict.keys():
+            if field_name in list(self.__metadata_dict.keys()):
                 ddict["Field Type"][var] = self.__metadata_dict[field_name][0]
                 # need to transfer to utf-8 code otherwise can create problems when
                 # writing dictionary to file it just is a text field so it should
@@ -255,8 +264,8 @@ class redcap_to_casesdir(object):
         try:
             ddict.to_csv(dicFileName, index=False)
             return dicFileName
-        except Exception, err_msg:
-            slog.info('redcap_to_casesdir.__create_datadicts_general__',"ERROR: could not export dictionary" + dicFileName, 
+        except Exception as err_msg:
+            slog.info('redcap_to_casesdir.__create_datadicts_general__',"ERROR: could not export dictionary" + dicFileName,
                       err_msg = str(err_msg))
             return None
 
@@ -274,7 +283,7 @@ class redcap_to_casesdir(object):
             return ["",""]
 
         mri_scanner= mri_scanner.upper()
-        for TYPE in self.__scanner_dict.keys() : 
+        for TYPE in list(self.__scanner_dict.keys()) :
             if TYPE in mri_scanner :
                 return self.__scanner_dict[TYPE]
 
@@ -313,7 +322,7 @@ class redcap_to_casesdir(object):
                 ['race', race_code],
                 ['race_label', self.__code_to_label_dict['race'][race_code]],
                 ['participant_id', subject],
-                ['scanner', scanner_mfg], 
+                ['scanner', scanner_mfg],
                 ['scanner_model', scanner_model],
             ]
 
@@ -339,18 +348,18 @@ class redcap_to_casesdir(object):
         fields = [i for i in fields if i not in ['subject', 'arm', 'visit']]
         record = all_records[fields].reindex(fields, axis=1)
 
-        # if I read it correctly then this statement is not possible 
+        # if I read it correctly then this statement is not possible
         if len(record) > 1:
             slog.info(subject + "-" + visit_code, "ERROR: muliple records for that visit found for form '" + export_name + "'!" )
             return None
 
-        # Nothing to do 
+        # Nothing to do
         if not len(record):
             if verbose :
                 slog.info(subject  + "-" + visit_code, "Info: visit data did not contain records of form '" + export_name + "'!" )
-                
+
             return None
-                
+
 
         # First, add the three index columns
         record.insert(0, 'subject', subject_code)
@@ -361,7 +370,7 @@ class redcap_to_casesdir(object):
         output_fields = []
         for field in record.columns:
             # Rename field for output if necessary
-            if field in self.__export_rename[export_name].keys():
+            if field in list(self.__export_rename[export_name].keys()):
                 output_field = self.__export_rename[export_name][field]
             else:
                 output_field = field
@@ -374,10 +383,10 @@ class redcap_to_casesdir(object):
             # If this is a radio or dropdown field
             # (except "FORM_[missing_]why"), add a separate column for the
             # coded label
-            if field in self.__code_to_label_dict.keys() and not re.match('.*_why$', field):
+            if field in list(self.__code_to_label_dict.keys()) and not re.match('.*_why$', field):
                 code = str(record[field].ix[0])
                 label = ''
-                if code in self.__code_to_label_dict[field].keys():
+                if code in list(self.__code_to_label_dict[field].keys()):
                     label = self.__code_to_label_dict[field][code]
                 field_idx += 1
                 record.insert(field_idx, output_field + '_label', label)
@@ -397,8 +406,8 @@ class redcap_to_casesdir(object):
         # define fields and forms to export
         all_fields = ['study_id']
         export_list = []
-        for export_name in self.__export_forms.keys():
-            if (self.__import_forms[export_name] in forms_this_event): 
+        for export_name in list(self.__export_forms.keys()):
+            if (self.__import_forms[export_name] in forms_this_event):
                 if (not select_exports or export_name in select_exports):
                     all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
                     export_list.append(export_name)
@@ -406,12 +415,12 @@ class redcap_to_casesdir(object):
         # Get data
         all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format='df')
 
-        # return results 
+        # return results
         return (all_records,export_list)
 
-    # Export selected REDCap data to cases dir 
+    # Export selected REDCap data to cases dir
     def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, select_exports=None, verbose=False):
-        # Do not really use this feature later 
+        # Do not really use this feature later
         # Mark subjects/visits that have QA completed by creating a hidden marker file
         # qafile_path = os.path.join(subject_datadir, '.qacomplete')
         # if visit_data['mri_qa_completed'] == '1':
@@ -443,12 +452,12 @@ class redcap_to_casesdir(object):
         # Now go form by form and export data
         for export_name in export_list:
             self.export_subject_form(export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose)
-            
+
 
 
     # What Arm and Visit of the study is this event?
     def translate_subject_and_event( self, subject_code, event_label):
-        if event_label in self.__event_dict.keys():
+        if event_label in list(self.__event_dict.keys()):
             (arm_code,visit_code) = self.__event_dict[event_label]
         else:
             slog.info(str(subject_code),"ERROR: Cannot determine study Arm and Visit from event %s" % event_label )
@@ -462,16 +471,16 @@ class redcap_to_casesdir(object):
     def get_event_dictionary(self):
         return self.__event_dict
 
-    def schedule_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False): 
+    def schedule_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
         qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
         if not os.path.exists(qsub_cmd):
-            slog.info(job_title + "-" +hashlib.sha1(str(job_script)).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
+            slog.info(job_title + "-" +hashlib.sha1(str(job_script).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
             return False
 
         sge_env = os.environ.copy()
-        sge_env['SGE_ROOT'] = '/opt/sge' 
-        sge_param = self.__sibis_defs['cluster_parameters'].split(',')  
-        if job_log : 
+        sge_env['SGE_ROOT'] = '/opt/sge'
+        sge_param = self.__sibis_defs['cluster_parameters'].split(',')
+        if job_log :
             sge_param += ['-o', job_log]
         else :
             sge_param += ['-o','/dev/null']
@@ -479,21 +488,21 @@ class redcap_to_casesdir(object):
         qsub_args= [ qsub_cmd ] + sge_param + ['-N', '%s' % (job_title) ]
         #stderr=subprocess.STDOUT
         qsub_process = subprocess.Popen( qsub_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr= subprocess.PIPE, env=sge_env)
-        (stdoutdata, stderrdata) = qsub_process.communicate(job_script)
+        (stdoutdata, stderrdata) = qsub_process.communicate(str(job_script).encode('utf-8'))
 
-        cmd_str='echo "%s" | %s\n' % (job_script," ".join(qsub_args)) 
-        if stderrdata : 
-            slog.info(job_title + "-" + hashlib.sha1(str(stderrdata)).hexdigest()[0:6],"ERROR: Failed to schedule job !", cmd = cmd_str, err_msg = str(stderrdata))
+        cmd_str='echo "%s" | %s\n' % (job_script," ".join(qsub_args))
+        if stderrdata :
+            slog.info(job_title + "-" + hashlib.sha1(str(stderrdata).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job !", cmd = cmd_str, err_msg = str(stderrdata))
             return False
 
-        if verbose: 
-            print  cmd_str
+        if verbose:
+            print(cmd_str)
             if stdoutdata:
-                print stdoutdata
+                print(stdoutdata.decode('utf-8'))
 
-        if submit_log: 
+        if submit_log:
             with open(submit_log, "a") as myfile:
                myfile.write(cmd_str)
-               myfile.write(stdoutdata) 
+               myfile.write(stdoutdata.decode('utf-8'))
 
         return True

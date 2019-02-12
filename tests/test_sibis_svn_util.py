@@ -9,6 +9,7 @@ Unit tests for sibispy.svn module.
 
 from __future__ import absolute_import, print_function, division
 
+from builtins import str
 import pytest
 from pytest_shutil.workspace import Workspace
 from path import Path
@@ -112,7 +113,7 @@ def test_sibis_svn_update_conflict(mock_repo):
   assert client, "Client should not be None"
   
   txt_file2 = co_dir / 'file2'
-  txt_file2.write_text('local conflict\n', append=True)
+  txt_file2.write_text(r'local conflict\n', append=True)
   changes = client.update(revision=2)
 
   assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
@@ -128,7 +129,7 @@ def test_sibis_svn_update_merge(mock_repo):
   
   txt_file2 = co_dir / 'file2'
   ext_contents = txt_file2.bytes()
-  txt_file2.write_text('local conflict\n'+ext_contents)
+  txt_file2.write_text(r'local conflict\n'+str(ext_contents))
   changes = client.update(revision=2)
 
   assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)

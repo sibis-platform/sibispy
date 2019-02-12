@@ -1,15 +1,22 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 ##
 ##  Copyright 2016 SRI International
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from builtins import str
+from builtins import object
+from past.utils import old_div
 import sys
 import json
+import traceback
 # import logging
 import collections
 import time 
 import os
-import post_issues_to_github as pig
+from . import post_issues_to_github as pig
 # set logger of python packages to warning so that we avoid info messages being printed out 
 #logging.getLogger("urllib3").setLevel(logging.WARNING)
 #logging.getLogger("requests").setLevel(logging.WARNING)
@@ -17,15 +24,23 @@ import post_issues_to_github as pig
 class sibisJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         try:
+            if isinstance(obj, Exception):
+                exc_info = sys.exc_info()
+                if (None, None, None) != exc_info:
+                    import traceback
+                    return traceback.format_exception(*exc_info)
+
             return json.JSONEncoder.default(self, obj)
+
         except TypeError as e:
             if hasattr(obj, '__call__') and hasattr(obj, '__name__'):
                 return obj.__name__
+            
             raise e
             
 
 
-class sibisLogging():
+class sibisLogging(object):
     """
     SIBIS Logging Module
     """
@@ -54,7 +69,7 @@ class sibisLogging():
         self.log.update(kwargs)
         jlog = json.dumps(self.log, cls=sibisJSONEncoder)
         self.log.clear()
-        return jlog
+        return str(jlog)
         
     def info(self, uid, message, **kwargs):
         """
@@ -65,19 +80,19 @@ class sibisLogging():
 
         if self.postGithubRepo :
             if self.verbose:
-                print "Posting", uid, str(message)
+                print("Posting", uid, str(message))
 
             return pig.create_issues_from_list(self.postGithubRepo, self.postGithubTitle, self.postGithubLabel, [jlog],self.verbose)
 
         # Post output to logger 
         # return self.logging.info(log)
-        print jlog 
+        print(jlog) 
         return []
 
     def post_to_github(self,general_title,git_label):
         if self.verbose:
-            print "================================"
-            print "== Setting up posting to GitHub "
+            print("================================")
+            print("== Setting up posting to GitHub ")
 
         # Create Connection
         if not self.postGithubRepo :
@@ -88,14 +103,14 @@ class sibisLogging():
 
         self.postGithubLabel=pig.get_github_label(self.postGithubRepo, git_label, self.verbose)
         if not self.postGithubLabel :
-            print "Warning: Github label does not exist so not creating issues on github!"
+            print("Warning: Github label does not exist so not creating issues on github!")
             self.postGithubRepo = None
             return False
 
         self.postGithubTitle=general_title + " (" + git_label + ")"
         if self.verbose:
-            print "== Posting to GitHub is ready "
-            print "================================"
+            print("== Posting to GitHub is ready ")
+            print("================================")
 
         return True
 
@@ -129,8 +144,8 @@ class sibisLogging():
         endTimer=time.time()
         time_date_format = '%Y-%m-%d %H:%M:%S'
         time_diff = int(1000*(endTimer - startTimer))
-        time_diff_sec = int(time_diff / 1000)
-        timeLine= ','.join([time.strftime(time_date_format,time.localtime(startTimer)),time.strftime(time_date_format,time.localtime(endTimer)),str(time_diff_sec/60) + ":" + str(time_diff_sec%60).zfill(2)  + ":" + str(time_diff%1000).zfill(3)])
+        time_diff_sec = int(old_div(time_diff, 1000))
+        timeLine= ','.join([time.strftime(time_date_format,time.localtime(startTimer)),time.strftime(time_date_format,time.localtime(endTimer)),str(old_div(time_diff_sec,60)) + ":" + str(time_diff_sec%60).zfill(2)  + ":" + str(time_diff%1000).zfill(3)])
         timeLine += ','
         if label : 
             timeLine += str(label)

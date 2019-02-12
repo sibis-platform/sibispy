@@ -3,13 +3,15 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 from __future__ import absolute_import, print_function
+from builtins import str
+from builtins import object
 from svn.local import LocalClient
 from svn.exception import SvnException
 from collections import namedtuple
 import os
 import xml
 
-class UpdateActionTypes():
+class UpdateActionTypes(object):
   """
   SVN 1.8 Update action types.
   """
@@ -29,7 +31,7 @@ class UpdateAction(UpdateAction_):
   """
   pass
 
-class SibisSvnUpdate():
+class SibisSvnUpdate(object):
   """
   Changelog status performed by an SVN update.
 
@@ -87,16 +89,16 @@ class SibisSvnUpdate():
         self.actions.add(UpdateAction(action, path, kind))
 
 
-class SibisSvnDiffPath():
-  class Kind():
+class SibisSvnDiffPath(object):
+  class Kind(object):
     dir = "dir"
     file = "file"
   
-  class Props():
+  class Props(object):
     none = "none"
     modified = "modified"
   
-  class Item():
+  class Item(object):
     none = "none"
     added = "added"
     modified = "modified"
@@ -109,7 +111,7 @@ class SibisSvnDiffPath():
     self.props = props
 
 
-class SibisSvnDiff():
+class SibisSvnDiff(object):
   def __init__(self, summary_diff=""):
     root = xml.etree.ElementTree.fromstring(summary_diff)
 

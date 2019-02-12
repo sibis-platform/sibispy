@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import str
 import sys
 import argparse 
 import sibispy
@@ -14,19 +16,19 @@ def main(args=None):
     session = sibispy.Session()
     if not session.configure() :
         if args.verbose:
-            print "Error: session configure file was not found"
+            print("Error: session configure file was not found")
 
         sys.exit(1)
 
     engine = session.connect_server('redcap_mysql_db', True)
     if not engine :
         if args.verbose:
-            print "Error: Could not connect to REDCap mysql db"
+            print("Error: Could not connect to REDCap mysql db")
 
         sys.exit(1)
 
     if args.verbose:
-        print "Connected to REDCap using: {0}".format(engine)
+        print("Connected to REDCap using: {0}".format(engine))
 
     red_lock = redcap_locking_data.redcap_locking_data()
     red_lock.configure(session)
@@ -42,46 +44,46 @@ def main(args=None):
 
     for event_desc in args.event:
         if args.verbose: 
-            print "Visit: {0}".format(event_desc)
+            print("Visit: {0}".format(event_desc))
 
         if args.lock:
             if args.verbose:
-                print "Attempting to lock form: {0}".format(args.form)
+                print("Attempting to lock form: {0}".format(args.form))
 
             for sid in subject_list:
                 for form in args.form:
                     locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, form, outfile=args.outfile, subject_id=sid)
                     slog.takeTimer1("script_time", "{'records': " + str(locked_record_num) + "}")
                     if args.verbose:
-                        print "The {0} form has been locked".format(form)
-                        print "Record of locked files: {0}".format(args.outfile)
+                        print("The {0} form has been locked".format(form))
+                        print("Record of locked files: {0}".format(args.outfile))
 
         elif args.unlock:
             if args.verbose:
-                print "Attempting to unlock form: {0}".format(args.form)
+                print("Attempting to unlock form: {0}".format(args.form))
                 
             for sid in subject_list:
                 for form in args.form:
                     if not red_lock.unlock_form(args.project, args.arm, event_desc, form, subject_id=sid):
                         if sid:
-                            print "Warning: Nothing to unlock! Form '{0}' or subject '{1}' might not exist".format(form, sid)
+                            print("Warning: Nothing to unlock! Form '{0}' or subject '{1}' might not exist".format(form, sid))
                         else:
-                            print "Warning: Nothing to unlock! Form '{0}' might not exist".format(form)
+                            print("Warning: Nothing to unlock! Form '{0}' might not exist".format(form))
                     elif args.verbose:
-                        print "The {0} form has been unlocked".format(form)
+                        print("The {0} form has been unlocked".format(form))
 
         elif args.report:
             if not args.subject_id:
                 raise NotImplementedError("Cannot create report if no subject ID is passed!")
             form_array = args.form
             if args.verbose:
-                print "Attempting to create a report for form(s) {0} and subject_id {1} ".format(form_array,args.subject_id)
+                print("Attempting to create a report for form(s) {0} and subject_id {1} ".format(form_array,args.subject_id))
             for subject in args.subject_id:
                 # FIXME: Currently, Session.get_mysql_table_records cannot take multiple subject IDs
-                print red_lock.report_locked_forms(subject, subject, form_array, args.project, args.arm, event_desc)
+                print(red_lock.report_locked_forms(subject, subject, form_array, args.project, args.arm, event_desc))
 
     if args.verbose:
-        print "Done!"
+        print("Done!")
 
     slog.takeTimer1("script_time")
 

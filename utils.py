@@ -1,4 +1,6 @@
+from __future__ import print_function
 # General Util functions
+from builtins import str
 from sibispy import sibislogger as slog
 import subprocess
 import re
@@ -31,7 +33,7 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
         except IOError as e:
             if e.errno == 11:
                 if verbose : 
-                    print "Failed to write to csv ! Retrying in 5s..."
+                    print("Failed to write to csv ! Retrying in 5s...")
                 time.sleep(5)
                 retries -= 1
             else:
@@ -49,7 +51,7 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
         # Not equal or no old file: put new file in its final place
         os.rename(fname + '.new', fname)
         if verbose:
-            print "Updated", fname
+            print("Updated", fname)
 
     return True
 
@@ -70,7 +72,7 @@ dcm2image_cmd = 'cmtk dcm2image '
 def dcm2image(args, verbose = False) :
     cmd = dcm2image_cmd + args
     if verbose : 
-        print cmd 
+        print(cmd) 
     return call_shell_program(cmd)
  
 def detect_adni_phantom(args) :
@@ -142,7 +144,7 @@ def limesurvey_label_in_redcap( prefix, ls_label ):
 def map_labels_to_dict( labels, ldict ):
     new_labels = list()
     for label in labels:
-        if label in ldict.keys():
+        if label in list(ldict.keys()):
             new_labels.append( ldict[label] )
         else:
             new_labels.append( label )
@@ -161,7 +163,7 @@ def run_rscript( row, script, scores_key = None):
     (errcode, stdout, stderr) = Rscript(args)
     if errcode :
         # because it is run by apply we need to raise error 
-        raise slog.sibisExecutionError('utils.run_rscript.' + hashlib.sha1(str(stderr)).hexdigest()[0:6], 'Error: Rscript failed !', err_msg= str(stderr), args= args)
+        raise slog.sibisExecutionError('utils.run_rscript.' + hashlib.sha1(str(stderr).encode()).hexdigest()[0:6], 'Error: Rscript failed !', err_msg= str(stderr), args= args)
 
     if scores_key : 
         scores = pandas.read_csv( scores_csv, index_col=0 )
@@ -172,3 +174,30 @@ def run_rscript( row, script, scores_key = None):
     shutil.rmtree( tmpdir )
     return scores.ix[0]
 
+
+"""
+https://github.com/ActiveState/code/blob/master/recipes/Python/577982_Recursively_walk_Python_objects/recipe-577982.py
+"""
+from collections import Mapping, Set, Sequence 
+
+# dual python 2/3 compatability, inspired by the "six" library
+string_types = (str, str) if str is bytes else (str, bytes)
+iteritems = lambda mapping: getattr(mapping, 'iteritems', mapping.items)()
+
+def objwalk(obj, path=(), memo=None):
+    if memo is None:
+        memo = set()
+    iterator = None
+    if isinstance(obj, Mapping):
+        iterator = iteritems
+    elif isinstance(obj, (Sequence, Set)) and not isinstance(obj, string_types):
+        iterator = enumerate
+    if iterator:
+        if id(obj) not in memo:
+            memo.add(id(obj))
+            for path_component, value in iterator(obj):
+                for result in objwalk(value, path + (path_component,), memo):
+                    yield result
+            memo.remove(id(obj))
+    else:
+        yield path, obj

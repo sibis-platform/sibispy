@@ -1,9 +1,12 @@
+from __future__ import print_function
 ##
 ##  See COPYING file distributed along with the ncanda-data-integration package
 ##  for the copyright and license terms
 ##
 
 # Mail-related stuff
+from builtins import str
+from builtins import object
 import smtplib
 import time 
 import json 
@@ -12,7 +15,7 @@ from email.mime.text import MIMEText
 
 from sibispy import sibislogger as slog
 
-class sibis_email:
+class sibis_email(object):
     """ Class handling email communication with XNAT users and admin."""
 
     # Initialize class.
@@ -64,7 +67,7 @@ class sibis_email:
         # Send the message via local SMTP server.
         try : 
             s = smtplib.SMTP( self._smtp_server )
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
                     err_msg = str(err_msg),
                     smtp_server = self._smtp_server) 
@@ -79,7 +82,7 @@ class sibis_email:
             if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
                 s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
 
-        except Exception, err_msg:
+        except Exception as err_msg:
             slog.info("sibis_email.send","ERROR: failed to send email at {} ".format(time.asctime()),
                       err_msg = str(err_msg),
                       email_from = from_email, 
@@ -110,7 +113,7 @@ class sibis_email:
         problem_list = []
         if len( self._messages_by_user ) > 0:
             problem_list.append( '<ul>' )
-            for (uid,info_msglist) in self._messages_by_user.iteritems():
+            for (uid,info_msglist) in self._messages_by_user.items():
                 problem_list.append( '<li>User: %s %s (%s)</li>' % (info_msglist['uFirst'],info_msglist['uLast'],info_msglist['uEmail']) )
                 problem_list.append( '<ol>' )
                 for m in info_msglist['msgList']:
@@ -139,23 +142,23 @@ class sibis_email:
     def send_all( self, title, uIntro_txt, uProlog, aIntro_txt ):
         # Run through list of messages by user
         if len( self._messages_by_user ):
-            for (uid,uInfo_msg) in self._messages_by_user.iteritems():
+            for (uid,uInfo_msg) in self._messages_by_user.items():
                self.mail_user(uInfo_msg['uEmail'],uInfo_msg['uFirst'],uInfo_msg['uLast'], title, uIntro_txt, uProlog,  uInfo_msg['msgList'])
 
         if len( self._messages_by_user ) or len( self._admin_messages ):
             self.mail_admin(title, aIntro_txt)
 
     def dump_all( self ):
-	print "USER MESSAGES:"
-	print self._messages_by_user
-	print "ADMIN_MESSAGES:"
-	print self._admin_messages
+        print("USER MESSAGES:")
+        print(self._messages_by_user)
+        print("ADMIN_MESSAGES:")
+        print(self._admin_messages)
 
 class xnat_email(sibis_email):
     def __init__(self, session): 
         self._interface = session.api['xnat']
         if self._interface :
-            server_config = json.loads( self._interface._exec( '/data/services/settings' ) )[u'ResultSet'][u'Result']
+            server_config = self._interface._get_json( '/data/services/settings' )
             self._site_url = server_config[u'siteUrl']
             self._site_name = server_config[u'siteId']
             sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
@@ -173,11 +176,12 @@ class xnat_email(sibis_email):
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:
             try: 
-                uEmail = self._interface.manage.users.email( uname )
-                user_firstname = self._interface.manage.users.firstname( uname )
-                user_lastname = self._interface.manage.users.lastname( uname )
+                user = self._interface.client.users[uname]
+                uEmail = user.email
+                user_firstname = user.first_name
+                user_lastname = user.last_name
             except:
-                slog.info('xnat_email.add_user_message',"ERROR: failed to get detail information for user " + str(uid) + " at {}".format(time.asctime()),
+                slog.info('xnat_email.add_user_message',"ERROR: failed to get detail information for user " + str(uname) + " at {}".format(time.asctime()),
                           msg = str(msg))
                 return False
 
@@ -205,7 +209,7 @@ class xnat_email(sibis_email):
     def send_all( self ):
         # Run through list of messages by user
         if len( self._messages_by_user ):
-            for (uname,info_msglist) in self._messages_by_user.iteritems():
+            for (uname,info_msglist) in self._messages_by_user.items():
                 self.mail_user(info_msglist['uEmail'], info_msglist['uFirst'], info_msglist['uLast'], info_msglist['msgList'])
 
         if len( self._messages_by_user ) or len( self._admin_messages ):
