@@ -228,7 +228,10 @@ class XnatUtil(object):
   
   def __del__(self):
     if self._xnat != None:
-      self._xnat.disconnect()
+      try:
+        self._xnat.disconnect()
+      except:
+        pass
       self._xnat = None
 
   def connect(self, verify=True, debug=False, loglevel=None):

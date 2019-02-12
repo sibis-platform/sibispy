@@ -79,7 +79,7 @@ def main(args,sibis_session):
         except :
             print("Error: case " + case + "," +  args.arm + "," + args.event +" not in " + demo_path +"!")
             error = 'Case, arm and event not in demo_path'
-            slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(case, args.arm, args.event)).hexdigest()[0:6], error,
+            slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(case, args.arm, args.event).encode()).hexdigest()[0:6], error,
                       case=str(case),
                       arm=str(args.arm),
                       event=str(args.event),
@@ -89,7 +89,7 @@ def main(args,sibis_session):
         if (isinstance(scanner, float) and math.isnan(scanner)) or (isinstance(scanner_model, float) and math.isnan(scanner_model)) :
             print("Error: Did not find scanner or model for " + sid + "/" +  args.arm + "/" + args.event +" so cannot check gradient for that scan!")
             error = "Did not find any cases matching cases_dir, case, arm, event"
-            slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(args.base_dir, args.arm, args.event)).hexdigest()[0:6], error,
+            slog.info(hashlib.sha1('check_gradient_tables {} {} {}'.format(args.base_dir, args.arm, args.event).encode()).hexdigest()[0:6], error,
                       cases_dir=cases_dir,
                       case=str(case),
                       arm=str(args.arm),

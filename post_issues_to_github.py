@@ -221,7 +221,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
         if verbose:
             print("Issue is a Traceback...")
         string = "".join(issue_list)
-        sha = hashlib.sha1(string).hexdigest()[0:6]
+        sha = hashlib.sha1(string.encode()).hexdigest()[0:6]
         error = dict(experiment_site_id="Traceback:{}".format(sha),
                      error="Traceback",
                      message=string)
@@ -242,7 +242,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
                 print("Falling back to old issue formatting.")
             # Old error handling approach.
             # Create a unique id.
-            sha1 = hashlib.sha1(issue).hexdigest()[0:6]
+            sha1 = hashlib.sha1(issue.encode()).hexdigest()[0:6]
             subject_base = title[0:title.index(' (')]
             subject = subject_base + ": {0}".format(sha1)
             body = issue
@@ -370,7 +370,7 @@ def main(args=None):
                     print("Falling back to old issue formatting.")
                 # Old error handling approach.
                 # Create a unique id.
-                sha1 = hashlib.sha1(issue).hexdigest()[0:6]
+                sha1 = hashlib.sha1(issue.encode()).hexdigest()[0:6]
                 subject_base = title[0:args.title.index(' (')]
                 subject = subject_base + ": {0}".format(sha1)
 

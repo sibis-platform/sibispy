@@ -24,10 +24,18 @@ from . import post_issues_to_github as pig
 class sibisJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         try:
+            if isinstance(obj, Exception):
+                exc_info = sys.exc_info()
+                if (None, None, None) != exc_info:
+                    import traceback
+                    return traceback.format_exception(*exc_info)
+
             return json.JSONEncoder.default(self, obj)
+
         except TypeError as e:
             if hasattr(obj, '__call__') and hasattr(obj, '__name__'):
                 return obj.__name__
+            
             raise e
             
 
