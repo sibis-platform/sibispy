@@ -5,6 +5,8 @@
 ##  for the copyright and license terms
 ##
 
+from __future__ import print_function
+from builtins import str
 import sys
 import argparse
 
@@ -54,14 +56,14 @@ count_uploaded = 0
 session = sibispy.Session()
 if not session.configure():
     if args.verbose:
-        print "Error: session configure file was not found"
+        print("Error: session configure file was not found")
 
     sys.exit(1)
 
 red_score_update = red_scores.redcap_compute_summary_scores() 
 if not red_score_update.configure(session): 
     if args.verbose:
-        print "Error: could not configure redcap_compute_summary_scores"
+        print("Error: could not configure redcap_compute_summary_scores")
     sys.exit(1)
 
 # If list of forms given, only update those
@@ -72,8 +74,8 @@ if args.instruments:
         if inst in instrument_list:
             tmp_instrument_list.append(inst)
         else:
-            print "WARNING: no instrument with name '%s' defined." % inst
-            print "         Options:", instrument_list,"\n" 
+            print("WARNING: no instrument with name '%s' defined." % inst)
+            print("         Options:", instrument_list,"\n") 
     instrument_list = tmp_instrument_list
     
 
@@ -81,22 +83,22 @@ if args.instruments:
 for instrument in instrument_list:
     slog.startTimer2()
     if args.verbose:
-        print 'Scoring instrument', instrument
+        print('Scoring instrument', instrument)
 
     (scored_records, errorFlag) = red_score_update.compute_summary_scores(instrument,args.subject_id, args.update_all, args.verbose)    
     if errorFlag :
         if args.verbose:
-            print "Error occured when scoring", instrument 
+            print("Error occured when scoring", instrument) 
         continue
 
     len_scored_records = len(scored_records)
     if not len_scored_records : 
         if args.verbose:
-            print "Nothing was scored due to, e.g., missing values!" 
+            print("Nothing was scored due to, e.g., missing values!") 
         continue  
 
     if args.verbose:
-        print len_scored_records, 'scored records to upload'
+        print(len_scored_records, 'scored records to upload')
 
     if args.no_upload:
         scored_records.to_csv(args.no_upload)
@@ -106,19 +108,19 @@ for instrument in instrument_list:
     if not uploaded : 
         continue 
 
-    if not 'count' in uploaded.keys() or  uploaded['count'] == 0:
+    if not 'count' in list(uploaded.keys()) or  uploaded['count'] == 0:
         if args.verbose :
             if args.update_all :
-                print 'No updates for instrument "%s"' % instrument
+                print('No updates for instrument "%s"' % instrument)
             else : 
-                print 'No unscored records for instrument "%s"' % instrument
+                print('No unscored records for instrument "%s"' % instrument)
 
         continue 
 
     count = uploaded['count']
     count_uploaded += count               
     if args.verbose:
-        print 'Updated', uploaded, 'records of "%s"' % instrument
+        print('Updated', uploaded, 'records of "%s"' % instrument)
 
     slog.takeTimer2(instrument + "_time","{'uploads': " +  str(count) + "}")
 

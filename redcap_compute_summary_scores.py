@@ -5,6 +5,10 @@
 ##  for the copyright and license terms
 ##
 
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import sys
@@ -44,7 +48,7 @@ class redcap_compute_summary_scores(object):
         try:
             self.__rc_summary =  self.__session.connect_server('data_entry', True)
         except Exception as e:
-            slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e)).hexdigest()[0:6],
+            slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
                       "ERROR: Could not connect to redcap!:", err_msg = str(e))
             return False
  
@@ -101,7 +105,7 @@ class redcap_compute_summary_scores(object):
         record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
         if not len(record_ids):
             if verbose : 
-                print "No records to score" 
+                print("No records to score") 
             return (scored_records,False)
 
         # Unless instructed otherwise, drop all records that already exist
@@ -109,7 +113,7 @@ class redcap_compute_summary_scores(object):
             try :  
                 records_complete = record_ids[instrument_complete]
             except Exception as e:
-                slog.info("compute_scored_records-" + hashlib.sha1(str(e)).hexdigest()[0:6],
+                slog.info("compute_scored_records-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
                           "ERROR: %s missing in instrument %s" % (instrument_complete,instrument),
                           err_msg = str(e))
                 return (scored_records,True)
@@ -120,11 +124,11 @@ class redcap_compute_summary_scores(object):
             return (scored_records,False)
 
         if verbose:
-            print len(record_ids), 'records to score'
+            print(len(record_ids), 'records to score')
 
         # Now get the imported records referenced by each record in the summary table
         import_fields = []
-        for import_instrument in scoring.fields_list[instrument].keys():
+        for import_instrument in list(scoring.fields_list[instrument].keys()):
             import_fields += self.__get_matching_fields__(self.__rc_summary.field_names, scoring.fields_list[instrument][import_instrument])
 
         # Retrieve data from record in chunks of 50 records
@@ -133,16 +137,16 @@ class redcap_compute_summary_scores(object):
         imported = []
         for event_name in set(record_ids.index.map(lambda key: key[1]).tolist()):
             records_this_event = record_ids.xs( event_name, level=1).index.tolist()
-            for idx in xrange(0, len(records_this_event), 50):
+            for idx in range(0, len(records_this_event), 50):
                 imported.append(self.__rc_summary.export_records(fields=import_fields,
                                                                  records=records_this_event[idx:idx + 50],
                                                                  events=[event_name], event_name='unique', format='df'))
                 
 
         if False: 
-            print "DEBUGGING:redcap_compute_summary_scores.py:Start ...."
+            print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
             (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
-            print ".... end" 
+            print(".... end") 
         else : 
             try: 
                 (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
@@ -153,7 +157,7 @@ class redcap_compute_summary_scores(object):
 
             except Exception as e:
                 error = "ERROR: scoring failed!"
-                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py" )
+                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py", err_obj=e )
                 return (pandas.DataFrame(), False) 
 
         return (scoresDF, errFlag)    

@@ -5,6 +5,8 @@
 ##  See COPYING file distributed along with the package for the copyright and license terms
 ##
 
+from __future__ import print_function
+from builtins import str
 import os
 import sys
 import glob
@@ -44,12 +46,12 @@ arm_name = str(redcap_project.arm_names[0])
 # Load in test specific settings : 
 (sys_file_parser,err_msg) = session.get_config_test_parser()
 if err_msg :
-    print "Error: session.get_config_test_parser:" + err_msg
+    print("Error: session.get_config_test_parser:" + err_msg)
     sys.exit(1)
  
 config_test_data = sys_file_parser.get_category('test_redcap_locking_data')
 if not config_test_data : 
-    print "Error: test_session specific settings not defined!"
+    print("Error: test_session specific settings not defined!")
     sys.exit(1)
 
 project_name = config_test_data.get('project_name')
@@ -58,6 +60,6 @@ all_subject_ids = session.get_mysql_project_records(project_name,arm_name, event
 # if it returned no subject ids than something went wrong
 assert(not all_subject_ids.empty)
 test_subject = all_subject_ids.record.iloc[0]
-print red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name)
+print(red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name))
 
 
