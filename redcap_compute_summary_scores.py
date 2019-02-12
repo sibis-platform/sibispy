@@ -48,7 +48,7 @@ class redcap_compute_summary_scores(object):
         try:
             self.__rc_summary =  self.__session.connect_server('data_entry', True)
         except Exception as e:
-            slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e)).hexdigest()[0:6],
+            slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
                       "ERROR: Could not connect to redcap!:", err_msg = str(e))
             return False
  
@@ -113,7 +113,7 @@ class redcap_compute_summary_scores(object):
             try :  
                 records_complete = record_ids[instrument_complete]
             except Exception as e:
-                slog.info("compute_scored_records-" + hashlib.sha1(str(e)).hexdigest()[0:6],
+                slog.info("compute_scored_records-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
                           "ERROR: %s missing in instrument %s" % (instrument_complete,instrument),
                           err_msg = str(e))
                 return (scored_records,True)
@@ -157,7 +157,7 @@ class redcap_compute_summary_scores(object):
 
             except Exception as e:
                 error = "ERROR: scoring failed!"
-                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e)).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py" )
+                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py", err_obj=e )
                 return (pandas.DataFrame(), False) 
 
         return (scoresDF, errFlag)    

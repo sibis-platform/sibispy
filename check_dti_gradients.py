@@ -164,7 +164,7 @@ class check_dti_gradients(object):
         gradients_as_array = np.asanyarray(gradients_per_frame)
 
         if error_xml_path_list != [] :
-            slog.info(session_label + "-" + hashlib.sha1(str(error_msg)).hexdigest()[0:6],
+            slog.info(session_label + "-" + hashlib.sha1(str(error_msg).encode()).hexdigest()[0:6],
                       'ERROR: Could not get gradient table from xml sidecar',
                       script='xnat/check_gradient_tables.py',
                       sidecar=str(xml_sidecar),

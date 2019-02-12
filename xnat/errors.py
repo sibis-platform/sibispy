@@ -40,12 +40,21 @@ from lxml import etree
 # parsing functions
 
 
-def is_xnat_error(message):
+def is_xnat_error(msg):
+    if isinstance(msg, bytes):
+        message = msg.decode('utf-8')
+    else:
+        message = msg
     return message.startswith('<!DOCTYPE') or message.startswith('<html>')
 
 
-def parse_error_message(message):
+def parse_error_message(msg):
     try:
+        if isinstance(msg, bytes):
+            message = msg.decode('utf-8')
+        else:
+            message = msg
+            
         if message.startswith('<html>'):
             message_tree = etree.XML(message)
             error_tag = message_tree.find('.//h3')

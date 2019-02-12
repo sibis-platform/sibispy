@@ -134,12 +134,12 @@ class redcap_to_casesdir(object):
                 non_redcap_list += form_non_redcap_list
 
         if text_list:
-            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
+            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
                       form_variable_list = str(text_list),
                       info = "Remove it from form file or modify definition in REDCap")
 
         if non_redcap_list :
-            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list)).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
+            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
                       form_variable_list = str(non_redcap_list),
                       info = "Remove it from form or modify definition REDCap")
 

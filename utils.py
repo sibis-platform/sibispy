@@ -163,7 +163,7 @@ def run_rscript( row, script, scores_key = None):
     (errcode, stdout, stderr) = Rscript(args)
     if errcode :
         # because it is run by apply we need to raise error 
-        raise slog.sibisExecutionError('utils.run_rscript.' + hashlib.sha1(str(stderr)).hexdigest()[0:6], 'Error: Rscript failed !', err_msg= str(stderr), args= args)
+        raise slog.sibisExecutionError('utils.run_rscript.' + hashlib.sha1(str(stderr).encode()).hexdigest()[0:6], 'Error: Rscript failed !', err_msg= str(stderr), args= args)
 
     if scores_key : 
         scores = pandas.read_csv( scores_csv, index_col=0 )
