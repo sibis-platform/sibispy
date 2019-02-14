@@ -196,7 +196,7 @@ def test_sibis_svn_diff_path(mock_repo):
   assert len(resp.files_changed()) == 2, "There should have been 2 files changed."
 
   with pytest.raises(SibisSvnException, message="Expecting a revision error"):
-    resp = client.diff_path(revision=10)
+    resp = client.diff_path(revision=11)
  
 
 def test_sibis_info_update_diff(mock_repo):
@@ -211,7 +211,7 @@ def test_sibis_info_update_diff(mock_repo):
   assert int(start_rev) == 2, "Should be commit version 2, got: "+start_rev
 
   changes = client.update()
-  assert changes.revision == 9, "Should be at revision 9, got: "+str(changes.revision)
+  assert changes.revision == 10, "Should be at revision 10, got: "+str(changes.revision)
 
   diff = client.diff_path(start_rev)
   changed_files = diff.files_changed(True)
