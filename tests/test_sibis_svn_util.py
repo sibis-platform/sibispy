@@ -59,7 +59,8 @@ mock_repo_commits = [
   ({ UpdateAction('A', 'alpha/file5', 'file'), UpdateAction('U', 'alpha/file6', 'file'), UpdateAction('D', 'alpha/file7', 'none') }, set()),
   ({ UpdateAction('A', 'beta/file5', 'file'), UpdateAction('A', 'beta/file6', 'file'), UpdateAction('A', 'beta/file7', 'file') }, set([UpdateAction('A', 'beta', 'dir')])),
   ({ UpdateAction('D', 'beta/file5', 'none'), UpdateAction('U', 'beta/file6', 'file'), UpdateAction('U', 'beta/file7', 'file') }, set()),
-  ({ UpdateAction('A', 'beta/file5', 'file'), UpdateAction('U', 'beta/file6', 'file'), UpdateAction('D', 'beta/file7', 'none') }, set())
+  ({ UpdateAction('A', 'beta/file5', 'file'), UpdateAction('U', 'beta/file6', 'file'), UpdateAction('D', 'beta/file7', 'none') }, set()),
+  ({ UpdateAction('U', 'beta/file6', 'file'), }, set())
 ]
 
 repo_actions = {
@@ -122,18 +123,18 @@ def test_sibis_svn_update_conflict(mock_repo):
 
 def test_sibis_svn_update_merge(mock_repo):
   mock_ws, co_dir = mock_repo
-  mock_ws.run("svn up -r1", cd=co_dir)
+  mock_ws.run("svn up -r9", cd=co_dir)
 
   client = SibisSvnClient(co_dir)
   assert client, "Client should not be None"
   
-  txt_file2 = co_dir / 'file2'
+  txt_file2 = co_dir / 'beta' / 'file6'
   ext_contents = txt_file2.bytes()
   txt_file2.write_text(r'local conflict\n'+str(ext_contents))
-  changes = client.update(revision=2)
+  changes = client.update(revision=10)
 
-  assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
-  assert UpdateAction(UpdateActionTypes.merged, 'file2', 'file') in changes.actions, "Expected to find a merge"
+  assert changes.revision == 10, "Expected to be a revision 10, got: {}".format(changes.revision)
+  assert UpdateAction(UpdateActionTypes.conflicted, 'beta/file6', 'file') in changes.actions, "Expected to find a conflict"
 
 
 def test_sibis_svn_update_no_change(mock_repo):
