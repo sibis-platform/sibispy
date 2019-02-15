@@ -28,6 +28,8 @@ xnat.core.XNATBaseListing.__call__ = __call_getitem
 class XNATResourceUtil(object):
   def __init__(self, resource):
     self._res = resource
+    if not self._res : 
+        raise XnatUtilRuntimeError("resource is NULL")
     self.xnat_session = resource.xnat_session
     self.files = resource.files
 
@@ -62,6 +64,18 @@ class XNATExperimentUtil(object):
 
   def trigger_pipelines(self):
     self.exp.xnat_session.put(self.exp.uri, query={'triggerPipelines': 'true'})
+
+  # if resource does not exist - creates it 
+  def resources_insure(self,resource_name):
+    try : 
+       return self.exp.resources[resource_name]
+    except: 
+       # if fails then create directory 
+       resources_dir=self.exp.resources
+       resources_dir.xnat_session.put(resources_dir.uri+ '/'+ resource_name)
+       self.exp.resources.clearcache()
+       return self.exp.resources[resource_name] 
+    
 
   def summarize(self, path=None, field=None):
     raw = self.exp.fulldata
