@@ -148,28 +148,33 @@ def test_download_upload_file(xnat_util, xnat_test_data, workdir):
   test_data = xnat_test_data['upload_file']
   with xnat_util.connect() as client:
     exp = client.experiments[test_data['experiment']]
-    resource = exp.resources[test_data['resource']]
 
+    exp_util=XNATExperimentUtil(exp) 
+    assert exp_util != None, "Patched resource should exist"
+
+    resource=exp_util.resources_insure(test_data['resource'])
     assert resource != None, "Resource should exist"
 
+    # Create random data file
     local_file = old_div(workdir.workspace, test_data['file_name'])
-    download_file = old_div(workdir.workspace, 'downloaded_') + test_data['file_name']
-
     random_data = str(uuid.uuid1())
-
     with open(local_file, 'w+') as out:
       out.write(random_data)
 
+    # Upload file and check that it was updated
     resource_util = XNATResourceUtil(resource)
     assert resource_util != None, "Patched resource should exist"
     resource_util.detailed_upload(local_file, test_data['file_name'], overwrite=True, tags='test_alpha,test_centauri', content='Test File', format='text')
 
     updated_file = resource.files[test_data['file_name']]
     assert updated_file != None, "File should exist"
-    updated_file.download(download_file)
 
+    # Download file 
+    download_file = old_div(workdir.workspace, 'downloaded_') + test_data['file_name']
+    updated_file.download(download_file)
     assert download_file.exists(), "File should have downloaded"
 
+    # Make sure uploaded and downloaded files are the same
     downloaded = None
     with open(download_file, 'r') as f:
       downloaded = f.readline()
