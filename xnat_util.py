@@ -85,13 +85,13 @@ class XNATExperimentUtil(object):
         field_obj = item
         break
 
-    res = set()
+    res = list()
     if field_obj != None:
       for item in field_obj['items']:
         key = _find_key(field, list(item['data_fields']))
-        res |= set([item['data_fields'][key]])
+        res += [item['data_fields'][key]]
     
-    return list(res)
+    return res
       
 
 class XNATSessionElementUtil(object):
