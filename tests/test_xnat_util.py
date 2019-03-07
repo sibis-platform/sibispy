@@ -171,7 +171,7 @@ def test_download_upload_file(xnat_util, xnat_test_data, workdir):
 
     # Download file 
     download_file = old_div(workdir.workspace, 'downloaded_') + test_data['file_name']
-    updated_file.download(download_file)
+    updated_file.download(download_file, verbose=False)
     assert download_file.exists(), "File should have downloaded"
 
     # Make sure uploaded and downloaded files are the same
