@@ -349,7 +349,7 @@ class XnatUtil(object):
 
         return response.content
   
-  def download_file(self, experiment_id, resource_id, file_id, target_file, format=None, verbose=True, timeout=None):
+  def download_file(self, experiment_id, resource_id, file_id, target_file, format=None, verbose=False, timeout=None):
     filesRef = self._xnat.experiments[experiment_id].resources[resource_id].files
     fileData = filesRef[file_id]
     target_dir = os.path.dirname(target_file)
