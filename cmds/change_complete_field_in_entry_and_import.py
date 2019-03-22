@@ -144,6 +144,7 @@ if not redcap_project :
     sys.exit()
 
 form_event_mapping = redcap_project.export_fem(format='df')
+fem_form_key = session.get_redcap_form_key()
 #
 # MAIN LOOP
 #
@@ -163,7 +164,7 @@ for form_prefix, form_name in forms.items():
         # hierarchical form and we should just use the given form name
         summary_form_name = form_name
 
-    event_mapping_tmp = form_event_mapping[form_event_mapping['form_name'] == summary_form_name ]['unique_event_name']
+    event_mapping_tmp = form_event_mapping[form_event_mapping[fem_form_key] == summary_form_name ]['unique_event_name']
     event_mapping =  event_mapping_tmp[event_mapping_tmp.str.startswith(args.event, na=False)].tolist()
 
     if len(event_mapping) == 0 : 
