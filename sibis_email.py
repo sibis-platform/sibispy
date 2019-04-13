@@ -158,10 +158,15 @@ class xnat_email(sibis_email):
     def __init__(self, session): 
         self._interface = session.api['xnat']
         if self._interface :
-            server_config = self._interface._get_json( '/data/services/settings' )
+            try: 
+                # XNAT 1.7
+                server_config = self._interface.client.get('/xapi/siteConfig').json()
+            except Exception as ex:
+                # XNAT 1.6
+                server_config = self._interface._get_json('/data/services/settings')
             self._site_url = server_config[u'siteUrl']
             self._site_name = server_config[u'siteId']
-            sibis_email.__init__(self,server_config[u'smtpHost'],server_config[u'siteAdminEmail'],session.get_email())
+            sibis_email.__init__(self,server_config[u'smtp_host'],server_config[u'adminEmail'],session.get_email())
 
         else: 
             slog.info('xnat_email.__init__',"ERROR: xnat api is not defined")
