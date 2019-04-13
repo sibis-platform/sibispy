@@ -514,6 +514,15 @@ class Session(object):
 
         return xnat_http_api.get(entities.get('experiment')(experiment_id) +  '?format=csv')
 
+    def xnat_get_classes(self):
+        xnat_api = self.__get_xnat_api__()
+        if not xnat_api:
+            error_msg = "XNAT API is not defined! Cannot retrieve classes!",
+            slog.info(eid,error_msg,
+                      function = "session.xnat_get_classes")
+            return None
+        return xnat_api.client.classes
+
     # makes a difference where later saved file on disk how the function is called 
     def xnat_get_experiment(self,eid,project=None,subject_label=None): 
         xnat_api = self.__get_xnat_api__()
