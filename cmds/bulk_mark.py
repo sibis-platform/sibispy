@@ -89,7 +89,7 @@ def bulk_mark(redcap_api, field_name, value, records_df):
     upload = records_df.copy(deep=True)
     upload[field_name] = value
     # TODO: Should probably wrap this in a try block, since we're not even
-    # checking existence of variables?
+    # checking existence of variables and not uploading records one at a time?
     outcome = redcap_api.import_records(upload)
     
     return outcome
@@ -137,7 +137,7 @@ def read_targets(redcap_api, from_file):
 
     # If the file contains any other columns, strip them - don't want to add
     # them to the later upload
-    targets = targets[out_cols]
+    targets = targets[out_cols].drop_duplicates()
 
     # Return a DataFrame with *only* appropriate indexing. This is necessary
     # for redcap.Project.import_records() to work properly once the variable of
@@ -165,11 +165,11 @@ def bulk_mark_status(redcap_api, form_name, missingness, completeness,
     miss_results = None
 
     # In either case, only set the status if it has been passed
-    if completeness:
+    if completeness is not None:
         comp_results = bulk_mark(redcap_api, field_names['completeness'],
                 completeness, records_df)
 
-    if missingness:
+    if missingness is not None:
         if not field_names.get('missingness'):
             raise TypeError('Missingness cannot be set for selected form!')
         else:
@@ -197,18 +197,30 @@ if __name__ == '__main__':
     if args.command == 'direct':
         if args.verbose:
             print('Setting {field} to {value} in {api}'.format(**vars(args)))
-        results = bulk_mark(api, args.field_name, args.value, targets)
+        results = bulk_mark(api, args.field, args.value, targets)
         # TODO: Process results
 
     elif args.command == 'status':
-        if args.missingness is None and args.completeness is None:
+        if (args.missingness is None) and (args.completeness is None):
             sys.exit('One or both of missingness and completeness must be set!')
         else:
             if args.verbose:
-                print(('Setting missingness to {missingness} and completion to'
-                       ' {completeness} in {form}').format(**vars(args)))
+                if args.missingness is not None:
+                    print(('Setting missingness to {missingness} in {form}')
+                          .format(**vars(args)))
+                if args.completeness is not None:
+                    print(('Setting completeness to {completeness} in {form}')
+                          .format(**vars(args)))
             complete_results, missing_results = bulk_mark_status(api,
                     form_name=args.form, missingness=args.missingness,
                     completeness=args.completeness, records_df=targets)
             # TODO: Process results - the outcome is a dict with 'count' and
             # possibly 'error' keys
+
+            if args.verbose:
+                if complete_results is not None:
+                    print("Set completeness for {} subjects".format(
+                        complete_results.get('count')))
+                if missing_results is not None:
+                    print("Set missingness for {} subjects".format(
+                        missing_results.get('count')))
