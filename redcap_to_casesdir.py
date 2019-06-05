@@ -306,6 +306,14 @@ class redcap_to_casesdir(object):
             if exceeds_criteria_baseline < 0 :
                 exceeds_criteria_baseline=int(subject_data['enroll_exception___drinking'])
 
+            # if you add a line pe
+            if race_code == '6':
+                # if other race is specified, mark race label with manually curated
+                # race code
+                race_label=subject_data['race_other_code']
+            else :
+                race_label=self.__code_to_label_dict['race'][race_code]
+                
             demographics = [
                 ['subject', subject_code],
                 ['arm', arm_code],
@@ -324,16 +332,11 @@ class redcap_to_casesdir(object):
                 ['siblings_id_first', subject_data['siblings_id1']],
                 ['hispanic', self.__code_to_label_dict['hispanic'][hispanic_code][0:1]],
                 ['race', race_code],
-                ['race_label', self.__code_to_label_dict['race'][race_code]],
+                ['race_label', race_label],
                 ['participant_id', subject],
                 ['scanner', scanner_mfg],
                 ['scanner_model', scanner_model],
             ]
-
-            if race_code == '6':
-                # if other race is specified, mark race label with manually curated
-                # race code
-                demographics[14] = ('race_label', subject_data['race_other_code'])
 
             series = pandas.Series()
             for (key, value) in demographics:
@@ -465,6 +468,7 @@ class redcap_to_casesdir(object):
             (arm_code,visit_code) = self.__event_dict[event_label]
         else:
             slog.info(str(subject_code),"ERROR: Cannot determine study Arm and Visit from event %s" % event_label )
+            return (None,None,None)
 
         pipeline_workdir_rel = os.path.join( subject_code, arm_code, visit_code )
         return (arm_code,visit_code,pipeline_workdir_rel)
