@@ -42,6 +42,8 @@ def test_cluster():
 #=====================================
 def test_save_demographics_to_file():
   assert(red2cas.create_demographic_datadict(outdir))
+  
+  # Note : output writen to file by this function does not necessarily respond to real subject data 
   assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, -1, outdir))
   
 #=====================================
@@ -61,11 +63,15 @@ def test_save_form_to_file(name_of_form):
 # =============================
 # Main 
 # =============================
-
+specific_subject=None
 if sys.argv.__len__() > 1 :
     config_file = sys.argv[1]
+    # execute for a specific subject, e.g. B-00000-M-6
+    if sys.argv.__len__() > 2 :
+      specific_subject=[sys.argv[2]]
 else :
-    config_file = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
+    config_file = os.path.join(os.path.expanduser("~"),'.sibis-general-config.yml')
+
 
 slog.init_log(False, False,'test_redcap_to_casesdir', 'test_redcap_to_casesdir',None)
 
@@ -91,7 +97,15 @@ if not os.path.exists(outdir) :
 visit_log_fields = ['study_id', 'redcap_data_access_group', 'visit_date',
                       'mri_qa_completed', 'mri_t1_age', 'mri_dti_age',
                       'mri_rsfmri_age','mri_scanner', 'visit_ignore','mri_xnat_sid']
-visit_log_redcap = redcap_project.export_records(fields=visit_log_fields,
+
+if specific_subject:
+  visit_log_redcap = redcap_project.export_records(fields=visit_log_fields,
+                                                   event_name='unique',
+                                                   export_data_access_groups=True,
+                                                   records=specific_subject,
+                                                   format='df')
+else :
+  visit_log_redcap = redcap_project.export_records(fields=visit_log_fields,
                                                    event_name='unique',
                                                    export_data_access_groups=True,
                                                    format='df')
