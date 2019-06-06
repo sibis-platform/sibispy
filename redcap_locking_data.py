@@ -58,7 +58,7 @@ class redcap_locking_data(object):
         # Kilian: Problem this table is created regardless if the form really exists in redcap or not
         return self.__session__.add_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, name_of_form, project_records, outfile) 
 
-    def report_locked_forms(self,subject_id, xnat_id, forms, project_name, arm_name, event_descrip):
+    def report_locked_forms(self,subject_id, xnat_id, forms, project_name, arm_name, event_descrip, my_sql_table=pd.DataFrame()):
         """
         Generate a report for a single subject reporting all of the forms that
         are locked in the database using the timestamp the record was locked
@@ -77,7 +77,12 @@ class redcap_locking_data(object):
         columns = ['subject', 'arm', 'visit'] + list(forms)
         data = dict(subject=xnat_id, arm=arm_name.lower(), visit=event_descrip.lower())
         dataframe = pd.DataFrame(data=data, index=[0], columns=columns)
-        locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, subject_id=subject_id)
+
+        if my_sql_table.empty:
+            locked_forms = self.__session__.get_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, subject_id=subject_id)
+        else: 
+            locked_forms = self.__session__.get_mysql_table_records_from_dataframe(my_sql_table,project_name, arm_name, event_descrip, subject_id=subject_id)
+           
         for _, row in locked_forms.iterrows():
             # form_name is not version dependent as it did not change in redcap table only api ! 
             name_of_form = row.get('form_name')
@@ -86,4 +91,15 @@ class redcap_locking_data(object):
                 dataframe.at[0, name_of_form] = timestamp
 
         return dataframe
+
+    def report_locked_forms_all(self,project_name):
+        """
+        Generate a report for a single subject reporting all of the forms that
+        are locked in the database using the timestamp the record was locked
+
+        :return: `pandas.DataFrame`
+        """
+
+        return self.__session__.get_mysql_table_records('redcap_locking_data',project_name, arm_name=None, event_descrip=None, subject_id=None)
+
     
