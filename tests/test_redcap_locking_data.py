@@ -19,7 +19,7 @@ from sibispy import redcap_locking_data
 if sys.argv.__len__() > 1 : 
     config_file = sys.argv[1]
 else :
-    config_file = os.path.join(os.path.dirname(sys.argv[0]), 'data', '.sibis-general-config.yml')
+    config_file = os.path.join(os.path.join(os.path.expanduser("~"),'.sibis-general-config.yml'))
 
 slog.init_log(False, False,'test_redcap_locking_data', 'test_redcap_locking_data',None)
 
@@ -59,7 +59,16 @@ project_name = config_test_data.get('project_name')
 all_subject_ids = session.get_mysql_project_records(project_name,arm_name, event_name) 
 # if it returned no subject ids than something went wrong
 assert(not all_subject_ids.empty)
+
 test_subject = all_subject_ids.record.iloc[0]
-print(red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name))
+
+direct = red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name)
+
+table_df = red_lock.report_locked_forms_all(project_name)
+assert(not table_df.empty)
+
+indirect = red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name,table_df)
+assert(direct.equals(indirect))
+
 
 
