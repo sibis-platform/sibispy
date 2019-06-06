@@ -981,7 +981,19 @@ class Session(object):
         return int(event_id)
 
     # 'redcap_locking_data'
-    def get_mysql_table_records(self,table_name,project_name, arm_name, event_descrip, name_of_form=None, subject_id=None):
+    def get_mysql_table_records(self,table_name,project_name, arm_name=None, event_descrip=None, name_of_form=None, subject_id=None):
+        """
+        Get a dataframe of forms for a specific event
+
+        :param project_name: str
+        :param arm_name: str
+        :param event_descrip: str
+        :return: pandas.DataFrame`
+        """
+        table_record_df = pd.read_sql_table(table_name, self.api['redcap_mysql_db'])
+        return self.get_mysql_table_records_from_dataframe(table_record_df,project_name, arm_name=arm_name, event_descrip=event_descrip, name_of_form=name_of_form, subject_id=subject_id)
+    
+    def get_mysql_table_records_from_dataframe(self,table_records_df,project_name, arm_name=None, event_descrip=None, name_of_form=None, subject_id=None):
         """
         Get a dataframe of forms for a specific event
 
@@ -995,17 +1007,20 @@ class Session(object):
         if not project_id : 
             return pd.DataFrame()  
 
-        arm_id = self.get_mysql_arm_id(arm_name, project_id)
-        event_id = self.get_mysql_event_id(event_descrip, arm_id)
-        table_records = pd.read_sql_table(table_name, self.api['redcap_mysql_db'])
-        table_forms = table_records[(table_records.project_id == project_id) & (table_records.event_id == event_id)]
+        table_records_df = table_records_df[table_records_df.project_id == project_id]
+
+        if event_descrip and arm_name :
+            arm_id = self.get_mysql_arm_id(arm_name, project_id)
+            event_id = self.get_mysql_event_id(event_descrip, arm_id)
+            table_records_df=table_records_df[table_records_df.event_id == event_id]
+        
         if name_of_form :
-            table_forms = table_forms[table_forms.form_name == name_of_form]
+            table_records_df = table_records_df[table_records_df.form_name == name_of_form]
 
         if subject_id:
-            table_forms = table_forms[table_forms.record == subject_id]
+            table_records_df = table_records_df[table_records_df.record == subject_id]
 
-        return table_forms
+        return table_records_df
 
 
     def get_mysql_project_records(self, project_name, arm_name, event_descrip, subject_id = None ):
@@ -1069,7 +1084,7 @@ class Session(object):
         dataframe.to_sql(table_name, self.api['redcap_mysql_db'], if_exists='append', index=False)
 
         if outfile : 
-            dataframe.record.to_csv(outfile, index=False)
+            dataframe.record.to_csv(outfile, index=False,header=False)
 
         return len(record_list)
 
