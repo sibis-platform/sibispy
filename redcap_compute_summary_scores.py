@@ -58,6 +58,9 @@ class redcap_compute_summary_scores(object):
                       .get_category('redcap_compute_summary_scores')
                       .get('target_api', 'data_entry'))
 
+        if target_api not in self.__session.api:
+            self.__session.api.update({target_api: None})
+
         # If connection to redcap server fail, try multiple times
         try:
             self.__rc_summary =  self.__session.connect_server(target_api)
