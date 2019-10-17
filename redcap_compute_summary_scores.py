@@ -48,9 +48,19 @@ class redcap_compute_summary_scores(object):
         except:
             import redcap_summary_scoring as scoring
 
+        # Get system config for this project
+        (cfgParser, err_msg) = self.__session.get_config_sys_parser()
+        if err_msg:
+            slog.info('recap_compute_summary_scores.configure',str(err_msg))
+            return False
+        # Get the API to connect to, defaulting to 'data_entry'
+        target_api = (cfgParser
+                      .get_category('redcap_compute_summary_scores')
+                      .get('target_api', 'data_entry'))
+
         # If connection to redcap server fail, try multiple times
         try:
-            self.__rc_summary =  self.__session.connect_server('data_entry', True)
+            self.__rc_summary =  self.__session.connect_server(target_api)
         except Exception as e:
             slog.info("redcap_compute_summary_scores.configure." + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
                       "ERROR: Could not connect to redcap!:", err_msg = str(e))
@@ -62,11 +72,6 @@ class redcap_compute_summary_scores(object):
         self.__form_event_mapping = self.__rc_summary.export_fem(format='df')
 
         # Get record IDs and exclusions
-        (cfgParser,err_msg) = self.__session.get_config_sys_parser()
-        if err_msg:
-            slog.info('recap_compute_summary_scores.configure',str(err_msg))
-            return False
-
         baseline_events = cfgParser.get_category('redcap_compute_summary_scores')['baseline_events'].split(",")
         demographics_fields =  cfgParser.get_category('redcap_compute_summary_scores')['demographics_fields'].split(",")
         self.__demographics = self.__rc_summary.export_records(fields=demographics_fields, event_name='unique', format='df')

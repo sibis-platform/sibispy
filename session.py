@@ -33,6 +33,7 @@ from sibispy import config_file_parser as cfg_parser
 # if one cannot connect to server
 from io import StringIO
 import sys
+from typing import Mapping
 
 class Capturing(list):
     def __enter__(self):
@@ -113,11 +114,17 @@ class Session(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, opt_api: Mapping = None):
         self.__config_usr_data = cfg_parser.config_file_parser()
         self.__config_srv_data = None 
         self.api = {'xnat': None, 'xnat_http': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None, 'svn_laptop': None} 
         # redcap projects are import_laptops, import_webcnp, and data_entry
+
+        # Inject additional API options if required (to avoid depending on the
+        # hard-coded options above)
+        if opt_api is not None:
+            self.api.update(opt_api)
+
         self.__active_redcap_project__ = None
         self.__ordered_config_load = False
    
