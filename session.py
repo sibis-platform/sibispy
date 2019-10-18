@@ -114,7 +114,7 @@ class Session(object):
 
     """
 
-    def __init__(self, opt_api: Mapping = None):
+    def __init__(self, opt_api: Mapping = {}):
         self.__config_usr_data = cfg_parser.config_file_parser()
         self.__config_srv_data = None 
         self.api = {'xnat': None, 'xnat_http': None, 'import_laptops' : None, 'import_webcnp' : None, 'data_entry': None, 'redcap_mysql_db' : None, 'browser_penncnp': None, 'svn_laptop': None} 
@@ -122,8 +122,7 @@ class Session(object):
 
         # Inject additional API options if required (to avoid depending on the
         # hard-coded options above)
-        if opt_api is not None:
-            self.api.update(opt_api)
+        self.api.update(opt_api)
 
         self.__active_redcap_project__ = None
         self.__ordered_config_load = False
