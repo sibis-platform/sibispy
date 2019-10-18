@@ -14,6 +14,7 @@ import re
 import sys
 import hashlib
 import pandas
+import numpy as np
 import redcap
 import sibispy
 from sibispy import sibislogger as slog
@@ -42,7 +43,10 @@ class redcap_compute_summary_scores(object):
         sys.path.append(operationsDir)
 
         global scoring 
-        import redcap_summary_scoring as scoring
+        try:
+            from redcap_summary_scoring import scoring
+        except:
+            import redcap_summary_scoring as scoring
 
         # If connection to redcap server fail, try multiple times
         try:
@@ -64,8 +68,16 @@ class redcap_compute_summary_scores(object):
             return False
 
         baseline_events = cfgParser.get_category('redcap_compute_summary_scores')['baseline_events'].split(",")
-        demographics_fields = ['study_id', 'dob', 'sex']
-        self.__demographics = self.__rc_summary.export_records(fields=demographics_fields, event_name='unique', format='df').dropna()
+        demographics_fields =  cfgParser.get_category('redcap_compute_summary_scores')['demographics_fields'].split(",")
+        self.__demographics = self.__rc_summary.export_records(fields=demographics_fields, event_name='unique', format='df')
+        try:
+            drop_fields = cfgParser.get_category('redcap_compute_summary_scores')['drop_fields'].split(",")
+            self.__demographics = self.__demographics.drop(columns=drop_fields, errors='ignore')
+        except:
+            pass
+        finally:
+            self.__demographics = self.__demographics.dropna()
+        
         self.__demographics = pandas.concat([self.__demographics.xs(event, level=1) for event in baseline_events])
 
         return True
@@ -97,6 +109,12 @@ class redcap_compute_summary_scores(object):
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],event_name='unique', format='df')
         else : 
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
+
+        # ensure record_ids are strings
+        # import pdb; pdb.set_trace()
+        ridx = record_ids.index
+        if ridx.get_level_values(0).dtype != np.dtype(np.object):
+            record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
 
         # Get events for which this instrument is present, and drop all records from other events
         form_key = self.__session.get_redcap_form_key() 
@@ -142,7 +160,7 @@ class redcap_compute_summary_scores(object):
                                                                  records=records_this_event[idx:idx + 50],
                                                                  events=[event_name], event_name='unique', format='df'))
                 
-
+        
         if False: 
             print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
             (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
