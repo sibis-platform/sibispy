@@ -63,7 +63,7 @@ class config_file_parser(object):
                 if ordered_load:
                     self.__config_dict = __ordered_load__(fi, yaml.SafeLoader)
                 else : 
-                    self.__config_dict = yaml.load(fi)
+                    self.__config_dict = yaml.safe_load(fi)
 
         except IOError as err:
             return err
