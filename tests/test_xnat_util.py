@@ -30,7 +30,7 @@ def general_config_file():
 def general_config(config_file):
   cfg = None
   with open(config_file, 'r') as f:
-    cfg = yaml.load(f)
+    cfg = yaml.safe_load(f)
   return cfg
 
 @pytest.fixture
