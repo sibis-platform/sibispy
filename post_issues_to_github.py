@@ -303,15 +303,24 @@ def connect_to_github(config_file=None,verbose=False):
 
         return None
 
+    personal_access_token = config_data.get_value('github', 'pat')
     user = config_data.get_value('github', 'user')
     passwd = config_data.get_value('github', 'password')
     org_name = config_data.get_value('github', 'org')
     repo_name = config_data.get_value('github', 'repo')
-    if not user or not passwd or not org_name or not repo_name: 
+    if not personal_access_token or not (user and passwd)  or not org_name or not repo_name:
         print("Error:post_issues_to_github: github definition is incomplete in " +  config_data.get_config_file())
         return None
 
-    g = github.Github(user, passwd)
+    if personal_access_token:
+        g = github.Github(personal_access_token)
+        if verbose:
+            print("Using Personal Access Token to authenticate.")
+
+    else:
+        g = github.Github(user, passwd)
+        if verbose:
+            print("Using User and Password to authenticate.")
 
     if not g: 
         print("Error:post_issues_to_github: Could not connect to github repository as defined by " +  config_data.get_config_file())
@@ -320,13 +329,13 @@ def connect_to_github(config_file=None,verbose=False):
     if verbose:
         print("Connected to GitHub")
 
-    try :
+    try:
         organization = g.get_organization(org_name)
     except Exception as e :
         print("Error:post_issues_to_github: getting organization (" + org_name + ") as defined in " + config_data.get_config_file() + " failed with error message: '" + str(e) + "' .  Pinging github (0=OK): " + str(ping_github()))  
         return None
 
-    try :
+    try:
         repo = organization.get_repo(repo_name)
     except Exception as e :
         print("Error:post_issues_to_github: Getting repo (" + repo_name + ") as defined in " + config_data.get_config_file() + " failed with the following error message: " + str(e))
@@ -334,7 +343,6 @@ def connect_to_github(config_file=None,verbose=False):
 
     if verbose:
         print("... ready!")
-
 
     return repo
 
