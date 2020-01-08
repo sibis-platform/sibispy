@@ -29,11 +29,11 @@ def pytest_generate_tests(metafunc):
 
 @pytest.fixture
 def session(config_file):
-  return get_session(config_file)
+  return utils.get_session(config_file)
 
 @pytest.fixture
 def test_config(session):
-  return get_test_config(session)
+  return utils.get_test_config(session)
 
 @pytest.fixture
 def github_repo(config_file):
