@@ -105,7 +105,7 @@ class redcap_compute_summary_scores(object):
                 matches.update([field_pattern])
         return matches
 
-    def compute_summary_scores(self,instrument, subject_id = None, update_all=False, verbose = False):
+    def compute_summary_scores(self, instrument, subject_id=None, update_all=False, verbose=False, log=slog):
         scored_records = pandas.DataFrame()
         if instrument not in self.get_list_of_instruments(): 
             slog.info("compute_scored_records", "ERROR: instrument '" + instrument + "' does not exist!") 
@@ -171,11 +171,13 @@ class redcap_compute_summary_scores(object):
         
         if False: 
             print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
-            (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+            (scoresDF,errFlag)  = scoring.compute_scores(
+                instrument, pandas.concat(imported), self.__demographics, log=slog)
             print(".... end") 
         else : 
             try: 
-                (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+                (scoresDF, errFlag)  = scoring.compute_scores(
+                    instrument, pandas.concat(imported), self.__demographics, log=slog)
             except slog.sibisExecutionError as err:
                 err.add(subject_id = subject_id, update_all= update_all)
                 err.slog_post()

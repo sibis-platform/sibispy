@@ -85,8 +85,9 @@ for instrument in instrument_list:
     if args.verbose:
         print('Scoring instrument', instrument)
 
-    (scored_records, errorFlag) = red_score_update.compute_summary_scores(instrument,args.subject_id, args.update_all, args.verbose)    
-    if errorFlag :
+    (scored_records, errorFlag) = red_score_update.compute_summary_scores(
+        instrument, args.subject_id, args.update_all, args.verbose, log=slog)
+    if errorFlag:
         if args.verbose:
             print("Error occured when scoring", instrument) 
         continue

@@ -24,8 +24,8 @@ class SummaryScoresCollector():
       self.output_form[i] = module.output_form
 
   # dataframe and errorFlag
-  def compute_scores(self, instrument, input_data, demographics):
-    scoresDF = self.functions[instrument](input_data, demographics) 
+  def compute_scores(self, instrument, input_data, demographics, log=None, **kwargs):
+    scoresDF = self.functions[instrument](input_data, demographics, log=log, **kwargs)
     
     # remove nan entries as they corrupt data ingest (REDCAP cannot handle it correctly) and superfluous zeros
     # this gave an error as it only works for float values to replace
