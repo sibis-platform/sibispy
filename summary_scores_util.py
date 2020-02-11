@@ -29,8 +29,8 @@ class SummaryScoresCollector():
     
     # remove nan entries as they corrupt data ingest (REDCAP cannot handle it correctly) and superfluous zeros
     # this gave an error as it only works for float values to replace
-    if len(scoresDF) :
+    if len(scoresDF):
       # Only execute it not empty 
-      return (scoresDF.astype(object).fillna(''), False)   
+      return (scoresDF.astype(object).fillna(''), False)
       
     return (scoresDF, False)
