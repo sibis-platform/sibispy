@@ -41,7 +41,7 @@ parser.add_argument("-n", "--no-upload",
                     help="Do not upload any scores to REDCap server; instead write to CSV file with given path.",
                     action="store")
 parser.add_argument("-p", "--post-to-github", help="Post all issues to GitHub instead of std out.", action="store_true")
-parser.add_argument("-t","--time-log-dir",
+parser.add_argument("-t", "--time-log-dir",
                     help="If set then time logs are written to that directory",
                     action="store",
                     default=None)
