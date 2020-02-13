@@ -105,7 +105,7 @@ class redcap_compute_summary_scores(object):
                 matches.update([field_pattern])
         return matches
 
-    def compute_summary_scores(self,instrument, subject_id = None, update_all=False, verbose = False):
+    def compute_summary_scores(self, instrument, subject_id=None, update_all=False, verbose=False, log=slog):
         scored_records = pandas.DataFrame()
         if instrument not in self.get_list_of_instruments(): 
             slog.info("compute_scored_records", "ERROR: instrument '" + instrument + "' does not exist!") 
@@ -171,11 +171,13 @@ class redcap_compute_summary_scores(object):
         
         if False: 
             print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
-            (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+            (scoresDF,errFlag)  = scoring.compute_scores(
+                instrument, pandas.concat(imported), self.__demographics, log=slog)
             print(".... end") 
         else : 
             try: 
-                (scoresDF,errFlag)  = scoring.compute_scores(instrument,pandas.concat(imported), self.__demographics)
+                (scoresDF, errFlag)  = scoring.compute_scores(
+                    instrument, pandas.concat(imported), self.__demographics, log=slog)
             except slog.sibisExecutionError as err:
                 err.add(subject_id = subject_id, update_all= update_all)
                 err.slog_post()
@@ -183,11 +185,16 @@ class redcap_compute_summary_scores(object):
 
             except Exception as e:
                 error = "ERROR: scoring failed!"
-                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6], error, err_msg=str(e), subject_id = subject_id, update_all= update_all, pyFile = "recap_summary_scoring/" + instrument + "/__init__.py", err_obj=e )
-                return (pandas.DataFrame(), False) 
+                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
+                          error,
+                          err_msg=str(e),
+                          subject_id=subject_id,
+                          update_all=update_all,
+                          pyFile="redcap_summary_scoring/" + instrument + "/__init__.py",
+                          err_obj=e )
+                return (pandas.DataFrame(), False)
 
-        return (scoresDF, errFlag)    
+        return (scoresDF, errFlag)
 
     def upload_summary_scores_to_redcap(self, instrument, scored_records):
         return self.__session.redcap_import_record(instrument, None, None, None, scored_records)
-    
