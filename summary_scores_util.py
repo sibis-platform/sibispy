@@ -1,4 +1,5 @@
 import os, glob, stat, sys, imp
+import sibispy
 
 class SummaryScoresCollector():
   def __init__(self, module_init_script):
@@ -24,7 +25,9 @@ class SummaryScoresCollector():
       self.output_form[i] = module.output_form
 
   # dataframe and errorFlag
-  def compute_scores(self, instrument, input_data, demographics, log=None, **kwargs):
+  def compute_scores(self, instrument, input_data, demographics, log, **kwargs):
+    if log != sibispy.sibislogger:
+      raise TypeError("Call must include a sibislogger!")
     scoresDF = self.functions[instrument](input_data, demographics, log=log, **kwargs)
     
     # remove nan entries as they corrupt data ingest (REDCAP cannot handle it correctly) and superfluous zeros
