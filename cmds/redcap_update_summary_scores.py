@@ -41,7 +41,7 @@ parser.add_argument("-n", "--no-upload",
                     help="Do not upload any scores to REDCap server; instead write to CSV file with given path.",
                     action="store")
 parser.add_argument("-p", "--post-to-github", help="Post all issues to GitHub instead of std out.", action="store_true")
-parser.add_argument("-t","--time-log-dir",
+parser.add_argument("-t", "--time-log-dir",
                     help="If set then time logs are written to that directory",
                     action="store",
                     default=None)
@@ -85,8 +85,9 @@ for instrument in instrument_list:
     if args.verbose:
         print('Scoring instrument', instrument)
 
-    (scored_records, errorFlag) = red_score_update.compute_summary_scores(instrument,args.subject_id, args.update_all, args.verbose)    
-    if errorFlag :
+    (scored_records, errorFlag) = red_score_update.compute_summary_scores(
+        instrument, args.subject_id, args.update_all, args.verbose, log=slog)
+    if errorFlag:
         if args.verbose:
             print("Error occured when scoring", instrument) 
         continue
