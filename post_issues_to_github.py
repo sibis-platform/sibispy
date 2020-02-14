@@ -308,7 +308,7 @@ def connect_to_github(config_file=None,verbose=False):
     passwd = config_data.get_value('github', 'password')
     org_name = config_data.get_value('github', 'org')
     repo_name = config_data.get_value('github', 'repo')
-    if not personal_access_token or not (user and passwd)  or not org_name or not repo_name:
+    if (not personal_access_token and not (user and passwd)) or not org_name or not repo_name:
         print("Error:post_issues_to_github: github definition is incomplete in " +  config_data.get_config_file())
         return None
 
