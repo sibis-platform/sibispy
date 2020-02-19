@@ -82,6 +82,51 @@ def _get_valid_forms(api: rc.Project, forms: List, template: str) -> List:
     return valid_forms
 
 
+def _get_variable_names_by_form(api, forms: rc.Project, template: str,
+                                verbose: bool = False) -> Dict[str, str]:
+    """
+    Useful for getting valid forms and their trash variables.
+
+    NOTE: Not currently used.
+    """
+    valid_forms = _get_valid_forms(api, forms, template)
+    varnames_by_form = dict(zip(
+        valid_forms, _get_variable_names(api, valid_forms, template, verbose)))
+    # varnames_by_form = {form: _get_variable_names(api, [form], template)
+    #                     for form in forms}
+    # varnames_by_form = {form: varname_list[0]
+    #                     for form, varname_list
+    #                     in varnames_by_form.items()
+    #                     if len(varname_list) > 0}
+    return varnames_by_form
+
+
+def _get_forms(api: rc.Project, forms: List, events: List = None) -> List:
+    """
+    Given (presumably valid) forms, retrieve their _complete field to get a
+    full listing of their content by subject.
+
+    NOTE: Pre-requisite to getting things right with repeating instances.
+    
+    Not currently used.
+    """
+    form_dataframes = dict(zip(forms, [None] * len(forms)))
+    for form in forms:
+        form_complete = '{form}_complete'
+        form_export = api.export_records(format='df',
+                                         fields=[api.def_field, form_complete],
+                                         events=events)
+        # First, drop rows that don't contain data (which shouldn't be any);
+        # then, drop any rows that don't apply (likely because they're
+        # repeating-form metadata on a non-repeating form)
+        form_export = (form_export
+                       .dropna(axis=0)
+                       .dropna(axis=1)
+                       .drop(columns=[form_complete]))
+        form_dataframes[form] = form_export
+    return form_dataframes
+
+
 def main():
     args = parse_args()
     slog.init_log(verbose=args.verbose,
