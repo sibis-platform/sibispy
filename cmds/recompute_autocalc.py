@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
-Upload random values in order to force Redcap calculations to update.
+Upload random values to non-repeating forms in order to force Redcap autocalc.
+
+DO NOT USE THIS ON REPEATING FORMS.
 """
 import argparse
 import pdb
@@ -35,9 +37,11 @@ def parse_args(args=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     form_options = parser.add_mutually_exclusive_group()
-    form_options.add_argument('--all-forms', action="store_true")
+    # Dropping --all-forms for now because we don't have a quick way of picking
+    # just the non-repeating ones
+    # form_options.add_argument('--all-forms', action="store_true")
     form_options.add_argument('--forms', nargs='*',
-                              help="Forms to refresh")
+                              help="Non-repeating forms to refresh")
 
     parser.add_argument('-e', '--events', nargs='*', default=None,
                         help="Limit auto-generation to listed events")
@@ -141,10 +145,10 @@ def main():
     if api is None:
         raise KeyError("Invalid API name {}!".format(args.api))
 
-    if args.all_forms:
-        forms = _get_valid_forms(api, api.forms, args.template)
-    else:
-        forms = _get_valid_forms(api, args.forms, args.template)
+    # if args.all_forms:
+    #     forms = _get_valid_forms(api, api.forms, args.template)
+    # else:
+    forms = _get_valid_forms(api, args.forms, args.template)
 
     # Filter down to only valid variable names
     varnames = _get_variable_names(api, forms, args.template, args.verbose)
@@ -155,6 +159,13 @@ def main():
                                   events=args.events,
                                   format='df')
                .dropna(axis=1, how='all'))
+
+    if 'redcap_repeat_instance' in targets.columns:
+        # i.e. redcap_repeat_instance wasn't full of NaNs and dropped, so
+        # some repeating data is involved
+        raise KeyError("Repeating-form metadata present in retrieved targets. "
+                       "Please only select non-repeating forms.")
+
     # FIXME: Doesn't handle repeating forms correctly. To do that, need to:
     #
     # 1. determine which forms have a trash field to be set
