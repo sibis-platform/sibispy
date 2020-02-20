@@ -77,12 +77,13 @@ def read_targets(redcap_api, from_file):
     If primary keys for the project are not present, raises AssertionError.
     """
     targets = pd.read_csv(from_file)
-    out_cols = [redcap_api.def_field]
+    index_cols = [redcap_api.def_field]
     assert redcap_api.def_field in targets.columns
     if redcap_api.is_longitudinal():
         assert 'redcap_event_name' in targets.columns
-        out_cols.append('redcap_event_name')
+        index_cols.append('redcap_event_name')
 
+    out_cols = index_cols.copy()
     if 'redcap_repeat_instrument' in targets.columns:
         out_cols.extend(['redcap_repeat_instrument', 'redcap_repeat_instance'])
 
@@ -97,7 +98,7 @@ def read_targets(redcap_api, from_file):
     # (If multiple Redcap primary keys are standard columns, the MultiIndex is
     # wrongly assigned by .import_records() and the upload fails.)
 
-    targets.set_index(out_cols, inplace=True)
+    targets.set_index(index_cols, inplace=True)
     return targets
 
 
