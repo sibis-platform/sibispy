@@ -2,7 +2,7 @@
 
 """
 The CLI interface to the generalized mechanism for mass-setting a FIELD to 
-a particular VALUE.
+a particular VALUE **on non-repeating instruments** [1].
 
 Two interfaces are provided:
 
@@ -11,6 +11,9 @@ Two interfaces are provided:
 2. status: For the specific case of setting completeness and missignness, find
     those fields within the form and set them to the value, if specified.
 
+[1] In principle, if redcap_repeat_instance and redcap_repeat_instrument are
+    provided in the targets file, then this should still work - but it has yet
+    to be tested that way.
 """
 
 import argparse
@@ -21,6 +24,7 @@ from sibispy import sibislogger as slog
 from sibispy.bulk_operations import (
     bulk_mark, get_status_fields_for_form, bulk_mark_status, read_targets)
 import pdb 
+
 
 def parse_args(args=None):
     """
