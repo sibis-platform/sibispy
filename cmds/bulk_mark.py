@@ -46,7 +46,6 @@ def parse_args(args=None):
             help="File with subject (and event) identifiers")
     parser.add_argument('--api',
             required=True,
-            choices=['data_entry', 'import_laptops'],
             help="Name of sibispy-configured API to use.")
     parser.add_argument("-v", "--verbose",
             help="Verbose operation",
@@ -95,7 +94,7 @@ if __name__ == '__main__':
         sys.exit('You must specify "direct" or "status" handler!')
     else:
         slog.init_log(args.verbose, None, 'bulk_mark', 'bulk_mark', None)
-        session = sibispy.Session()
+        session = sibispy.Session(opt_api={args.api: None})
         if not session.configure():
             sys.exit("Error: session configure file was not found")
 
