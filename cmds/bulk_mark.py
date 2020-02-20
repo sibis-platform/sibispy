@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 """
-The CLI interface to the generalized mechanism for mass-setting a FIELD to 
-a particular VALUE **on non-repeating instruments** [1].
+The CLI interface to the generalized mechanism for mass-setting a FIELD
+to a particular VALUE on **either** repeeating **or** non-repeating
+instruments [1].
 
 Two interfaces are provided:
 
@@ -11,9 +12,9 @@ Two interfaces are provided:
 2. status: For the specific case of setting completeness and missignness, find
     those fields within the form and set them to the value, if specified.
 
-[1] In principle, if redcap_repeat_instance and redcap_repeat_instrument are
-    provided in the targets file, then this should still work - but it has yet
-    to be tested that way.
+[1] This is because it's impossible to mix targets for repeating and
+non-repeating instruments, because the value is applied to all rows, and
+repeating/non-repeating variables have to be filled on separate ones.
 """
 
 import argparse
