@@ -160,12 +160,6 @@ def main():
                                   format='df')
                .dropna(axis=1, how='all'))
 
-    if 'redcap_repeat_instance' in targets.columns:
-        # i.e. redcap_repeat_instance wasn't full of NaNs and dropped, so
-        # some repeating data is involved
-        raise KeyError("Repeating-form metadata present in retrieved targets. "
-                       "Please only select non-repeating forms.")
-
     # FIXME: Doesn't handle repeating forms correctly. To do that, need to:
     #
     # 1. determine which forms have a trash field to be set
