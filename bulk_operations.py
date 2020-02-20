@@ -13,7 +13,8 @@ def bulk_mark(redcap_api: rc.Project, field_name: Union[List, str],
     """
     Workhorse bulk-marking function.
 
-    NOTE: Could probably be moved to sibispy utils for reuse.
+    If applied to repeating instruments, `records_df` must already have valid
+    `redcap_repeat_instrument` and `redcap_repeat_instance`.
     """
     upload = records_df.copy(deep=True)
 
@@ -81,6 +82,9 @@ def read_targets(redcap_api, from_file):
     if redcap_api.is_longitudinal():
         assert 'redcap_event_name' in targets.columns
         out_cols.append('redcap_event_name')
+
+    if 'redcap_repeat_instrument' in targets.columns:
+        out_cols.extend(['redcap_repeat_instrument', 'redcap_repeat_instance'])
 
     # If the file contains any other columns, strip them - don't want to add
     # them to the later upload
