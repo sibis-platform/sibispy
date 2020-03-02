@@ -901,9 +901,9 @@ class Session(object):
                             red_value = red_value_temp[0][red_var]
                             if "mri_xnat_sid" not in record or "mri_xnat_eids" not in record :
                                 slog.info(error_label, error,
-                                  redcap_value="'"+str(red_value)+"'",
                                   redcap_variable=red_var,
                                   redcap_event=event,
+                                  redcap_value="'"+str(red_value)+"'",
                                   new_value="'"+str(err_list[2])+"'",
                                   import_record_id=str(record_id), 
                                   requestError=str(e),
