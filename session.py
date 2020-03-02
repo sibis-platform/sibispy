@@ -880,12 +880,20 @@ class Session(object):
                     
                 if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
                     red_var = err_list[1]
+
                     try:
                         event = err_list[0].split('(')[1][:-1]
                     except IndexError:  # Try to obtain event from record if unextractable from error
                         event = record.get('redcap_event_name')
+
+                    # NOTE: event must be List[str] or None, but cannot by
+                    # List[NoneType] or str by itself, so we need to ensure
+                    # it's a list depending on circumstance
+                    if event is not None:
+                        event = [event]
+
                     if subject_label: 
-                        red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
+                        red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=event)
                         if red_value_temp : 
                             red_value = red_value_temp[0][red_var]
                             if "mri_xnat_sid" not in record or "mri_xnat_eids" not in record :
