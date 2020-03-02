@@ -869,7 +869,16 @@ class Session(object):
                     record = records[0]
                 elif isinstance(records, pd.DataFrame): 
                     record_ser = records.iloc[0]
-                    subject_label = record_ser.name[0]
+
+                    # MultiIndex now hidden in pd.Series.name
+                    try:
+                        subject_label, record_event = record_ser.name
+                    except ValueError:
+                        # fallback if unpacking applied to single-index
+                        # non-longitudinal projects
+                        subject_label = record_ser.name[0]
+                        record_event = None
+
                     error_label = "_".join(record_ser.name) + "_" + error_label
                     record = record_ser.to_dict()
                 else :  
@@ -880,19 +889,21 @@ class Session(object):
                     
                 if len(err_list) > 3 and "This field is located on a form that is locked. You must first unlock this form for this record." in err_list[3]:
                     red_var = err_list[1]
+
                     try:
                         event = err_list[0].split('(')[1][:-1]
                     except IndexError:  # Try to obtain event from record if unextractable from error
-                        event = record.get('redcap_event_name')
-                    if subject_label: 
+                        event = record_event
+
+                    if subject_label and event is not None:
                         red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
                         if red_value_temp : 
                             red_value = red_value_temp[0][red_var]
                             if "mri_xnat_sid" not in record or "mri_xnat_eids" not in record :
                                 slog.info(error_label, error,
-                                  redcap_value="'"+str(red_value)+"'",
                                   redcap_variable=red_var,
                                   redcap_event=event,
+                                  redcap_value="'"+str(red_value)+"'",
                                   new_value="'"+str(err_list[2])+"'",
                                   import_record_id=str(record_id), 
                                   requestError=str(e),
