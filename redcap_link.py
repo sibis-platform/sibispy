@@ -27,11 +27,10 @@ class RedcapLinkGenerator:
                 raise ValueError("Cannot generate links without an URL config")
         else:
             self.config = url_config
-        return self.make_link
+        # return self.make_link
 
     def make_link(self, **kwargs):
-        return RedcapLink(**kwargs,
-                          url_config=self.config)
+        return RedcapLink(url_config=self.config, **kwargs)
 
 class RedcapLink(object):
     def __init__(self, record_id, redcap_project=None, form=None,
@@ -52,7 +51,8 @@ class RedcapLink(object):
             self.arm = "__default"
 
         # TODO: Project-wide level of getting at this info?
-        self.load_url_configuration(url_config)
+        self.config = url_config
+        # self.load_url_configuration(url_config)
 
     @property
     def url(self):

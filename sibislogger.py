@@ -10,6 +10,8 @@ import collections
 import time 
 import os
 import post_issues_to_github as pig
+from xnat_link import XnatLink
+from redcap_link import RedcapLinkGenerator
 # set logger of python packages to warning so that we avoid info messages being printed out 
 #logging.getLogger("urllib3").setLevel(logging.WARNING)
 #logging.getLogger("requests").setLevel(logging.WARNING)
@@ -41,6 +43,13 @@ class sibisLogging():
         self.log.update(experiment_site_id=uid,
                         error=message)
         self.log.update(kwargs)
+        # TODO: Check for a hook in config instead
+        if 'eid' in kwargs:
+            self.log.update({'eid_url': XnatLink(kwargs['eid']).markdown_link})
+        if 'rid' in kwargs:
+            rc_gen = RedcapLinkGenerator(url_config_file='../links.yml')
+            rc_link = rc_gen.make_link(record_id=kwargs['rid'])
+            self.log.update({'redcap_url': rc_link.markdown_link})
         jlog = json.dumps(self.log)
         self.log.clear()
         return jlog
