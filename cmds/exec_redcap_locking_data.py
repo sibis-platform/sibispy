@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     cli.add_event_param(parser, required=True, template="{} visit",
                         # backwards-compatible with the old '4y visit':
-                        accepted_regex=r'^\dy$', keep_nonmatch=True)
+                        accepted_regex=r'^(Baseline|\dy)$', keep_nonmatch=True)
     cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
                        short_switch='-f')
     cli.add_subject_param(parser, dest="subject_id")
