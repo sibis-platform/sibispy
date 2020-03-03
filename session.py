@@ -867,6 +867,7 @@ class Session(object):
             else :
                 if isinstance(records,list) :
                     record = records[0]
+                    record_event = None
                 elif isinstance(records, pd.DataFrame): 
                     record_ser = records.iloc[0]
 
@@ -893,7 +894,9 @@ class Session(object):
                     try:
                         event = err_list[0].split('(')[1][:-1]
                     except IndexError:  # Try to obtain event from record if unextractable from error
-                        event = record_event
+                        if record_event is not None:
+                            event = record_event
+                        # otherwise, `event` stays as passed in function args
 
                     if subject_label and event is not None:
                         red_value_temp = self.redcap_export_records(False,fields=[red_var],records=[subject_label],events=[event])
