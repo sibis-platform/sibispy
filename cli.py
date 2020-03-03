@@ -30,7 +30,7 @@ def add_event_param(
         required: bool = False,
         template: str = "{}y visit",
         accepted_regex: str = r'^\d+$',
-        coerce: bool = True) -> None:
+        keep_nonmatch: bool = False) -> None:
     """
     Handles and transforms arbitrarily entered events.
     """
@@ -40,7 +40,7 @@ def add_event_param(
     def __event_handler(arg: str) -> Union[str, None]:
         if re.match(accepted_regex, arg):
             return template.format(arg)
-        elif coerce:
+        elif keep_nonmatch:
             return arg
         else:
             return None
@@ -96,6 +96,9 @@ def add_form_param(parser: argparse.ArgumentParser,
     #         _eligible_forms.append(x)
 
     def __form_handler(arg):
+        if len(eligible_forms) == 0:
+            return arg
+
         forms_found = [x for x in eligible_forms if arg in x]
         if len(forms_found) == 1:
             return forms_found[0][0]
