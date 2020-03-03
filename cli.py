@@ -26,10 +26,11 @@ def add_standard_params(parser: argparse.ArgumentParser) -> None:
 
 def add_event_param(
         parser: argparse.ArgumentParser,
+        dest: str = "event",
+        required: bool = False,
         template: str = "{}y visit",
         accepted_regex: str = r'^\d+$',
-        coerce: bool = True,
-        required: bool = False) -> None:
+        coerce: bool = True) -> None:
     """
     Handles and transforms arbitrarily entered events.
     """
@@ -49,10 +50,12 @@ def add_event_param(
                               "transformation to {}").format(accepted_regex,
                                                              template),
                         nargs=nargs,
+                        required=required,
                         type=__event_handler)
 
 
 def add_subject_param(parser: argparse.ArgumentParser,
+                      dest="subject",
                       required: bool = False,
                       choices: List[str] = None) -> None:
     """
@@ -63,15 +66,18 @@ def add_subject_param(parser: argparse.ArgumentParser,
     parser.add_argument("-s", "--study-id", "--subject",
                         help="Subject IDs that the script should affect",
                         nargs=nargs,
+                        dest=dest,
                         choices=choices,
                         # metavar="STUDY_ID"
+                        required=required,
                         action="store")
 
 
 def add_form_param(parser: argparse.ArgumentParser,
+                   dest='forms',
+                   required: bool = False,
                    eligible_forms: List[Tuple[str]] = [],
                    raise_missing: bool = True,
-                   dest='forms',
                    short_switch="-i") -> None:
     """
     Add the forms parameter, with checking for form aliases.
@@ -103,10 +109,12 @@ def add_form_param(parser: argparse.ArgumentParser,
                 raise ValueError("Ambiguous {}, found in following forms: {}"
                                  .format(arg, forms_found))
 
+    nargs = '+' if required else '*'
     parser.add_argument(short_switch, '--forms', '--form', '--instrument',
-                        dest=dest,
-                        nargs='*',
                         help="Forms that the script should affect",
+                        dest=dest,
+                        nargs=nargs,
+                        required=required,
                         type=__form_handler)
 
 
