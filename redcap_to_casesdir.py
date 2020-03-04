@@ -312,7 +312,7 @@ class redcap_to_casesdir(object):
             # No sibling than by default it is the subject itself 
             if siblings_enrolled_yn_corrected == 0 :
                 siblings_id_first_corrected = subject_code
-            elif siblings_id_first_corrected < 0 :
+            elif siblings_id_first_corrected == None :
                 # if there is a sibling and if not a special case, then use default 
                 siblings_id_first_corrected=subject_data['siblings_id1']
                 # unless not defined either -> then it must be the first subject 
