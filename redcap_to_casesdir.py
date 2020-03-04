@@ -292,7 +292,7 @@ class redcap_to_casesdir(object):
 
     # NCANDA SPECIFIC - Generalize later
     # Create "demographics" file "by hand" - this includes some text fields
-    def export_subject_demographics(self,subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline,measures_dir,verbose=False) :
+    def export_subject_demographics(self,subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, siblings_enrolled_yn_corrected, siblings_id_first_corrected, measures_dir, verbose=False) :
             # Latino and race coding arrives here as floating point numbers; make
             # int strings from that (cannot use "int()" because it would fail for
             # missing data
@@ -305,6 +305,19 @@ class redcap_to_casesdir(object):
             # Definig enroll_exception_drinking_2
             if exceeds_criteria_baseline < 0 :
                 exceeds_criteria_baseline=int(subject_data['enroll_exception___drinking'])
+
+            if siblings_enrolled_yn_corrected < 0:
+                siblings_enrolled_yn_corrected=subject_data['siblings_enrolled___true']
+
+            # No sibling than by default it is the subject itself 
+            if siblings_enrolled_yn_corrected == 0 :
+                siblings_id_first_corrected = subject_code
+            elif siblings_id_first_corrected < 0 :
+                # if there is a sibling and if not a special case, then use default 
+                siblings_id_first_corrected=subject_data['siblings_id1']
+                # unless not defined either -> then it must be the first subject 
+                if type(siblings_id_first_corrected) is not str or siblings_id_first_corrected == "" :
+                    siblings_id_first_corrected = subject_code
 
             # if you add a line pe
             if race_code == '6':
@@ -330,6 +343,9 @@ class redcap_to_casesdir(object):
                 ['siblings_enrolled_yn',
                  'NY'[int(subject_data['siblings_enrolled___true'])]],
                 ['siblings_id_first', subject_data['siblings_id1']],
+                ['siblings_enrolled_yn_2',
+                 'NY'[int(siblings_enrolled_yn_corrected)]],
+                ['siblings_id_first_2', siblings_id_first_corrected],
                 ['hispanic', self.__code_to_label_dict['hispanic'][hispanic_code][0:1]],
                 ['race', race_code],
                 ['race_label', race_label],
@@ -426,7 +442,7 @@ class redcap_to_casesdir(object):
         return (all_records,export_list)
 
     # Export selected REDCap data to cases dir
-    def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, exceeds_criteria_baseline, select_exports=None, verbose=False):
+    def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, exceeds_criteria_baseline, siblings_enrolled_yn_corrected,siblings_id_first_corrected, select_exports=None, verbose=False):
         # Do not really use this feature later
         # Mark subjects/visits that have QA completed by creating a hidden marker file
         # qafile_path = os.path.join(subject_datadir, '.qacomplete')
@@ -453,7 +469,7 @@ class redcap_to_casesdir(object):
 
         # Export demographics (if selected)
         if not select_exports or 'demographics' in select_exports:
-            self.export_subject_demographics(subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, measures_dir,verbose)
+            self.export_subject_demographics(subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, siblings_enrolled_yn_corrected, siblings_id_first_corrected, measures_dir,verbose)
 
         (all_records,export_list) = self.get_subject_specific_form_data(subject,event,forms_this_event, redcap_project, select_exports)
         # Now go form by form and export data
