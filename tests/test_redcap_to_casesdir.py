@@ -44,7 +44,7 @@ def test_save_demographics_to_file():
   assert(red2cas.create_demographic_datadict(outdir))
   
   # Note : output writen to file by this function does not necessarily respond to real subject data 
-  assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, -1, outdir))
+  assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, -1, -1, -1, outdir))
   
 #=====================================
 def test_save_form_to_file(name_of_form):
@@ -58,7 +58,7 @@ def test_save_form_to_file(name_of_form):
   
   assert(red2cas.export_subject_form(name_of_form, subject_red_id, subject_xnat_id,arm_code,visit_code, all_records, outdir, verbose=True))
   
-  red2cas.export_subject_all_forms(redcap_project,  subject_site_id, subject_red_id, subject_event_id, this_subject_data, visit_age, subject_visit_data, arm_code, visit_code, subject_xnat_id, outdir,forms_this_event, -1)
+  red2cas.export_subject_all_forms(redcap_project,  subject_site_id, subject_red_id, subject_event_id, this_subject_data, visit_age, subject_visit_data, arm_code, visit_code, subject_xnat_id, outdir,forms_this_event, -1, -1, -1)
 
 # =============================
 # Main 
