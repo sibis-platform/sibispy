@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Set to Complete all Import project forms that are referenced from Data Entry.
+
+Technically, only Data Entry forms that have the completion status of
+Unverified or Complete are considered. Typically, though, the import process
+would set the Entry form to Unverified, so it would take explicit human action
+to set the Entry form to Incomplete.
+"""
 
 ##
 ##  See COPYING file distributed along with the ncanda-data-integration package
@@ -20,6 +28,7 @@ import hashlib
 
 import sibispy
 from sibispy import sibislogger as slog
+from sibispy import cli
 
 #
 # Variables 
@@ -49,6 +58,8 @@ all_forms = {
              'lssaga2_parent': 'limesurvey_ssaga_part_2_parent',
              'lssaga3_parent': 'limesurvey_ssaga_part_3_parent',
              'lssaga4_parent': 'limesurvey_ssaga_part_4_parent'}
+# Preferred format for cli.add_form_param:
+all_forms_tuple = [(k, v) for k, v in all_forms.items()]
 
 # Because of all of the issues currently not included: 
 # 'plus': 'participant_last_use_summary'}
@@ -76,22 +87,22 @@ parser = argparse.ArgumentParser(description="Set status of a specific form to c
 parser.add_argument("-v", "--verbose",
                     help="Verbose operation",
                     action="store_true")
-parser.add_argument("--forms",
-                    help="Select specific forms to update the status to complete. Separate multiple forms with commas.",
-                    action="store",
-                    default=None )
-parser.add_argument("--study-id",
-                    help="Define study id - multiple seperated by comma (e.g., 'E-00000-M-2') ",
-                    action="store",
-                    default=None)
-parser.add_argument("-e", "--event", dest="event", required=False,
-                        choices=['baseline', '1y', '2y', '3y'],
-                        help="Event Name")
-parser.add_argument("-a", "--all-forms",
-                    help="Update all forms of arm 1",
-                    action="store_true")
+
+form_subgroup = parser.add_mutually_exclusive_group(required=True)
+form_subgroup.add_argument("-a", "--all-forms",
+                           help="Update all forms of arm 1",
+                           action="store_true")
+cli.add_form_param(form_subgroup, eligible_forms=all_forms_tuple)
+
+cli.add_subject_param(parser, dest="study_id")
+cli.add_event_param(parser, accepted_regex=r'^(baseline|\dy)$', template='{}')
 args = parser.parse_args()
 
+if len(args.event) > 0:
+    args.event = args.event[0]
+    if len(args.event) > 1:
+        print("Currently only handling a single event; picking {}"
+              .format(args.event))
 
 slog.init_log(args.verbose, None,'change_status_of_complete_field', 'change_status', None)
 session = sibispy.Session()
@@ -105,7 +116,7 @@ if not session.configure():
 forms = None
 if args.forms:
     forms = dict()
-    for f in args.forms.split(','):
+    for f in args.forms:
         if f in list(all_forms.keys()):
             forms[f] = all_forms[f]
         elif f in list(all_forms.values()):
@@ -113,8 +124,7 @@ if args.forms:
             forms[lookup[0]] = f
         else:
             print("WARNING: no form with name or prefix '%s' defined.\n" % f)
-
-if args.all_forms: 
+elif args.all_forms:
     forms = all_forms
 
 if forms == None : 
@@ -174,12 +184,13 @@ for form_prefix, form_name in forms.items():
     fields_list = [complete_label,record_label,'visit_ignore']
     entry_records = session.redcap_export_records_from_api(time_label= None, api_type = 'data_entry', fields = fields_list, format='df')
     if args.study_id : 
-        entry_records = entry_records[entry_records.index.map( lambda key: key[0] in  args.study_id.split(',')) ]
+        entry_records = entry_records[entry_records.index.map( lambda key: key[0] in  args.study_id) ]
 
     entry_records = entry_records[entry_records.index.map( lambda key: key[1] in event_mapping) ]
     if entry_records.empty : 
-        print("No records could be found for form '" + form_name + "'") 
-        continue 
+        print("No records could be found for form {}; onto next form"
+              .format(form_name))
+        continue
 
     # print entry_records.columns
     entry_records = entry_records[entry_records['visit_ignore___yes'] != 1 ]
@@ -196,7 +207,7 @@ for form_prefix, form_name in forms.items():
         # check all links of unverivied or complete records out
         entry_records_unv_or_comp = entry_records[entry_records[complete_label] > 0 ]
 
-        # drop any that have import record defined 
+        # drop any that do not have import record defined 
         import_records = entry_records_unv_or_comp.dropna(axis=0,subset=[record_label])
         if not import_records.empty : 
             import_complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = [complete_label], format='df', records=import_records[record_label].tolist())
@@ -205,7 +216,7 @@ for form_prefix, form_name in forms.items():
             upload_id_list = import_complete_records[import_complete_records[complete_label] < 2].index
             upload_id_len = len(upload_id_list)
             if upload_id_len :  
-                print("Number of Records", upload_id_len)
+                print("Number of Records (Import project)", upload_id_len)
                 # Upload in batches as if one problem is in one record all of them are not uploaded in the batch
                 for  upload_id_batch in batch(upload_id_list,50): 
                     upload_records=list() 
@@ -215,7 +226,7 @@ for form_prefix, form_name in forms.items():
                     if len(upload_records) : 
                         import_response = session.redcap_import_record_to_api(upload_records, 'import_laptops', '')
                         # import_response = "TEST"
-                        print("Upload Records:", upload_id_batch) 
+                        print("Upload Records (Import project):", upload_id_batch) 
                         print("REDCAP response:", import_response) 
     else : 
         print("Warning: '" + record_label + "' does not exist in form '" + form_name + "'")   
@@ -225,12 +236,12 @@ for form_prefix, form_name in forms.items():
     entry_records_not_complete = entry_records[entry_records[complete_label] ==1 ]
     # check if their is an import record associated with it 
     if  entry_records_not_complete.empty :
-        print("No entries for form '" + form_name + "' found that were unverified") 
+        print("Entry project: No entries for form '" + form_name + "' found that were unverified") 
         continue
 
     
     print("Number of Records", len(entry_records_not_complete))
-    print("Upload Records:", entry_records_not_complete.index) 
+    print("Upload Records (Entry project):", entry_records_not_complete.index) 
     upload_records=list() 
     for key in entry_records_not_complete.index :
         upload_records.append({'study_id': key[0], 'redcap_event_name': key[1], '%s_complete' % form_name: '2'})
