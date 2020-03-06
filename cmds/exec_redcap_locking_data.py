@@ -2,9 +2,9 @@
 from __future__ import print_function
 from builtins import str
 import sys
-import argparse 
+import argparse
 import sibispy
-
+from sibispy import cli
 from sibispy import sibislogger as slog
 from sibispy import redcap_locking_data 
 
@@ -99,25 +99,23 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--arm", dest="arm", required=False,
                         choices=['Standard Protocol'], default='Standard Protocol',
                         help="Arm Name as appears in UI")
-    parser.add_argument("-e", "--event", dest="event", required=False, nargs="*",
-                        choices=['Baseline visit', '1y visit', '2y visit', '3y visit','4y visit'],
-                        help="Event Name in as appears in UI", default=['Baseline visit', '1y visit', '2y visit', '3y visit', '4y visit'])
-    parser.add_argument("-f", "--form", dest="form", required=True, nargs="+",
-                        help="Form Name in lowercase_underscore")
+
+    cli.add_event_param(parser, required=True, template="{} visit",
+                        # backwards-compatible with the old '4y visit':
+                        accepted_regex=r'^(Baseline|\dy)$', keep_nonmatch=True)
+    cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
+                       short_switch='-f')
+    cli.add_subject_param(parser, dest="subject_id")
+    cli.add_standard_params(parser)  # -v, -p, -t
+
     parser.add_argument("-o", "--outfile", dest="outfile",
                         default='/tmp/locked_records.csv',
                         help="Path to scratch-write current locked records file. {0}".format(default))
-    parser.add_argument("-s", "--subject_id", help="REDCap subject ID(s) (separate with spaces)", nargs="*")
     action_group = parser.add_argument_group('Action parameters', '(Mutually exclusive)')
     action_group_exclusives = action_group.add_mutually_exclusive_group(required=True)
     action_group_exclusives.add_argument("--lock", dest="lock", action="store_true", help="Lock form(s)")
     action_group_exclusives.add_argument("--unlock", dest="unlock", action="store_true", help="Unlock form(s)")
     action_group_exclusives.add_argument("--report", dest="report", action="store_true", help="Generate a report of form lock statuses")
-
-    parser.add_argument("-v", "--verbose", dest="verbose",
-                        help="Turn on verbose", action='store_true')
-    parser.add_argument("-p", "--post-to-github", help="Post all issues to GitHub instead of std out.", action="store_true")
-    parser.add_argument("-t", "--time-log-dir", help="If set then time logs are written to that directory", action="store", default=None)
 
     args = parser.parse_args()
 
