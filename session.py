@@ -395,8 +395,17 @@ class Session(object):
                       config_file = self.__config_usr_data.get_config_file())
             
         return  analysis_dir
-            
-            
+
+    def get_analysis_dir(self):
+        return self.__get_analysis_dir()
+
+    def get_import_dir(self):
+        import_dir =  self.__config_usr_data.get_value('import_dir')
+        if import_dir == None:
+            slog.info("session.get_import_dir-" + hashlib.sha1(str(self.__config_usr_data.get_config_file()).encode('utf-8')).hexdigest()[0:6],"ERROR: 'import_dir' is not defined in config file !",
+                      config_file=self.__config_usr_data.get_config_file())
+        return import_dir
+
     def get_ordered_config_load(self) : 
         return self.__ordered_config_load
 
