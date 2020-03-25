@@ -2,11 +2,13 @@ import pytest
 import os
 import pwd
 import re
+from sibispy import sibislogger as slog
 from pathlib import Path
 from . import utils
 from shutil import rmtree
 
 from sibispy.cluster_util import SlurmScheduler
+
 
 @pytest.fixture
 def session(config_file):
@@ -14,6 +16,15 @@ def session(config_file):
     Return a sibispy.Session configured by the provided config_file fixture.
     """
     return utils.get_session(config_file)
+
+
+@pytest.fixture
+def logger():
+    '''
+    Return a sibislogger instance initialized for a test session.
+    '''
+    slog.init_log(False, False, 'test_cluster_util', 'test_cluster_util', None)
+    return slog
 
 
 @pytest.fixture
@@ -49,7 +60,7 @@ def cluster_config(test_config):
     return test_config['cluster_config']
 
 
-def test_make_bugtitle():
+def test_make_bugtitle(logger):
     job_title = "My Job Title"
     uniq_id = "This is the dawning of the age of Aquarius"
 
@@ -61,7 +72,7 @@ def test_make_bugtitle():
     assert bug_title.find(sha) > -1, "Job title is missing the hashed uniq identifier"
 
 
-def test_slurm_make_connection(cluster_config):
+def test_slurm_make_connection(cluster_config, logger):
     from fabric import Connection
 
     cfg = SlurmScheduler._get_connection(cluster_config['connection'])
@@ -70,7 +81,7 @@ def test_slurm_make_connection(cluster_config):
     assert isinstance(cfg, Connection), "connection is not a fabric.Connection"
 
 
-def test_slurm_get_command_str(cluster_config):
+def test_slurm_get_command_str(cluster_config, logger):
     job_title = "My Job Title"
     job_log = "some-job-file.log"
     job_script = "touch some-kind-of-file.txt; rm -f some-kind-of-file.txt;"
@@ -84,7 +95,7 @@ def test_slurm_get_command_str(cluster_config):
     assert cmd_str.find(job_script) > -1, "Job script missing from command"
 
 
-def test_slurm_make_cmd_opts(cluster_config):
+def test_slurm_make_cmd_opts(cluster_config, logger):
 
     slurm = SlurmScheduler(cluster_config)
 
@@ -102,7 +113,8 @@ def test_slurm_make_cmd_opts(cluster_config):
 
 
 @pytest.mark.cluster_job(True)
-def test_slurm_schedule_job(capsys, monkeypatch, request, session, test_config, local_out_dir: Path, shared_out_dir: Path, cur_login: CurLogin):
+def test_slurm_schedule_job(capsys, monkeypatch, request, session, test_config, local_out_dir: Path,
+                            shared_out_dir: Path, cur_login: CurLogin, logger):
     cluster_submit_log = local_out_dir / test_config['submit_log']
     cluster_job_log = shared_out_dir / test_config['job_log']
 
@@ -123,6 +135,7 @@ def test_slurm_schedule_job(capsys, monkeypatch, request, session, test_config, 
     slurm = SlurmScheduler(test_config['cluster_config'])
     with capsys.disabled():
         monkeypatch.setattr('sys.stdin', open('/dev/null'))
-        assert slurm.schedule_job(cmd_str, request.module.__name__, cluster_submit_log, cluster_job_log, True)
+        scheduled = slurm.schedule_job(cmd_str, request.module.__name__, cluster_submit_log, cluster_job_log, True)
+        assert scheduled, "Cluster Job should have been scheduled"
 
     print(f"Please check {cluster_job_log} if cluster job was successfully executed !")
