@@ -327,6 +327,11 @@ class redcap_to_casesdir(object):
             else :
                 race_label=self.__code_to_label_dict['race'][race_code]
                 
+            if pandas.isnull(subject_data['family_id']):
+                family_id = ""
+            else:
+                family_id = str(int(subject_data['family_id']))
+
             demographics = [
                 ['subject', subject_code],
                 ['arm', arm_code],
@@ -346,7 +351,7 @@ class redcap_to_casesdir(object):
                 ['siblings_enrolled_yn_2',
                  'NY'[int(siblings_enrolled_yn_corrected)]],
                 # ['siblings_id_first_2', siblings_id_first_corrected],
-                ['family_id', subject_data['family_id']],
+                ['family_id', family_id],
                 ['hispanic', self.__code_to_label_dict['hispanic'][hispanic_code][0:1]],
                 ['race', race_code],
                 ['race_label', race_label],
