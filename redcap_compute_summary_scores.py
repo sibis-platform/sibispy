@@ -84,7 +84,9 @@ class redcap_compute_summary_scores(object):
         except:
             pass
         finally:
-            self.__demographics = self.__demographics.dropna()
+            self.__demographics = (self.__demographics
+                                   .dropna(axis=1, how='all')
+                                   .dropna(axis=0, how='all'))
         
         self.__demographics = pandas.concat([self.__demographics.xs(event, level=1) for event in baseline_events])
 
