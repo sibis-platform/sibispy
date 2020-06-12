@@ -57,7 +57,8 @@ all_forms = {
              'lssaga1_parent': 'limesurvey_ssaga_part_1_parent',
              'lssaga2_parent': 'limesurvey_ssaga_part_2_parent',
              'lssaga3_parent': 'limesurvey_ssaga_part_3_parent',
-             'lssaga4_parent': 'limesurvey_ssaga_part_4_parent'}
+             'lssaga4_parent': 'limesurvey_ssaga_part_4_parent',
+             'plus': 'participant_last_use_summary'}
 # Preferred format for cli.add_form_param:
 all_forms_tuple = [(k, v) for k, v in all_forms.items()]
 
