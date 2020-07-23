@@ -27,6 +27,7 @@ class redcap_to_casesdir(object):
         self.__code_to_label_dict = dict()
         self.__metadata_dict = dict()
         self.__event_dict = dict()
+        self.__demographic_event_skips = list()
         self.__forms_dir =  None
         self.__sibis_defs = None
         self.__scanner_dict = None
@@ -55,6 +56,9 @@ class redcap_to_casesdir(object):
         self.__event_dict = self.__transform_dict_string_into_tuple__('event_dictionary')
         if not  self.__event_dict:
             return False
+
+        # Reading in which events to skip demographics generation for (i.e. midyears)
+        self.__demographic_event_skips = self.__sibis_defs['skip_demographics_for']
 
         # reading in all forms and variables that should be exported to cases_dir
         self.__forms_dir  = os.path.join(sessionObj.get_operations_dir(),'redcap_to_casesdir')
@@ -474,7 +478,8 @@ class redcap_to_casesdir(object):
             os.makedirs(measures_dir)
 
         # Export demographics (if selected)
-        if not select_exports or 'demographics' in select_exports:
+        if ((not select_exports or 'demographics' in select_exports)
+                and event not in self.__demographic_event_skips):
             self.export_subject_demographics(subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, siblings_enrolled_yn_corrected, siblings_id_first_corrected, measures_dir,verbose)
 
         (all_records,export_list) = self.get_subject_specific_form_data(subject,event,forms_this_event, redcap_project, select_exports)
