@@ -8,6 +8,9 @@ import re
 import ast
 import glob
 import hashlib
+from pathlib import Path
+from typing import Union
+
 import pandas
 import datetime
 import subprocess
@@ -17,6 +20,8 @@ import sibispy
 from sibispy import sibislogger as slog
 from sibispy import utils as sutils
 from sibispy import config_file_parser as cfg_parser
+from sibispy.cluster_util import SlurmScheduler
+
 
 class redcap_to_casesdir(object):
     def __init__(self):
@@ -506,7 +511,14 @@ class redcap_to_casesdir(object):
     def get_event_dictionary(self):
         return self.__event_dict
 
-    def schedule_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
+    def schedule_cluster_job(self, job_script: str, job_title: str, submit_log: Union[str, Path] = None,
+                             job_log: str = '/dev/null', verbose: bool = False) -> bool:
+
+        slurm_config = self.__sibis_defs['cluster_config']
+        slurm = SlurmScheduler(slurm_config)
+        return slurm.schedule_job(job_script, job_title, submit_log, job_log, verbose)
+
+    def schedule_old_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
         qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
         if not os.path.exists(qsub_cmd):
             slog.info(job_title + "-" +hashlib.sha1(str(job_script).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job as '" + qsub_cmd + "' cannot be found!", job_script = str(job_script))
@@ -514,7 +526,7 @@ class redcap_to_casesdir(object):
 
         sge_env = os.environ.copy()
         sge_env['SGE_ROOT'] = '/opt/sge'
-        sge_param = self.__sibis_defs['cluster_parameters'].split(',')
+        sge_param = self.__sibis_defs['old_cluster_parameters'].split(',')
         if job_log :
             sge_param += ['-o', job_log]
         else :
