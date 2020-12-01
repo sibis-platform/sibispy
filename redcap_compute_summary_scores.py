@@ -12,7 +12,9 @@ from builtins import object
 import os
 import re
 import sys
+import time
 import hashlib
+import urllib3
 import pandas
 import numpy as np
 import redcap
@@ -166,10 +168,24 @@ class redcap_compute_summary_scores(object):
         for event_name in set(record_ids.index.map(lambda key: key[1]).tolist()):
             records_this_event = record_ids.xs( event_name, level=1).index.tolist()
             for idx in range(0, len(records_this_event), 50):
-                imported.append(self.__rc_summary.export_records(fields=import_fields,
-                                                                 records=records_this_event[idx:idx + 50],
-                                                                 events=[event_name], event_name='unique', format='df'))
-                
+                i = 0
+                while i < 5:
+                    try:
+                        imported.append(
+                            self.__rc_summary.export_records(
+                                fields=import_fields,
+                                records=records_this_event[idx:idx + 50],
+                                events=[event_name], 
+                                event_name='unique', 
+                                format='df'
+                            )
+                        )
+                    except urllib3.exceptions.MaxRetryError:
+                        i += 1
+                        time.sleep(12)
+                        continue
+
+                    break
         
         if False: 
             print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
