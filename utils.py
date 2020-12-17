@@ -25,7 +25,7 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
 
     success = False
     retries = 10
-    last_e = None
+    last_e = IOError(-999, "Default error - SHOULD NOT BE REACHED")
 
     while (not success) and (retries > 0):
         try:
