@@ -141,7 +141,7 @@ def call_shell_program(cmd):
 
 # Label translation function - LimeSurvey to SRI/old REDCap style
 def limesurvey_label_in_redcap( prefix, ls_label ):
-    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( '[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
+    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( r'[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
 
 # Map labels in a list according to a dictionary
 def map_labels_to_dict( labels, ldict ):
