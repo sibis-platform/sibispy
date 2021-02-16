@@ -13,6 +13,7 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
+from contextlib import contextmanager
 import ast
 import os
 import time
@@ -229,17 +230,20 @@ class Session(object):
             return (None,str(err_msg))
             
         
+    @contextmanager
     def __connect_penncnp__(self):
         # Check that config file is correctly defined 
         if "penncnp" not in list(self.__config_srv_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp server info not defined!")
-            return None
+            yield
+            return
 
         penncnp_srv_data = self.__config_srv_data["penncnp"]
 
         if "penncnp" not in list(self.__config_usr_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp user info not defined!")
-            return None
+            yield
+            return
 
         penncnp_usr_data = self.__config_usr_data.get_category('penncnp')
 
@@ -251,11 +255,13 @@ class Session(object):
         (pip_list, err_msg) = self.__list_running_process__(check_cmd)
         if err_msg : 
             slog.info("session.__connect_penncnp__","Checking if command %s is already running failed with the following error message: %s" % (check_cmd,strcheck_err))
-            return None
+            yield
+            return
 
         if pip_list: 
             slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " are already running ! Please execute 'kill -9 " + pip_list.decode('utf-8') + "' before proceeding!")
-            return None 
+            yield
+            return
 
         # Open screen
         import subprocess
@@ -270,16 +276,22 @@ class Session(object):
             
         if err_msg: 
             slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (display_cmd,str(err_msg)))
-            return None
+            yield
+            self.disconnect_penncnp()
+            return
 
         (pip, err_msg) = self.__list_running_process__(check_cmd)
         if err_msg : 
             slog.info("session.__connect_penncnp__","Checking if command %s is already running failed with the following error message: %s" % (check_cmd,strcheck_err))
-            return None
+            yield
+            self.disconnect_penncnp()
+            return
 
         if not pip: 
             slog.info("session.__connect_penncnp__","Error: sessions with display " + display + " did not start up!")
-            return None 
+            yield
+            self.disconnect_penncnp()
+            return
 
         os.environ["DISPLAY"]=display
 
@@ -301,8 +313,14 @@ class Session(object):
         browser.find_element_by_name("Login").click()
 
         # Exit configuration
-        self.api['browser_penncnp'] = {"browser": browser, "pip" : int(pip), "display": display} 
-        return browser
+        self.api['browser_penncnp'] = {"browser": browser, "pip": int(pip), "display": display} 
+
+        try:
+            yield browser
+        except:
+            raise
+        finally:
+            self.disconnect_penncnp()
 
 
     def __connect_svn_laptop__(self):
@@ -709,10 +727,10 @@ class Session(object):
         try: 
             report = wait.until(EC.element_to_be_clickable((By.NAME,'Export Report')))
         except Exception as e:
-                slog.info('session.get_penncnp_export', "ERROR: Timeout, could not find Export Report",
-                  info = "Try increasing wait time at WebDriverWait", 
-                  msg=str(e))
-                return None
+            slog.info('session.get_penncnp_export', "ERROR: Timeout, could not find Export Report",
+              info = "Try increasing wait time at WebDriverWait", 
+              msg=str(e))
+            return None
 
         return report
 
