@@ -97,7 +97,7 @@ class ClusterScheduler(ABC):
             with self.get_connection() as conn:
                 r: Result = conn.run(cmd_str, hide=True)
 
-            if r.stderr and r.stderr is not '':
+            if r.stderr and r.stderr != '':
                 slog.info(self._make_bug_title(job_title, r.stderr), "ERROR: Failed to schedule job!",
                           cmd_str=r.command, err_msg=r.stderr)
                 return False
