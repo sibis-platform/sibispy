@@ -310,7 +310,7 @@ class XnatUtil(object):
         if headers is None:
             headers = {}
 
-        if method is 'GET' and isinstance(body, dict):
+        if method == 'GET' and isinstance(body, dict):
           body.update(query)
           query = {}
 
@@ -321,15 +321,15 @@ class XnatUtil(object):
 
         response = None
 
-        if method is 'PUT':
+        if method == 'PUT':
             response = self._xnat.interface.put(fulluri, headers=headers, data=body, **kwargs)
-        elif method is 'GET':
+        elif method == 'GET':
             response = self._xnat.interface.get(fulluri, headers=headers, params=body, **kwargs)
-        elif method is 'POST':
+        elif method == 'POST':
             response = self._xnat.interface.post(fulluri, headers=headers, data=body, **kwargs)
-        elif method is 'DELETE':
+        elif method == 'DELETE':
             response = self._xnat.interface.delete(fulluri, headers=headers, data=body, **kwargs)
-        elif method is 'HEAD':
+        elif method == 'HEAD':
             response = self._xnat.interface.head(fulluri, headers=headers, data=body, **kwargs)
         else:
             print('unsupported HTTP method')
