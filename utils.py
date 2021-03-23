@@ -172,7 +172,7 @@ def run_rscript( row, script, scores_key = None):
 
     scores = pandas.read_csv( scores_csv, index_col=None )
     shutil.rmtree( tmpdir )
-    return scores.ix[0]
+    return scores.iloc[0]
 
 
 """
