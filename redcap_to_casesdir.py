@@ -422,7 +422,7 @@ class redcap_to_casesdir(object):
             # (except "FORM_[missing_]why"), add a separate column for the
             # coded label
             if field in list(self.__code_to_label_dict.keys()) and not re.match('.*_why$', field):
-                code = str(record[field].ix[0])
+                code = str(record[field].iloc[0])
                 label = ''
                 if code in list(self.__code_to_label_dict[field].keys()):
                     label = self.__code_to_label_dict[field][code]
