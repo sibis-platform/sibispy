@@ -94,7 +94,7 @@ if not os.path.exists(outdir) :
 # SUBJECT SPECIFIC INFO 
 #
 
-visit_log_fields = ['study_id', 'redcap_data_access_group', 'visit_date',
+visit_log_fields = ['study_id', 'visit_date',
                       'mri_qa_completed', 'mri_t1_age', 'mri_dti_age',
                       'mri_rsfmri_age','mri_scanner', 'visit_ignore','mri_xnat_sid']
 
