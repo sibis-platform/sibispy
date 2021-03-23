@@ -94,7 +94,7 @@ if not os.path.exists(outdir) :
 # SUBJECT SPECIFIC INFO 
 #
 
-visit_log_fields = ['study_id', 'redcap_data_access_group', 'visit_date',
+visit_log_fields = ['study_id', 'visit_date',
                       'mri_qa_completed', 'mri_t1_age', 'mri_dti_age',
                       'mri_rsfmri_age','mri_scanner', 'visit_ignore','mri_xnat_sid']
 
@@ -114,7 +114,7 @@ subject_key = visit_log_redcap.index[0]
 subject_red_id =  subject_key[0]
 subject_event_id =  subject_key[1]
 subject_site_id = str(subject_red_id.split('-')[0])
-subject_visit_data = visit_log_redcap.ix[subject_key]
+subject_visit_data = visit_log_redcap.loc[subject_key]
 subject_xnat_id =  str(subject_visit_data['mri_xnat_sid'])
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 
@@ -129,7 +129,7 @@ subject_data = redcap_project.export_records(fields=subject_fields,
                                              records = [subject_red_id],
                                              format='df')
 subject_data = pandas.concat([subject_data.xs(event, level=1) for event in baseline_events])
-this_subject_data = subject_data.ix[subject_red_id]
+this_subject_data = subject_data.loc[subject_red_id]
 
 visit_date = str(subject_visit_data['visit_date'])
 subject_dob_str = str( this_subject_data['dob'] )
