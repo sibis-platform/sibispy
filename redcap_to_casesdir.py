@@ -445,6 +445,8 @@ class redcap_to_casesdir(object):
         all_fields = ['study_id']
         export_list = []
         for export_name in list(self.__export_forms.keys()):
+            if export_name in ['subject', 'visit', 'arm']:
+                continue
             if (self.__import_forms[export_name] in forms_this_event):
                 if (not select_exports or export_name in select_exports):
                     all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
