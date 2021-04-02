@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Union
 
 import pandas
+import numpy as np
 import datetime
 import subprocess
 from ast import literal_eval as make_tuple
@@ -443,14 +444,18 @@ class redcap_to_casesdir(object):
     def get_subject_specific_form_data(self,subject,event,forms_this_event, redcap_project,select_exports=None):
         # define fields and forms to export
         all_fields = ['study_id']
+        forbidden_export_fields = ['subject', 'visit', 'arm']
         export_list = []
         for export_name in list(self.__export_forms.keys()):
-            if export_name in ['subject', 'visit', 'arm']:
+            if export_name in forbidden_export_fields:
                 continue
             if (self.__import_forms[export_name] in forms_this_event):
                 if (not select_exports or export_name in select_exports):
                     all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
                     export_list.append(export_name)
+
+        # Remove the fields we are forbidden to export from REDCap
+        all_fields = np.setdiff1d(all_fields, forbidden_export_fields).tolist()
 
         # Get data
         all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format='df')
