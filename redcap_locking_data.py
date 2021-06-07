@@ -7,18 +7,24 @@ Create the SIBIS Locking Object
 ===============================
 The SIBIS Locking Object provides functionality to lock, unlock, and report on the locking status of a visit 
 """
+from ast import literal_eval
 from builtins import str
 from builtins import object
-import pandas as pd 
-import sibispy 
+import pandas as pd
+import sibispy
 from sibispy import sibislogger as slog
+import re
+from typing import List
+
 
 class redcap_locking_data(object):
     def __init__(self):
         self.__session__ = None
+        self.__event_dict = None
 
     def configure(self, sessionObj):
         self.__session__ = sessionObj
+        self.__event_dict = self.get_event_names_for_ids()
 
     def unlock_form(self,project_name, arm_name, event_descrip, name_of_form, subject_id = None):
         """
@@ -57,6 +63,39 @@ class redcap_locking_data(object):
         # lock all the records for this form by appending entries to locking table
         # Kilian: Problem this table is created regardless if the form really exists in redcap or not
         return self.__session__.add_mysql_table_records('redcap_locking_data',project_name, arm_name, event_descrip, name_of_form, project_records, outfile) 
+
+    def report_locked_forms_from_enriched_lock_table(
+        self,
+        subject_id: str,
+        xnat_id: str,
+        project_name: str,
+        forms: List[str],
+        redcap_event_name: str,
+        enriched_table: pd.DataFrame,
+    ) -> pd.DataFrame:
+        columns = ['subject', 'arm', 'visit'] + list(forms)
+        # 1. Subset to project_id of interest (so that redcap_event_name is
+        #    guaranteed unique)
+        project_id = self.__session__.get_mysql_project_id(project_name)
+        project_idx = enriched_table['project_id'] == project_id
+        lock_table = enriched_table.loc[project_idx]
+
+        # 2. Get export_arm and export_event via redcap_event_name
+        event_idx = lock_table['redcap_event_name'] == redcap_event_name
+        arm_name = lock_table.loc[event_idx, 'export_arm'].values[0]
+        event_name = lock_table.loc[event_idx, 'export_event'].values[0]
+        event_id = lock_table.loc[event_idx, 'event_id'].values[0]
+        index_cols = dict(subject=xnat_id, arm=arm_name, visit=event_name)
+        data = pd.DataFrame(data=index_cols, index=[0], columns=columns)
+
+        # 3. Subset to just the subject and event of interest
+        subject_idx = lock_table['record'] == subject_id
+        lock_table = lock_table.loc[subject_idx]
+        # locked_forms = self.__session__.get_mysql_table_records_from_dataframe(
+        #     lock_table,
+        #     project_name,
+        # )
+
 
     def report_locked_forms(self,subject_id, xnat_id, forms, project_name, arm_name, event_descrip, my_sql_table=pd.DataFrame()):
         """
@@ -100,6 +139,49 @@ class redcap_locking_data(object):
         :return: `pandas.DataFrame`
         """
 
-        return self.__session__.get_mysql_table_records('redcap_locking_data',project_name, arm_name=None, event_descrip=None, subject_id=None)
+        lock_data = self.__session__.get_mysql_table_records(
+            'redcap_locking_data', project_name, arm_name=None,
+            event_descrip=None, subject_id=None)
+        enriched_lock_data = lock_data.merge(self.__event_dict, how='left')
 
-    
+        return enriched_lock_data
+
+    def get_event_names_for_ids(self) -> pd.DataFrame:
+        # 0. Check if this work has already been done (only needs doing once)
+        if self.__event_dict is not None:
+            return self.__event_dict
+
+        # 1. Match event_id to constructed redcap_event_name
+        db_conn = self.__session__.api['redcap_mysql_db']
+        events = pd.read_sql_table('redcap_events_metadata', db_conn,
+                                   columns=['event_id', 'arm_id', 'descrip'])
+        arms = pd.read_sql_table('redcap_events_arms', db_conn,
+                                 columns=['arm_id', 'arm_num'])
+        event_arm = events.merge(arms, how='outer')
+        event_arm['redcap_event_name'] = event_arm.apply(
+            lambda x: "{}_arm_{}".format(
+                re.sub('-', '', re.sub(r'[ ]', '_', x['descrip']).lower()),
+                x['arm_num']
+            ), axis=1
+        )
+
+        event_dict = event_arm[['event_id', 'redcap_event_name']]
+
+        # 2. Match Redcap event name to the export event name
+        config, error = self.__session__.get_config_sys_parser()
+        lookup = (config.get_category('redcap_to_casesdir')
+                        .get('event_dictionary', {}))
+
+        records = []
+        for rc_event, literal_tuple in lookup.items():
+            arm, event = literal_eval("({})".format(literal_tuple))
+            records.append({'redcap_event_name': rc_event,
+                            'export_arm': arm,
+                            'export_event': event})
+
+        lookup_df = pd.DataFrame.from_records(records)
+        event_dict_export = event_dict.merge(lookup_df, how='outer')
+
+        # 3. Save into an object and return for good measure
+        self.__event_dict = event_dict_export
+        return event_dict_export
