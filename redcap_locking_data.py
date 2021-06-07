@@ -73,7 +73,6 @@ class redcap_locking_data(object):
         redcap_event_name: str,
         enriched_table: pd.DataFrame,
     ) -> pd.DataFrame:
-        columns = ['subject', 'arm', 'visit'] + list(forms)
         # 1. Subset to project_id of interest (so that redcap_event_name is
         #    guaranteed unique)
         project_id = self.__session__.get_mysql_project_id(project_name)
@@ -84,18 +83,24 @@ class redcap_locking_data(object):
         event_idx = lock_table['redcap_event_name'] == redcap_event_name
         arm_name = lock_table.loc[event_idx, 'export_arm'].values[0]
         event_name = lock_table.loc[event_idx, 'export_event'].values[0]
-        event_id = lock_table.loc[event_idx, 'event_id'].values[0]
+        # event_id = lock_table.loc[event_idx, 'event_id'].values[0]
         index_cols = dict(subject=xnat_id, arm=arm_name, visit=event_name)
-        data = pd.DataFrame(data=index_cols, index=[0], columns=columns)
 
         # 3. Subset to just the subject and event of interest
-        subject_idx = lock_table['record'] == subject_id
-        lock_table = lock_table.loc[subject_idx]
-        # locked_forms = self.__session__.get_mysql_table_records_from_dataframe(
-        #     lock_table,
-        #     project_name,
-        # )
+        select_idx = ((lock_table['record'] == subject_id) 
+                      & (lock_table['export_event'] == event_name))
+        lock_table = lock_table.loc[select_idx]
 
+        # 4. Write out to a single-row DataFrame
+        columns = ['subject', 'arm', 'visit'] + list(forms)
+        data = pd.DataFrame(data=index_cols, index=[0], columns=columns)
+        for _, row in lock_table.iterrows():
+            name_of_form = row.get('form_name')
+            if name_of_form in forms:
+                timestamp = row.get('timestamp')
+                data.at[0, name_of_form] = timestamp
+
+        return data
 
     def report_locked_forms(self,subject_id, xnat_id, forms, project_name, arm_name, event_descrip, my_sql_table=pd.DataFrame()):
         """
