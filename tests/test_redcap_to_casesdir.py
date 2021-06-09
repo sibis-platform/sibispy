@@ -14,6 +14,7 @@ import os
 import sys
 import glob
 import pandas
+import numpy as np
 
 import sibispy
 from sibispy import sibislogger as slog
@@ -44,8 +45,22 @@ def test_save_demographics_to_file():
   assert(red2cas.create_demographic_datadict(outdir))
   
   # Note : output writen to file by this function does not necessarily respond to real subject data 
-  assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, -1, -1, None, outdir))
-  
+  assert(red2cas.export_subject_demographics(
+    subject_red_id,
+    subject_xnat_id,
+    arm_code,
+    visit_code,
+    subject_site_id,
+    visit_age ,
+    this_subject_data,
+    subject_visit_data,
+    -1,
+    -1,
+    None,
+    measures_dir=outdir,
+    conditional=False
+  ))
+
 #=====================================
 def test_save_form_to_file(name_of_form):
 
@@ -94,7 +109,7 @@ if not os.path.exists(outdir) :
 # SUBJECT SPECIFIC INFO 
 #
 
-visit_log_fields = ['study_id', 'visit_date',
+visit_log_fields = ['study_id', 'visit_date', 'family_id',
                       'mri_qa_completed', 'mri_t1_age', 'mri_dti_age',
                       'mri_rsfmri_age','mri_scanner', 'visit_ignore','mri_xnat_sid']
 
@@ -119,7 +134,7 @@ subject_xnat_id =  str(subject_visit_data['mri_xnat_sid'])
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 
 subject_fields = ['study_id', 'dob',  'exclude', 'enroll_exception',
-                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code']
+                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code', 'family_id']
 #baseline_events = ['baseline_visit_arm_1','baseline_visit_arm_4']
 #for speed up just the single subject- records flag
 baseline_events = ['baseline_visit_arm_1']
@@ -148,6 +163,89 @@ if 1 :
     test_save_demographics_to_file()
 else :
     print("DEBUG: skip saving demographic data")
+
+
+# Midyear mock data and test
+mock_longitudinal_data = pandas.DataFrame({
+  'study_id': ['X-00001-X-9'] * 4,
+  'redcap_event_name': ['5y_visit_arm_1', '66month_followup_arm_1',
+                        '6y_visit_arm_1', '72month_followup_arm_1'],
+  'visit_date': [np.nan, '2015-06-01', '2016-01-01', '2016-06-01'],
+  'mri_qa_completed': [np.nan, np.nan, 1, np.nan],
+  'mri_t1_age': [np.nan, np.nan, 16, np.nan],
+  'mri_dti_age': [np.nan, np.nan, 16, np.nan],
+  'mri_rsfmri_age': [np.nan, np.nan, 16, np.nan],
+  'mri_scanner': [np.nan, np.nan, 'SIEMENS TrioTim MRC35217', np.nan],
+  'visit_ignore___yes': [1, 0, 0, 0],
+  'mri_xnat_sid': ['NCANDA_S09999'] * 4,
+}).set_index(['study_id', 'redcap_event_name'])
+mock_baseline_data = pandas.DataFrame({
+  'study_id': ['X-00001-X-9'],
+  'dob': ['1999-01-01'],
+  'race': [4],
+  'race_other_code': [np.nan],
+  'hispanic': [1],
+  'siblings_enrolled___true': [0],
+  'siblings_id1': [np.nan],
+  'family_id': [10],
+  'enroll_exception___drinking': [0],
+  'exclude': [0],
+}).set_index('study_id').loc['X-00001-X-9']
+
+from functools import partial
+export_conditional_demographics = partial(
+  red2cas.export_subject_demographics,
+  subject='X-00001-X-9',
+  subject_code='NCANDA_S09999',
+  arm_code=arm_code,
+  # visit_code='followup_5y',
+  site='A',
+  # visit_age=visit_age,
+  subject_data=mock_baseline_data,
+  # visit_data=mock_longitudinal_data,
+  exceeds_criteria_baseline=-1,
+  siblings_enrolled_yn_corrected=-1,
+  siblings_id_first_corrected=None,
+  # measures_dir=outdir,
+  #conditional=conditional,
+)
+
+# Prepare export paths
+os.makedirs(os.path.join(outdir, "NCANDA_S09999", "followup_5y"), exist_ok=True)
+os.makedirs(os.path.join(outdir, "NCANDA_S09999", "followup_6y"), exist_ok=True)
+# Delete the file that is only created conditionally, if one doesn't already exist
+try:
+  os.remove(os.path.join(outdir, "NCANDA_S09999", "followup_5y", "demographics.csv"))
+except OSError:
+  pass
+
+# assert export_conditional_demographics(
+#   visit_code='followup_5y',
+#   visit_age=mock_longitudinal_data.loc['5y_visit_arm_1'].get('visit_age'),
+#   visit_data=mock_longitudinal_data.loc['5y_visit_arm_1'],
+#   conditional=False,
+# ) is None
+assert export_conditional_demographics(
+  visit_code='followup_5y',
+  visit_age=mock_longitudinal_data.xs('66month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
+  visit_data=mock_longitudinal_data.xs('66month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
+  measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_5y'),
+  conditional=True,
+) is True, "66-month midyear should be saved despite conditional=True"
+assert export_conditional_demographics(
+  visit_code='followup_6y',
+  visit_age=mock_longitudinal_data.xs('6y_visit_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
+  visit_data=mock_longitudinal_data.xs('6y_visit_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
+  measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
+  conditional=False,
+) is True, "6y main-year visit should be saved always"
+assert export_conditional_demographics(
+  visit_code='followup_6y',
+  visit_age=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
+  visit_data=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
+  measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
+  conditional=True,
+) is None, "72-month midyear should not be saved, given the presence of 6y main"
 
 #
 # Writing out another dictionary
