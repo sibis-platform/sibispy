@@ -80,9 +80,12 @@ class redcap_locking_data(object):
         lock_table = enriched_table.loc[project_idx]
 
         # 2. Get export_arm and export_event via redcap_event_name
-        event_idx = lock_table['redcap_event_name'] == redcap_event_name
-        arm_name = lock_table.loc[event_idx, 'export_arm'].values[0]
-        event_name = lock_table.loc[event_idx, 'export_event'].values[0]
+        event_details = self.__event_dict.query(
+            f"project_id == {project_id} and redcap_event_name == '{redcap_event_name}'").squeeze()
+        assert isinstance(event_details, pd.Series)
+        arm_name = event_details.get('export_arm')
+        event_name = event_details.get('export_event')
+
         # event_id = lock_table.loc[event_idx, 'event_id'].values[0]
         index_cols = dict(subject=xnat_id, arm=arm_name, visit=event_name)
 
@@ -136,7 +139,7 @@ class redcap_locking_data(object):
 
         return dataframe
 
-    def report_locked_forms_all(self,project_name):
+    def report_locked_forms_all(self, project_name):
         """
         Generate a report for a single subject reporting all of the forms that
         are locked in the database using the timestamp the record was locked
@@ -161,7 +164,7 @@ class redcap_locking_data(object):
         events = pd.read_sql_table('redcap_events_metadata', db_conn,
                                    columns=['event_id', 'arm_id', 'descrip'])
         arms = pd.read_sql_table('redcap_events_arms', db_conn,
-                                 columns=['arm_id', 'arm_num'])
+                                 columns=['arm_id', 'arm_num', 'project_id'])
         event_arm = events.merge(arms, how='outer')
         event_arm['redcap_event_name'] = event_arm.apply(
             lambda x: "{}_arm_{}".format(
@@ -170,7 +173,7 @@ class redcap_locking_data(object):
             ), axis=1
         )
 
-        event_dict = event_arm[['event_id', 'redcap_event_name']]
+        event_dict = event_arm[['project_id', 'event_id', 'redcap_event_name']]
 
         # 2. Match Redcap event name to the export event name
         config, error = self.__session__.get_config_sys_parser()
