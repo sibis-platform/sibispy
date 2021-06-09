@@ -358,13 +358,18 @@ class redcap_to_casesdir(object):
             else:
                 family_id = str(int(subject_data['family_id']))
 
+            if conditional:
+                visit_age = ''
+            else:
+                visit_age = self.__truncate_age__(visit_age)
+
             demographics = [
                 ['subject', subject_code],
                 ['arm', arm_code],
                 ['visit', visit_code],
                 ['site', site],
                 ['sex', subject[8]],
-                ['visit_age', self.__truncate_age__(visit_age)],
+                ['visit_age', visit_age],
                 ['mri_structural_age', self.__truncate_age__(visit_data['mri_t1_age'])],
                 ['mri_diffusion_age', self.__truncate_age__(visit_data['mri_dti_age'])],
                 ['mri_restingstate_age', self.__truncate_age__(visit_data['mri_rsfmri_age'])],
