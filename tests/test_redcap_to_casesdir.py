@@ -44,8 +44,22 @@ def test_save_demographics_to_file():
   assert(red2cas.create_demographic_datadict(outdir))
   
   # Note : output writen to file by this function does not necessarily respond to real subject data 
-  assert(red2cas.export_subject_demographics(subject_red_id, subject_xnat_id,arm_code,visit_code, subject_site_id, visit_age , this_subject_data, subject_visit_data, -1, -1, None, outdir))
-  
+  assert(red2cas.export_subject_demographics(
+    subject_red_id,
+    subject_xnat_id,
+    arm_code,
+    visit_code,
+    subject_site_id,
+    visit_age ,
+    this_subject_data,
+    subject_visit_data,
+    -1,
+    -1,
+    None,
+    measures_dir=outdir,
+    conditional=False
+  ))
+
 #=====================================
 def test_save_form_to_file(name_of_form):
 
@@ -94,7 +108,7 @@ if not os.path.exists(outdir) :
 # SUBJECT SPECIFIC INFO 
 #
 
-visit_log_fields = ['study_id', 'visit_date',
+visit_log_fields = ['study_id', 'visit_date', 'family_id',
                       'mri_qa_completed', 'mri_t1_age', 'mri_dti_age',
                       'mri_rsfmri_age','mri_scanner', 'visit_ignore','mri_xnat_sid']
 
@@ -119,7 +133,7 @@ subject_xnat_id =  str(subject_visit_data['mri_xnat_sid'])
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 
 subject_fields = ['study_id', 'dob',  'exclude', 'enroll_exception',
-                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code']
+                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code', 'family_id']
 #baseline_events = ['baseline_visit_arm_1','baseline_visit_arm_4']
 #for speed up just the single subject- records flag
 baseline_events = ['baseline_visit_arm_1']
