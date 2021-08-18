@@ -458,7 +458,7 @@ class Session(object):
 
         sys_file = os.path.join(oDir,filename)
         if not os.path.exists(sys_file) : 
-            return (None,"ERROR:", sys_file," does not exist!") 
+            return (None,"ERROR:" + sys_file + " does not exist!") 
 
         # Get project specific settings for test file 
         sys_file_parser = cfg_parser.config_file_parser()
