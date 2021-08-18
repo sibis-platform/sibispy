@@ -70,5 +70,14 @@ assert(not table_df.empty)
 indirect = red_lock.report_locked_forms(test_subject,test_subject, forms, project_name, arm_name, event_name,table_df)
 assert(direct.equals(indirect))
 
+enriched_df = red_lock.report_locked_forms_from_enriched_lock_table(
+    subject_id=test_subject,
+    xnat_id=test_subject,
+    project_name=project_name,
+    forms=forms,
+    redcap_event_name=event_unique,
+    enriched_table=table_df,
+)
+assert(not enriched_df.empty)
 
 

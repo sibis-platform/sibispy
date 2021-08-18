@@ -25,12 +25,14 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
 
     success = False
     retries = 10
+    last_e = IOError(-999, "Default error - SHOULD NOT BE REACHED")
 
     while (not success) and (retries > 0):
         try:
             df.to_csv(fname + '.new', index=False)
             success = True
         except IOError as e:
+            last_e = e
             if e.errno == 11:
                 if verbose : 
                     print("Failed to write to csv ! Retrying in 5s...")
@@ -40,7 +42,8 @@ def safe_dataframe_to_csv(df, fname, verbose=False):
                 retries = 0
 
     if not success:
-        slog.info("safe_dataframe_to_csv","ERROR: failed to write file" + str(fname) + "with errno" + str(e.errno))
+        slog.info("safe_dataframe_to_csv",
+                  f"ERROR: failed to write file {fname} with errno {last_e.errno}")
         return False
 
     # Check if new file is equal to old file
@@ -138,7 +141,7 @@ def call_shell_program(cmd):
 
 # Label translation function - LimeSurvey to SRI/old REDCap style
 def limesurvey_label_in_redcap( prefix, ls_label ):
-    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( '[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
+    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( r'[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
 
 # Map labels in a list according to a dictionary
 def map_labels_to_dict( labels, ldict ):

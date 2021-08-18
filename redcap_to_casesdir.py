@@ -302,7 +302,23 @@ class redcap_to_casesdir(object):
 
     # NCANDA SPECIFIC - Generalize later
     # Create "demographics" file "by hand" - this includes some text fields
-    def export_subject_demographics(self,subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, siblings_enrolled_yn_corrected, siblings_id_first_corrected, measures_dir, verbose=False) :
+    def export_subject_demographics(
+        self,
+        subject,
+        subject_code,
+        arm_code,
+        visit_code,
+        site,
+        visit_age,
+        subject_data,
+        visit_data,
+        exceeds_criteria_baseline,
+        siblings_enrolled_yn_corrected,
+        siblings_id_first_corrected,
+        measures_dir,
+        conditional=False,
+        verbose=False,
+    ):
             # Latino and race coding arrives here as floating point numbers; make
             # int strings from that (cannot use "int()" because it would fail for
             # missing data
@@ -342,13 +358,18 @@ class redcap_to_casesdir(object):
             else:
                 family_id = str(int(subject_data['family_id']))
 
+            if conditional:
+                visit_age = ''
+            else:
+                visit_age = self.__truncate_age__(visit_age)
+
             demographics = [
                 ['subject', subject_code],
                 ['arm', arm_code],
                 ['visit', visit_code],
                 ['site', site],
                 ['sex', subject[8]],
-                ['visit_age', self.__truncate_age__(visit_age)],
+                ['visit_age', visit_age],
                 ['mri_structural_age', self.__truncate_age__(visit_data['mri_t1_age'])],
                 ['mri_diffusion_age', self.__truncate_age__(visit_data['mri_dti_age'])],
                 ['mri_restingstate_age', self.__truncate_age__(visit_data['mri_rsfmri_age'])],
@@ -374,7 +395,13 @@ class redcap_to_casesdir(object):
             for (key, value) in demographics:
                 series.at[key] = value
 
-            return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,os.path.join(measures_dir, 'demographics.csv'),verbose=verbose)
+            target_path = os.path.join(measures_dir, 'demographics.csv')
+            if conditional and os.path.exists(target_path):
+                pass
+            else:
+                return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,
+                                                    target_path,
+                                                    verbose=verbose)
 
     def export_subject_form(self, export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose = False):
         # Remove the complete field from the list of forms
@@ -490,14 +517,28 @@ class redcap_to_casesdir(object):
             os.makedirs(measures_dir)
 
         # Export demographics (if selected)
-        if ((not select_exports or 'demographics' in select_exports)
-                and event not in self.__demographic_event_skips):
-            self.export_subject_demographics(subject,subject_code,arm_code,visit_code,site,visit_age,subject_data,visit_data,exceeds_criteria_baseline, siblings_enrolled_yn_corrected, siblings_id_first_corrected, measures_dir,verbose)
+        conditional = event in self.__demographic_event_skips
+        if not select_exports or 'demographics' in select_exports:
+            self.export_subject_demographics(
+                subject=subject,
+                subject_code=subject_code,
+                arm_code=arm_code,
+                visit_code=visit_code,
+                site=site,
+                visit_age=visit_age,
+                subject_data=subject_data,
+                visit_data=visit_data,
+                exceeds_criteria_baseline=exceeds_criteria_baseline,
+                siblings_enrolled_yn_corrected=siblings_enrolled_yn_corrected,
+                siblings_id_first_corrected=siblings_id_first_corrected,
+                measures_dir=measures_dir,
+                conditional=conditional,
+                verbose=verbose)
 
         (all_records,export_list) = self.get_subject_specific_form_data(subject,event,forms_this_event, redcap_project, select_exports)
         # Now go form by form and export data
         for export_name in export_list:
-            self.export_subject_form(export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose)
+            self.export_subject_form(export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir, verbose)
 
 
 
