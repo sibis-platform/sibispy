@@ -4,8 +4,7 @@ import setuptools
 setup(
 	name='sibispy',
 	version='1',
-	packages=setuptools.find_packages(where='./sibispy'),
-	package_dir={'':'sibispy'},
+	packages=setuptools.find_packages(),
 	entry_points={
 	    'console_scripts': [
 	      'bulk_mark = cmds.bulk_mark:main',
