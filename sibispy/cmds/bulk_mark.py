@@ -87,8 +87,7 @@ def parse_args(args=None):
 
     return parser.parse_args(args)
 
-
-if __name__ == '__main__':
+def main():
     # Set up the environment
     args = parse_args()
     if not args.command:
@@ -133,3 +132,7 @@ if __name__ == '__main__':
                 if missing_results is not None:
                     print("Set missingness for {} subjects".format(
                         missing_results.get('count')))
+
+if __name__ == '__main__':
+    main()
+    

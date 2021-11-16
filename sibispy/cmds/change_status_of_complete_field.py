@@ -66,82 +66,85 @@ all_forms = {
 # MAIN 
 #
 
+def main():
+    # Setup command line parser
+    parser = argparse.ArgumentParser(description="Set status of a specific form to complete",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-v", "--verbose",
+                        help="Verbose operation",
+                        action="store_true")
+    parser.add_argument("--forms",
+                        help="Select specific forms to update the status to complete. Separate multiple forms with commas.",
+                        action="store",
+                        default=None )
+    parser.add_argument("--import-id",
+                        help="Define the id of the form in the import project (e.g., 'E-00000-M-2-2015-01-06') ",
+                        action="store",
+                        default=None)
+    args = parser.parse_args()
 
-# Setup command line parser
-parser = argparse.ArgumentParser(description="Set status of a specific form to complete",
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("-v", "--verbose",
-                    help="Verbose operation",
-                    action="store_true")
-parser.add_argument("--forms",
-                    help="Select specific forms to update the status to complete. Separate multiple forms with commas.",
-                    action="store",
-                    default=None )
-parser.add_argument("--import-id",
-                    help="Define the id of the form in the import project (e.g., 'E-00000-M-2-2015-01-06') ",
-                    action="store",
-                    default=None)
-args = parser.parse_args()
 
+    slog.init_log(args.verbose, None,'change_status_of_complete_field', 'change_status', None)
+    session = sibispy.Session()
 
-slog.init_log(args.verbose, None,'change_status_of_complete_field', 'change_status', None)
-session = sibispy.Session()
+    if not session.configure():
+        if args.verbose:
+            print("Error: session configure file was not found")
 
-if not session.configure():
+        sys.exit()
+
+    if args.forms:
+        forms = dict()
+        for f in args.forms.split(','):
+            if f in list(all_forms.keys()):
+                forms[f] = all_forms[f]
+            elif f in list(all_forms.values()):
+                lookup = [k for (k, v) in all_forms.items() if v == f]
+                forms[lookup[0]] = f
+            else:
+                print("WARNING: no form with name or prefix '%s' defined.\n" % f)
+    else:
+        print("Please define form") 
+        sys.exit(1)
+
     if args.verbose:
-        print("Error: session configure file was not found")
+        print("Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values())))
 
-    sys.exit()
+    form_prefixes = list(forms.keys())
+    form_names = list(forms.values())
 
-if args.forms:
-    forms = dict()
-    for f in args.forms.split(','):
-        if f in list(all_forms.keys()):
-            forms[f] = all_forms[f]
-        elif f in list(all_forms.values()):
-            lookup = [k for (k, v) in all_forms.items() if v == f]
-            forms[lookup[0]] = f
-        else:
-            print("WARNING: no form with name or prefix '%s' defined.\n" % f)
-else:
-    print("Please define form") 
-    sys.exit(1)
+    # Open connection with REDCap server - Import Project
+    import_project = session.connect_server('import_laptops', True)
+    if not import_project :
+        if args.verbose:
+            print("Error: Could not connect to Redcap for Import Project")
 
-if args.verbose:
-    print("Processing the following forms:\n\t", '\n\t'.join( sorted(forms.values())))
+        sys.exit()
 
-form_prefixes = list(forms.keys())
-form_names = list(forms.values())
+    #
+    # MAIN LOOP
+    #
 
-# Open connection with REDCap server - Import Project
-import_project = session.connect_server('import_laptops', True)
-if not import_project :
-    if args.verbose:
-        print("Error: Could not connect to Redcap for Import Project")
+    for form_prefix, form_name in forms.items():
+        if args.verbose:
+            print("Processing form",form_prefix,"/",form_name)
 
-    sys.exit()
+        complete_label = '%s_complete' % form_name
+        fields_list = [complete_label]
 
-#
-# MAIN LOOP
-#
+        # Just make sure record exists 
+        complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = fields_list, format='df', records=[args.import_id])
 
-for form_prefix, form_name in forms.items():
-    if args.verbose:
-        print("Processing form",form_prefix,"/",form_name)
+        if complete_records is None :
+            error_id = form_name 
+            # if you stop here then missing data might be not discovered 
+            slog.info(error_id, "Error: stop processing as no records in import project for this form",
+                      import_id_list = args.import_id)
+            continue
 
-    complete_label = '%s_complete' % form_name
-    fields_list = [complete_label]
+        # If it does than change value to 2 
+        import_response = session.redcap_import_record(args.import_id,"","","", [{'record_id': args.import_id, '%s_complete' % form_name: '2'}])
+        print("REDCAP response:", import_response) 
 
-    # Just make sure record exists 
-    complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = fields_list, format='df', records=[args.import_id])
-
-    if complete_records is None :
-        error_id = form_name 
-        # if you stop here then missing data might be not discovered 
-        slog.info(error_id, "Error: stop processing as no records in import project for this form",
-                  import_id_list = args.import_id)
-        continue
-
-    # If it does than change value to 2 
-    import_response = session.redcap_import_record(args.import_id,"","","", [{'record_id': args.import_id, '%s_complete' % form_name: '2'}])
-    print("REDCAP response:", import_response) 
+if __name__ == "__main__":
+    main()
