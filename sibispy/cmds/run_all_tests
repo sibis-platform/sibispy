@@ -1,9 +1,9 @@
 #!/bin/bash
 
 SRC_DIR=`dirname "$0"`
-TEST_DIR=`cd $SRC_DIR; echo $PWD | rev | cut -d'/' -f2- | rev`/tests
+TEST_DIR="/sibis-software/python-packages/sibispy/sibispy/tests"
 
-CFG_FILE=~/.sibis-general-config.yml 
+CFG_FILE=/home/ncanda/.sibis-general-config.yml 
 LEGACY_TESTS=(test_utils.py test_config_file_parser.py test_redcap_to_casesdir.py test_redcap_locking_data.py test_redcap_compute_summary_scores.py)
 MODERN_TESTS=(test_post_issues_to_github.py test_sibislogger.py test_xnat_util.py test_session.py test_sibis_svn_util.py test_sibis_email.py test_check_dti_gradients.py)
 
