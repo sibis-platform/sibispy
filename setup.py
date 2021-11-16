@@ -7,7 +7,7 @@ setup(
 	packages=setuptools.find_packages(),
 	entry_points={
 	    'console_scripts': [
-	      'bulk_mark = sibispy.cmds.bulk_mark',
+	      'bulk_mark = sibispy.cmds.bulk_mark:main',
 	      'change_complete_field_in_entry_and_import = sibispy.cmds.change_complete_field_in_entry_and_import:main',
 	      'change_status_of_complete_field = sibispy.cmds.change_status_of_complete_field:main',
 	      'download_dti_groundtruth = sibispy.cmds.download_dti_groundtruth:main',
