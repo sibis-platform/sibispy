@@ -564,7 +564,7 @@ class redcap_to_casesdir(object):
 
         slurm_config = self.__sibis_defs['cluster_config']
         slurm = SlurmScheduler(slurm_config)
-        return slurm.schedule_job(job_script, job_title, submit_log, job_log, verbose)
+        return slurm.schedule_job(job_script, job_title, submit_log, job_log, verbose)[0]
 
     def schedule_old_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
         qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
