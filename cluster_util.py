@@ -100,7 +100,7 @@ class ClusterScheduler(ABC):
             if r.stderr and r.stderr != '':
                 slog.info(self._make_bug_title(job_title, r.stderr), "ERROR: Failed to schedule job!",
                           cmd_str=r.command, err_msg=r.stderr)
-                return False
+                return False, -1
 
             if verbose:
                 if r:
@@ -109,7 +109,7 @@ class ClusterScheduler(ABC):
 
         except SSHException as e:
             slog.info(bug_title, "ERROR: Failed to schedule job!", cmd=cmd_str, err_msg=str(e))
-            return False
+            return False, -1
 
         if submit_log:
             with open(submit_log, 'a') as sl:
@@ -119,7 +119,9 @@ class ClusterScheduler(ABC):
                 sl.write(f"STDOUT: {r.stdout}\n")
                 sl.write(f"STDERR: {r.stderr}\n")
 
-        return True
+        job_id = int(r.stdout.split(' ')[-1])
+
+        return True, job_id
 
 
 class SlurmScheduler(ClusterScheduler):
