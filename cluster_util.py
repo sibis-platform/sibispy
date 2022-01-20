@@ -7,6 +7,7 @@ from paramiko.ssh_exception import SSHException
 from sibispy import sibislogger as slog
 from typing import Dict, Union
 import hashlib
+from datetime import datetime
 
 
 class ClusterConfigError(ValueError):
@@ -92,13 +93,14 @@ class ClusterScheduler(ABC):
         bug_title = self._make_bug_title(job_title, str(job_script))
 
         cmd_str = self.get_command_str(job_title, job_log, job_script)
+        now_str = str(datetime.now())
 
         try:
             with self.get_connection() as conn:
                 r: Result = conn.run(cmd_str, hide=True)
 
             if r.stderr and r.stderr != '':
-                slog.info(self._make_bug_title(job_title, r.stderr), "ERROR: Failed to schedule job!",
+                slog.info(self._make_bug_title(job_title, r.stderr), "ERROR: Failed to schedule job! " + now_str,
                           cmd_str=r.command, err_msg=r.stderr)
                 return False, -1
 
@@ -108,7 +110,7 @@ class ClusterScheduler(ABC):
                           f"stdout: {r.stdout}\n")
 
         except SSHException as e:
-            slog.info(bug_title, "ERROR: Failed to schedule job!", cmd=cmd_str, err_msg=str(e))
+            slog.info(bug_title, "ERROR: Failed to schedule job! " + now_str, cmd=cmd_str, err_msg=str(e))
             return False, -1
 
         if submit_log:
