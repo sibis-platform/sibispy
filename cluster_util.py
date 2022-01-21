@@ -132,7 +132,8 @@ class SlurmScheduler(ClusterScheduler):
         slurm_opts = {
             "--job-name": f"'{job_title}'",
             "--output": job_log,
-            "--wrap": f"'{job_script}'"
+            "--wrap": f"'{job_script}'",
+            "--open-mode": "append"
         }
 
         base_cmd = self.config['base_cmd']
