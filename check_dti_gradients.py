@@ -327,6 +327,8 @@ class check_dti_gradients(object):
             return False
 
         if errorsFrame:
+            site_resolution = "Please comment in the session notes of Xnat regarding the cause for the deviation in scan gradients and let the NCANDA DataCore know regarding rescanning of the DTI sequence."
+            site_forward = 
             slog.info(session_label,
                       "Errors in gradients of " + sequence_label + " after comparing with ground_truth.",
                       frames=str(errorsFrame),
@@ -334,7 +336,10 @@ class check_dti_gradients(object):
                       expectedGradients=str(errorsExpected),
                       sumError=str(errorsAbsDiff),
                       sequence = sequence_label,
-                      eid = eid, scan = scan_id)
+                      eid = eid,
+                      scan = scan_id,
+                      site_forward=site_forward,
+                      site_resolution=site_resolution)
             errorFlag = True
 
         # Check phase encoding
