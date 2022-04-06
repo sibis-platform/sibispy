@@ -232,6 +232,7 @@ class Session(object):
         
     @contextmanager
     def __connect_penncnp__(self):
+        import pdb;pdb.set_trace()
         # Check that config file is correctly defined 
         if "penncnp" not in list(self.__config_srv_data.keys()):
             slog.info("session.__connnect_penncnp__","ERROR: penncnp server info not defined!")
