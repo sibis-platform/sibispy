@@ -220,7 +220,7 @@ class Session(object):
 
     def __list_running_process__(self,cmd): 
         from subprocess import Popen, PIPE
-        check_cmd  = "ps -ef | grep '" + cmd + "' | awk '{print $2}'"
+        check_cmd  = "ps -efww | grep '" + cmd + "' | awk '{print $2}'"
 
         try : 
             p = Popen(check_cmd, shell = True, stdout = PIPE,  stderr = PIPE)
