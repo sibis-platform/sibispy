@@ -92,6 +92,24 @@ class CapturingTee(list):
     
 
 class ValueKeyDict(dict):
+    '''
+    Creates a `dict` with custom indexing behavior where when the requested index
+    value is `None`, the index key is returned.
+    
+    Example:
+    > foo = ValueKeyDict({
+    >     "alpha": None,
+    >     "beta": "charlie"
+    > })
+    > foo.get("alpha") == None
+    True
+    > foo.get("beta") == "charlie"
+    True
+    > foo["alpha"] == "alpha"
+    True
+    > foo["beta"] == "charlie"
+    True
+    '''
     def __getitem__(self, index):
         val = super().__getitem__(index)
         if val == None:
