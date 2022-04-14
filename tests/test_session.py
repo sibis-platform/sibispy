@@ -295,13 +295,12 @@ def penncnp_cleanup(session):
 
 def test_session_browser_penncnp(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = 'browser_penncnp'
-    # import pdb; pdb.set_trace()
-    server = session.connect_server(project, True)
+    with session.connect_server(project, True) as server:
 
-    assert server != None, "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
+        assert server != None, "Error: could not connect server! Make sure " + project + " is correctly defined in " + config_file
 
-    wait = session.initialize_penncnp_wait()
-    assert session.get_penncnp_export_report(wait)
+        wait = session.initialize_penncnp_wait()
+        assert session.get_penncnp_export_report(wait)
 
 
 def test_session_legacy(config_file, special_opts):

@@ -748,10 +748,9 @@ class Session(object):
         kill_cmd = "kill -9 " + str(self.api['browser_penncnp']['pip']) 
         try:
             err_msg = subprocess.check_output(kill_cmd,shell=True)
-        except Exception as err_msg:
-            pass
-            
-        
+        except Exception as err:
+            err_msg = err
+
         if err_msg: 
             slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (kill_cmd,str(err_msg)))
             return None
