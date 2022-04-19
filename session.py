@@ -265,7 +265,7 @@ class Session(object):
 
     def __list_running_process__(self,cmd): 
         from subprocess import Popen, PIPE
-        check_cmd  = "ps -ef | grep '" + cmd + "' | awk '{print $2}'"
+        check_cmd  = "ps -efww | grep '" + cmd + "' | awk '{print $2}'"
 
         try : 
             p = Popen(check_cmd, shell = True, stdout = PIPE,  stderr = PIPE)
@@ -788,14 +788,13 @@ class Session(object):
 
         if "DISPLAY" in list(os.environ.keys()) and  os.environ['DISPLAY'] == self.api['browser_penncnp']['display'] :
             del os.environ['DISPLAY']
- 
+
         import subprocess
         kill_cmd = "kill -9 " + str(self.api['browser_penncnp']['pip']) 
         try:
             err_msg = subprocess.check_output(kill_cmd,shell=True)
         except Exception as err:
             err_msg = err
-
         if err_msg: 
             slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (kill_cmd,str(err_msg)))
             return None
