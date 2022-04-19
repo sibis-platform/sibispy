@@ -91,6 +91,47 @@ class CapturingTee(list):
         sys.stdout = self._stdout
     
 
+class ValueKeyDict(dict):
+    '''
+    Creates a `dict` with custom indexing behavior where when the requested index
+    value is `None`, the index key is returned.
+    
+    Example:
+    > foo = ValueKeyDict({
+    >     "alpha": None,
+    >     "beta": "charlie"
+    > })
+    > foo.get("alpha") == None
+    True
+    > foo.get("beta") == "charlie"
+    True
+    > foo["alpha"] == "alpha"
+    True
+    > foo["beta"] == "charlie"
+    True
+    '''
+    def __getitem__(self, index):
+        val = super().__getitem__(index)
+        if val == None:
+            return index
+        else:
+            return val
+
+SIBIS_DIRS = ValueKeyDict({
+    "beta": None,
+    "log": None,
+    "operations": None,
+    "cases": None,
+    "summaries": None,
+    "burn2dvd": None,
+    "datadict": None,
+    "laptops": None,
+    "laptops_svn": "ncanda",
+    "laptops_imported": "imported",
+    "XNAT": None,
+    "redcap": None
+})
+
 
 # --------------------------------------------
 # CLASS DEFINITION
@@ -144,7 +185,11 @@ class Session(object):
         if err_msg :
             slog.info('session.configure',str(err_msg))
             return False
-            
+        
+        if sys_file_parser.has_category('sibis_dirs'):
+            sibis_dirs = sys_file_parser.get_category('sibis_dirs')
+            SIBIS_DIRS.update(sibis_dirs)
+
         self.__config_srv_data = sys_file_parser.get_category('session')
 
         return True
@@ -436,19 +481,19 @@ class Session(object):
     def get_beta_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'beta')
+            return os.path.join(aDir,SIBIS_DIRS['beta'])
         return None
 
     def get_log_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'log')
+            return os.path.join(aDir,SIBIS_DIRS['log'])
         return None
 
     def get_operations_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'operations')
+            return os.path.join(aDir,SIBIS_DIRS['operations'])
         return None
 
     def get_config_parser_for_file(self, key, filename):
@@ -477,44 +522,44 @@ class Session(object):
     def get_cases_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'cases')
+            return os.path.join(aDir,SIBIS_DIRS['cases'])
         return None
 
     def get_summaries_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'summaries')
+            return os.path.join(aDir,SIBIS_DIRS['summaries'])
         return None
 
     def get_dvd_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'burn2dvd')
+            return os.path.join(aDir,SIBIS_DIRS['burn2dvd'])
         return None
 
     def get_datadict_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir :
-            return os.path.join(aDir,'datadict')
+            return os.path.join(aDir,SIBIS_DIRS['datadict'])
         return None
 
 
     def __get_laptop_dir(self):
-        return os.path.join(self.__config_usr_data.get_value('import_dir'),'laptops')
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),SIBIS_DIRS['laptops'])
 
     # Kilian: Ommit ncanda from svn dir name 
     def get_laptop_svn_dir(self):
-        return os.path.join(self.__get_laptop_dir(),'ncanda')
+        return os.path.join(self.__get_laptop_dir(),SIBIS_DIRS['laptops_svn'])
 
     def get_laptop_imported_dir(self):
-        return os.path.join(self.__get_laptop_dir(),'imported')
+        return os.path.join(self.__get_laptop_dir(),SIBIS_DIRS['laptops_imported'])
 
     def get_xnat_dir(self):
-        return os.path.join(self.__config_usr_data.get_value('import_dir'),'XNAT')
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),SIBIS_DIRS['XNAT'])
 
     # Important for redcap front end - not sibis programs
     def get_redcap_uploads_dir(self):
-        return os.path.join(self.__config_usr_data.get_value('import_dir'),'redcap')
+        return os.path.join(self.__config_usr_data.get_value('import_dir'),SIBIS_DIRS['redcap'])
 
     def get_xnat_server_address(self):
         return self.__config_usr_data.get_value('xnat','server')
@@ -748,11 +793,8 @@ class Session(object):
         kill_cmd = "kill -9 " + str(self.api['browser_penncnp']['pip']) 
         try:
             err_msg = subprocess.check_output(kill_cmd,shell=True)
-        except Exception as e:
-            err_msg = e
-            pass
-            
-        
+        except Exception as err:
+            err_msg = err
         if err_msg: 
             slog.info("session.__connect_penncnp__","The following command failed %s with the following output %s" % (kill_cmd,str(err_msg)))
             return None

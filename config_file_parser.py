@@ -84,6 +84,13 @@ class config_file_parser(object):
 
         return self.__config_dict.get(category)
 
+
+    def has_category(self,category):
+        if not self.__config_dict:
+            raise RuntimeError("Please run configure first before calling this function!")
+        
+        return category in self.__config_dict
+
     def keys(self):
         if not self.__config_dict :
             raise RuntimeError("Please run configure first before calling this function!")
