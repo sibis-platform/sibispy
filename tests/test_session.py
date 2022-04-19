@@ -301,11 +301,12 @@ def test_session_browser_penncnp(slog, config_file, session, config_test_data, p
         wait = session.initialize_penncnp_wait()
         assert session.get_penncnp_export_report(wait), "Error: could not export report."
 
-def test_stale_penncnp(slog, config_file, session, config_test_data, penncnp_cleanup):
+def test_penncnp_exits(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = 'browser_penncnp'
     with session.connect_server(project, True) as server:
-        with session.connect_server(project, True) as server2:
-            assert server2 != None, "Error: could not create second server"
+        pass
+    with session.connect_server(project, True) as server2:
+        assert server2 != None, "Error: could not connect second server! Make sure the selenium process exits correctly."
 
 def test_session_legacy(config_file, special_opts):
     import os
