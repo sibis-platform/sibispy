@@ -578,25 +578,14 @@ class Session(object):
         if not xnat_http_api: 
             return None
 
-        server = self.get_xnat_data_address()
-        collections = dict(projects=lambda: server + '/projects',
-                       subjects=lambda x: server + '/{0}/subjects'.format(x),
-                       experiments=lambda: server + '/experiments')
-
-        return xnat_http_api.get(collections.get('experiments')() + '?format=csv')
+        return xnat_http_api.get(self.get_xnat_experiments_address() + '?format=csv')
 
     def xnat_http_get_experiment_xml(self,experiment_id): 
         xnat_http_api = self.__get_xnat_http_api__()
         if not xnat_http_api: 
             return None
 
-        server = self.get_xnat_data_address()
-        entities = dict(project=lambda x: server + '/projects/{0}'.format(x),
-                    subject=lambda x: server + '/subjects/{0}'.format(x),
-                    experiment=lambda x:
-                    server + '/experiments/{0}'.format(x))
-
-        return xnat_http_api.get(entities.get('experiment')(experiment_id) +  '?format=csv')
+        return xnat_http_api.get(self.get_xnat_session_address(experiment_id))
 
     def xnat_get_classes(self):
         xnat_api = self.__get_xnat_api__()
