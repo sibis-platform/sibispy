@@ -567,6 +567,12 @@ class Session(object):
     def get_xnat_data_address(self):
         return self.get_xnat_server_address()  + '/data'
 
+    def get_xnat_experiments_address(self):
+        return self.get_xnat_data_address()  + '/experiments'
+
+    def get_xnat_session_address(self, experiment_id):
+        return self.get_xnat_experiments_address()  + '/' + experiment_id + '?format=csv'
+    
     def xnat_http_get_all_experiments(self): 
         xnat_http_api = self.__get_xnat_http_api__()
         if not xnat_http_api: 
