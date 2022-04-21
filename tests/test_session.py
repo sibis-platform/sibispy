@@ -281,11 +281,10 @@ def test_session_xnat_failed_query(slog, config_file, session, config_test_data)
     assert response[0] != None, "Expected response, got Nothing."
 
 
-def test_session_xnat_session_link(session):
-    client = session.connect_server('xnat', True)
+def test_session_xnat_session_address(slog, session):
     experiment_id = "NCANDA_E00000"
-    test_link = f"https://ncanda.sri.com/xnat/data/experiments/{experiment_id}?format=html"
-    assert(client.get_xnat_session_address(experiment_id) == test_link)
+    test_link = f"{session.get_xnat_server_address()}/data/experiments/{experiment_id}?format=html"
+    assert(session.get_xnat_session_address(experiment_id, 'html') == test_link)
 
 def test_session_xnat_search(slog, config_file, session, config_test_data):
     
