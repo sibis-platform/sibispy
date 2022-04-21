@@ -35,7 +35,7 @@ from sibispy import config_file_parser as cfg_parser
 # if one cannot connect to server
 from io import StringIO
 import sys
-from typing import Mapping
+from typing import Mapping, Literal
 
 
 class Capturing(list):
@@ -684,8 +684,7 @@ class Session(object):
     def get_xnat_experiments_address(self):
         return self.get_xnat_data_address() + "/experiments"
 
-    def get_xnat_session_address(self, experiment_id, extension):
-        return self.get_xnat_experiments_address() + "/" + experiment_id + "?format=" + extension
+    def get_xnat_session_address(self, experiment_id, output_format: Literal['html', 'csv', 'json'] = 'html'):        return self.get_xnat_experiments_address() + "/" + experiment_id + "?format=" + output_format
 
     def xnat_http_get_all_experiments(self):
         xnat_http_api = self.__get_xnat_http_api__()
