@@ -136,24 +136,37 @@ class redcap_to_casesdir(object):
         # Filter each form
         text_list = list()
         non_redcap_list = list()
+        empty_line_list = list()
+        
         for export_name in list(self.__export_forms.keys()):
             (form_text_list, form_non_redcap_list)  = self.__check_form__(export_name)
             if form_text_list :
                 text_list += form_text_list
             if form_non_redcap_list:
-                non_redcap_list += form_non_redcap_list
+                if form_non_redcap_list[0][1] == '' :
+                    empty_line_list += [form_non_redcap_list[0][0]]
+                else :
+                    non_redcap_list += form_non_redcap_list
 
         if text_list:
-            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
+            slog.info('redcap_to_casesdir.__check_all_forms__.' + hashlib.sha1(str(text_list).encode()).hexdigest()[0:6],
+                      "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list non-numeric redcap variable names!",
                       form_variable_list = str(text_list),
                       info = "Remove it from form file or modify definition in REDCap")
 
         if non_redcap_list :
-            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6], "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
+            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6],
+                      "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' list variables that do not exist in redcap!",
                       form_variable_list = str(non_redcap_list),
                       info = "Remove it from form or modify definition REDCap")
+            
+        if empty_line_list :
+            slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6],
+                      "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' contain more than one empty line!",
+                      empty_line_list = str(empty_line_list),
+                      info = "Remove all but one empty line at the end of the text file")
 
-        if non_redcap_list or text_list:
+        if non_redcap_list or text_list or empty_line_list:
             return False
 
         return True
