@@ -467,9 +467,17 @@ class redcap_to_casesdir(object):
                 label = ''
                 if code in list(self.__code_to_label_dict[field].keys()):
                     label = self.__code_to_label_dict[field][code]
-                field_idx += 1
-                record.insert(field_idx, output_field + '_label', label)
-                output_fields.append(output_field + '_label')
+
+                col_name = output_field + '_label'
+                # Necessary because some txt files have the same variables after we split e.g. youthreport1 up
+                if col_name in record.columns:
+                    if label != record[col_name]:
+                        slog.info("redcap_to_casesdir.export_subject_form", f"ERROR: Overwriting column {col_name} with new values.")
+                    #else: if column is not changing we don't care
+                else:
+                    field_idx += 1
+                    record.insert(field_idx, col_name, label)
+                    output_fields.append(col_name)
 
             field_idx += 1
 
