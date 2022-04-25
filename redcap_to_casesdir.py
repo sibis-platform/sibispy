@@ -471,7 +471,8 @@ class redcap_to_casesdir(object):
                 col_name = output_field + '_label'
                 # Necessary because some txt files have the same variables after we split e.g. youthreport1 up
                 if col_name in record.columns:
-                    if not label.equals(record[col_name]):
+                    cols_same = (label==record[col_name]).all()
+                    if not cols_same:
                         slog.info("redcap_to_casesdir.export_subject_form", f"ERROR: Overwriting column {col_name} with new values.")
                     #else: if column is not changing we don't care
                 else:
