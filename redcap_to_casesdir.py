@@ -164,7 +164,7 @@ class redcap_to_casesdir(object):
             slog.info('redcap_to_casesdir.__check_all_forms__.' +  hashlib.sha1(str(text_list).encode()).hexdigest()[0:6],
                       "ERROR: The txt file(s) in '" + str(self.__forms_dir) + "' contain more than one empty line!",
                       empty_line_list = str(empty_line_list),
-                      info = "Remove all but one empty line at the end of the text file")
+                      info = "Remove all empty lines form the text file. Make sure the last variable in the text file ends with a Carriage return!")
 
         if non_redcap_list or text_list or empty_line_list:
             return False
