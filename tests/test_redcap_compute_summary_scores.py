@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(description="testing redcap compute scores",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("configFile", help=".sibis-general-config.yml", action="store", default='data/.sibis-general-config.yml')
 parser.add_argument("--id-list", help="subject id list seperated by comma (e.g. E-00000-F-0)", action="store", required=False, default=None)
+parser.add_argument("--event-list", help="event id list seperated by comma (e.g. baseline_visit_arm_1)", action="store", required=False, default=None)
 parser.add_argument("--form-list", help="list of forms seperated by comma (e.g. ssaga_dsm4,ssaga_dsm5) ", action="store", required=False, default=None)
 parser.add_argument("--dir", help="if defined will write output to that dir", action="store", required=False, default=None)
 parser.add_argument("--allForms", help="should all forms be checked", action="store_true", required=False, default=False)
@@ -51,6 +52,11 @@ if args.id_list:
 else:
     subject_id_list = [config_test_data.get('subject_id')]
 
+if args.event_list:
+    event_list = args.event_list.split(',')
+else:
+    event_list = None
+    
 if args.allForms: 
     instruments = red_score_update.get_list_of_instruments()
 else:
@@ -60,9 +66,9 @@ else:
         instruments = config_test_data.get('instruments').split(",")
 
 for subj in subject_id_list :
-    for inst in instruments: 
-        (recorded_scores, errorFlag) = red_score_update.compute_summary_scores(inst, subject_id=subj, update_all=True,
-                                                                               verbose=False, log=slog)
+    for inst in instruments:
+        (recorded_scores, errorFlag) = red_score_update.compute_summary_scores(inst, subject_id=subj, event_id=event_list,
+                                                                               update_all=True, verbose=False, log=slog)
 
         if args.uploadScores:
             red_score_update.upload_summary_scores_to_redcap(inst, recorded_scores)

@@ -109,7 +109,7 @@ class redcap_compute_summary_scores(object):
                 matches.update([field_pattern])
         return matches
 
-    def compute_summary_scores(self, instrument, subject_id=None, update_all=False, verbose=False, log=slog):
+    def compute_summary_scores(self, instrument, subject_id=None, event_id=None, update_all=False, verbose=False, log=slog):
         scored_records = pandas.DataFrame()
         if instrument not in self.get_list_of_instruments(): 
             slog.info("compute_scored_records", "ERROR: instrument '" + instrument + "' does not exist!") 
@@ -118,7 +118,12 @@ class redcap_compute_summary_scores(object):
         # Get fields in the summary project for this instrument
         instrument_complete = '%s_complete' % instrument
         if subject_id:
-            record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],event_name='unique', format='df')
+            if event_id:
+                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],events=[event_id],event_name='unique', format='df')
+            else :
+                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],event_name='unique', format='df')
+        elif event_id:
+            record_ids = self.__rc_summary.export_records(fields=[instrument_complete], events=[event_id],event_name='unique', format='df')
         else : 
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
 
