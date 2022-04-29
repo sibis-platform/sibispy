@@ -32,6 +32,9 @@ parser.add_argument("-i", "--instruments",
 parser.add_argument("-s", "--subject_id",
                     help="Only run for specific subject (multiple subject seperate with ',') .",
                     action="store", default=None)
+parser.add_argument("-e", "--event-list",
+                    help="Only run for specific events (e.g. baseline_visit_arm_1, 1y_visit_arm_1) where multiple events seperate with ',') .",
+                    action="store", default=None)
 parser.add_argument("-a", "--update-all",
                     help="Update all summary records, regardless of current completion status "
                          "(otherwise, only update records where incoming data completion status "
@@ -86,7 +89,7 @@ for instrument in instrument_list:
         print('Scoring instrument', instrument)
 
     (scored_records, errorFlag) = red_score_update.compute_summary_scores(
-        instrument, args.subject_id, args.update_all, args.verbose, log=slog)
+        instrument, args.subject_id,  args.event_list, args.update_all, args.verbose, log=slog)
     if errorFlag:
         if args.verbose:
             print("Error occured when scoring", instrument) 
@@ -106,7 +109,11 @@ for instrument in instrument_list:
         continue  
 
     uploaded = red_score_update.upload_summary_scores_to_redcap(instrument,scored_records)
-    if not uploaded : 
+    if not uploaded :
+        if args.verbose and args.subject_id and not args.event_list:
+           print("The following record failed to be uploaded")
+           print(scored_records)
+           
         continue 
 
     if not 'count' in list(uploaded.keys()) or  uploaded['count'] == 0:
