@@ -469,7 +469,7 @@ class redcap_to_casesdir(object):
                     label = self.__code_to_label_dict[field][code]
                 col_name = output_field + '_label'
                 if col_name in record.columns:
-                    slog.info("redcap_to_casesdir.export_subject_form", f"ERROR: duplicate variable '{output_field}'.")
+                    slog.info("redcap_to_casesdir.export_subject_form", f"ERROR: duplicate variable '{output_field}' in {export_name}.")
                     return None
                 else:
                     field_idx += 1
