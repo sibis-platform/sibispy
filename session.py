@@ -1086,7 +1086,7 @@ class Session(object):
             import_response = red_api.import_records(records, overwrite="overwrite")
 
         except requests.exceptions.RequestException as e:
-            error = "session:redcap_import_record:Failed to import into REDCap"
+            error = "session:redcap_import_record_to_api:Failed to import into REDCap"
             err_list = ast.literal_eval(str(e))["error"].split('","')
             error_label += "-" + hashlib.sha1(str(e).encode("utf-8")).hexdigest()[0:6]
 
