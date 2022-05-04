@@ -67,7 +67,7 @@ else:
 
 for subj in subject_id_list :
     for inst in instruments:
-        (recorded_scores, errorFlag) = red_score_update.compute_summary_scores(inst, subject_id=subj, event_id=event_list,
+        (recorded_scores, errorFlag) = red_score_update.compute_summary_scores(inst, subject_id=[subj], event_id=event_list,
                                                                                update_all=True, verbose=False, log=slog)
 
         if args.uploadScores:

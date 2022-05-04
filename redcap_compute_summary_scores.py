@@ -119,15 +119,15 @@ class redcap_compute_summary_scores(object):
         instrument_complete = '%s_complete' % instrument
         if subject_id:
             if event_id:
-                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],events=[event_id],event_name='unique', format='df')
+                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=subject_id,events=event_id,event_name='unique', format='df')
             else :
-                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=[subject_id],event_name='unique', format='df')
+                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=subject_id,event_name='unique', format='df')
         elif event_id:
-            record_ids = self.__rc_summary.export_records(fields=[instrument_complete], events=[event_id],event_name='unique', format='df')
+            record_ids = self.__rc_summary.export_records(fields=[instrument_complete], events=event_id,event_name='unique', format='df')
         else : 
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
 
-        # ensure record_ids are strings
+         # ensure record_ids are strings
         # import pdb; pdb.set_trace()
         ridx = record_ids.index
         if ridx.get_level_values(0).dtype != np.dtype(np.object):
@@ -185,6 +185,7 @@ class redcap_compute_summary_scores(object):
                                 format='df'
                             )
                         )
+
                     except urllib3.exceptions.MaxRetryError:
                         i += 1
                         time.sleep(12)
