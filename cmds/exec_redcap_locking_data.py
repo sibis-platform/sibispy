@@ -40,8 +40,9 @@ def main(args=None):
     subject_list = args.subject_id
     if subject_list is None:
         subject_list = [None]
-
-
+    else:
+        print("INFO: kp: I do not think it works if subjects are defined")
+        
     for event_desc in args.event:
         if args.verbose: 
             print("Visit: {0}".format(event_desc))
