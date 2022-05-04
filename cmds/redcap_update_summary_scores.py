@@ -83,13 +83,23 @@ if args.instruments:
     
 
 # Import scoring module - this has a list of all scoring instruments with input fields, scoring functions, etc.
+if args.subject_id:
+    subject_list=args.subject_id.split(",")
+else:
+    subject_list=None
+
+if args.event_list:
+    event_list = args.event_list.split(",")
+else:
+    event_list = None
+
 for instrument in instrument_list:
     slog.startTimer2()
     if args.verbose:
         print('Scoring instrument', instrument)
 
     (scored_records, errorFlag) = red_score_update.compute_summary_scores(
-        instrument, args.subject_id,  args.event_list, args.update_all, args.verbose, log=slog)
+        instrument, subject_list,  event_list, args.update_all, args.verbose, log=slog)
     if errorFlag:
         if args.verbose:
             print("Error occured when scoring", instrument) 
@@ -110,7 +120,7 @@ for instrument in instrument_list:
 
     uploaded = red_score_update.upload_summary_scores_to_redcap(instrument,scored_records)
     if not uploaded :
-        if args.verbose and args.subject_id and not args.event_list:
+        if args.verbose and args.subject_id and not event_list:
            print("The following record failed to be uploaded")
            print(scored_records)
            
@@ -128,8 +138,8 @@ for instrument in instrument_list:
     count = uploaded['count']
     count_uploaded += count               
     if args.verbose:
-        print('Updated', uploaded, 'records of "%s"' % instrument)
-
+        print('Updated records of ', count, 'subjects of "%s"' % instrument)
+        print (scored_records.sort_index())
     slog.takeTimer2(instrument + "_time","{'uploads': " +  str(count) + "}")
 
 slog.takeTimer1("script_time","{'records': " + str(len(instrument_list)) + ", 'uploads': " +  str(count_uploaded) + "}")
