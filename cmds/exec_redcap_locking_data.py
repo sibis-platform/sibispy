@@ -42,7 +42,7 @@ def main(args=None):
         subject_list = [None]
     else:
         print("INFO: kp: I do not think it works if subjects are defined")
-        
+
     for event_desc in args.event:
         if args.verbose: 
             print("Visit: {0}".format(event_desc))
@@ -101,6 +101,7 @@ if __name__ == "__main__":
                         choices=['Standard Protocol'], default='Standard Protocol',
                         help="Arm Name as appears in UI")
 
+    # for multiple events  simply seperate with space e.g. Baseline 1y"
     cli.add_event_param(parser, required=True, template="{} visit",
                         # backwards-compatible with the old '4y visit':
                         accepted_regex=r'^(Baseline|\dy)$', keep_nonmatch=True)
