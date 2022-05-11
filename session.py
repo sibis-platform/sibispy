@@ -976,6 +976,19 @@ class Session(object):
     def get_redcap_server_address(self):
         return self.__config_usr_data.get_value("redcap", "server")
 
+    def get_redcap_base_address(self):
+        return self.__config_usr_data.get_value("redcap", "base_url")
+
+    def get_formattable_redcap_address(self, project_id: int):
+        # Returns a formattable redcap link for the passed project_id
+        # E.g. for Imported From Laptops, returns https://ncanda.sri.com/redcap/redcap_v10.0.30/DataEntry/index.php?pid=6&id=%s&event_id=%s&page=%s
+        # The three %s's are for the subject_id, event_id, and form_name, respectively
+        # To get formatted address, do formattable_address % (subject_id, event_id, form_name)
+        base_address = self.get_redcap_base_address()
+        version = str(self.get_redcap_version())
+        formattable_address = base_address + f"redcap_v{version}/DataEntry/index.php?pid={project_id}&id=%s&event_id=%s&page=%s"
+        return formattable_address
+    
     #
     # REDCAP API CALLS
     #
