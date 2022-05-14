@@ -980,7 +980,7 @@ class Session(object):
         return self.__config_usr_data.get_value("redcap", "base_address")
 
     def get_formattable_redcap_address(self,
-                                       project_name: str,
+                                       project_id: int,
                                        arm_name: str,
                                        event_descrip: str,
                                        subject_id=None,
@@ -994,7 +994,6 @@ class Session(object):
         # name_of_form: e.g. stroop
         # To replace formatted args, do formattable_address % (subject_id, form_name)
 
-        project_id = self.get_mysql_project_id(project_name)
         arm_id = self.get_mysql_arm_id(arm_name, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
