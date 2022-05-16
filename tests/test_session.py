@@ -293,6 +293,22 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     subject_project_list = list(client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items())
     assert subject_project_list != None, "Search result should not be None."
 
+def test_session_redcap_session_address(slog, session):
+    redcap_project = session.connect_server('data_entry', True)
+    project_id = redcap_project.export_project_info()['project_id']
+    arm_name = 'Standard Protocol'
+    event_descrip = "7y visit"
+    event_id = 512
+    subject_id = 'A-00002-F-2'
+    form_name = 'clinical'
+    test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={form_name}"
+    
+    formattable_address = session.get_formattable_redcap_address(project_id, arm_name, event_descrip)
+    formatted_address = formattable_address % (subject_id, form_name)
+    assert(formatted_address == test_link)
+    complete_address = session.get_formattable_redcap_address(project_id, arm_name, event_descrip, subject_id, form_name)    
+    assert(complete_address == test_link)
+    
 @pytest.fixture
 def penncnp_cleanup(session):
     yield
