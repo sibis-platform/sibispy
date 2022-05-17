@@ -293,7 +293,7 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     subject_project_list = list(client.search( 'xnat:subjectData', ['xnat:subjectData/SUBJECT_LABEL', 'xnat:subjectData/SUBJECT_ID','xnat:subjectData/PROJECT'] ).where( [ ('xnat:subjectData/SUBJECT_LABEL','LIKE', '%')] ).items())
     assert subject_project_list != None, "Search result should not be None."
 
-def test_session_formattable_redcap_address(slog, session):
+def test_session_formattable_redcap_form_address(slog, session):
     version = str(session.get_redcap_version())
     redcap_project = session.connect_server('data_entry', True)
     project_id = redcap_project.export_project_info()['project_id']
@@ -305,22 +305,22 @@ def test_session_formattable_redcap_address(slog, session):
     test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={form_name}"
 
     # Test formatting when passing neither subject_id nor form_name
-    formattable_address = session.get_formattable_redcap_address(project_id, arm_name, event_descrip)
+    formattable_address = session.get_formattable_redcap_form_address(project_id, arm_name, event_descrip)
     formatted_address = formattable_address % (subject_id, form_name)
     assert(formatted_address == test_link)
 
     # Test passing only subject_id
-    missing_form = session.get_formattable_redcap_address(project_id, arm_name, event_descrip, subject_id=subject_id)
+    missing_form = session.get_formattable_redcap_form_address(project_id, arm_name, event_descrip, subject_id=subject_id)
     formatted_address = formattable_address % (form_name)
     assert(formatted_address == test_link)
 
     # Test passing only subject_id
-    missing_sid = session.get_formattable_redcap_address(project_id, arm_name, event_descrip, subject_id=None, name_of_form=form_name)
+    missing_sid = session.get_formattable_redcap_form_address(project_id, arm_name, event_descrip, subject_id=None, name_of_form=form_name)
     formatted_address = formattable_address % (subject_id)
     assert(formatted_address == test_link)
     
     # Test passing both directly to function
-    complete_address = session.get_formattable_redcap_address(project_id, arm_name, event_descrip, subject_id, form_name)    
+    complete_address = session.get_formattable_redcap_form_address(project_id, arm_name, event_descrip, subject_id, form_name)    
     assert(complete_address == test_link)
     
 @pytest.fixture

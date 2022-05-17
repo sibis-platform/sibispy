@@ -979,7 +979,7 @@ class Session(object):
     def get_redcap_base_address(self):
         return self.__config_usr_data.get_value("redcap", "base_address")
 
-    def get_formattable_redcap_address(self,
+    def get_formattable_redcap_form_address(self,
                                        project_id: int,
                                        arm_name: str,
                                        event_descrip: str,
