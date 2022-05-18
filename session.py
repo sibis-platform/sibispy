@@ -991,7 +991,7 @@ class Session(object):
     def get_formattable_redcap_form_address(
         self,
         project_id: int,
-        arm_name: str,
+        arm_num: int,
         event_descrip: str,
         subject_id=None,
         name_of_form=None,

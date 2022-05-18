@@ -464,7 +464,7 @@ def test_session_formattable_redcap_subject_address(slog, session):
 
     # Test formatting when not passing subject_id
     formattable_address = session.get_formattable_redcap_subject_address(
-        project_id, arm_name
+        project_id, arm_num
     )
 
     formatted_address = formattable_address % (subject_id)
