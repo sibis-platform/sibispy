@@ -981,7 +981,7 @@ class Session(object):
 
     def get_formattable_redcap_form_address(self,
                                        project_id: int,
-                                       arm_name: str,
+                                       arm_num: str,
                                        event_descrip: str,
                                        subject_id=None,
                                        name_of_form=None):
@@ -994,7 +994,7 @@ class Session(object):
         # name_of_form: e.g. stroop
         # To replace formatted args, do formattable_address % (subject_id, form_name)
 
-        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+        arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
         if not name_of_form:
@@ -1010,7 +1010,7 @@ class Session(object):
 
     def get_formattable_redcap_subject_address(self,
                                        project_id: int,
-                                       arm_name: str,
+                                       arm_num: int,
                                        subject_id=None):
         # Returns a possibly formattable redcap link for the passed arguments, 2 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
@@ -1019,7 +1019,7 @@ class Session(object):
         # subject_id: e.g. B-00002-F-2
         # To replace formatted args, do formattable_address % (subject_id)
 
-        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+        arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
 
         if not subject_id:
             subject_id = "%s"
@@ -1342,6 +1342,21 @@ class Session(object):
         ].arm_id
         return int(arm_id)
 
+    def get_mysql_arm_id_from_arm_num(self, arm_num, project_id):
+        """
+        Get an arm_id using the arm name and project_id
+
+        :param arm_name: int
+        :param project_id: int
+        :return: int
+        """
+        arms = pd.read_sql_table("redcap_events_arms", self.api["redcap_mysql_db"])
+        arm_id = arms[
+            (arms.arm_num == arm_num) & (arms.project_id == project_id)
+        ].arm_id
+        return int(arm_id)
+
+    
     def get_mysql_event_id(self, event_descrip, arm_id):
         """
         Get an event_id using the event description and arm_id
