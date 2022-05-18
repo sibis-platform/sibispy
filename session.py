@@ -991,20 +991,29 @@ class Session(object):
     def get_formattable_redcap_form_address(
         self,
         project_id: int,
+        visit: str,
         arm_num: int,
-        event_descrip: str,
         subject_id=None,
         name_of_form=None,
     ):
         # Returns a possibly formattable redcap link for the passed arguments, 3 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
-        # arm_name: recoverable from this table: `pandas.read_sql_table("redcap_events_arms", session.api["redcap_mysql_db"])`
-        # event_descrip: recoverable from this table: `pandas.read_sql_table("redcap_events_metadata", session.api["redcap_mysql_db"])`
+        # visit: e.g. 7y_visit or 66month_followup
+        # arm_num: e.g. 1
         # And 2 optional (if not passed, they will be replaced by the %s placeholder which can be replaced later with the real value):
         # subject_id: e.g. B-00002-F-2
         # name_of_form: e.g. stroop
         # To replace formatted args, do formattable_address % (subject_id, form_name)
 
+        if "month" in visit:
+            visit = visit.split("month_followup")[0] # '66month_followup' -> '66'
+            event_descrip = visit + "-month follow-up" # -> "66-month follow-up'
+        else:
+            visit = visit.split("_")[0] # '7y_visit' -> '7y'
+            if visit == 'baseline':
+                visit = 'Baseline'
+            event_descrip = visit + " visit" # -> '7y visit'
+            
         arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
@@ -1027,7 +1036,7 @@ class Session(object):
                                        subject_id=None):
         # Returns a possibly formattable redcap link for the passed arguments, 2 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
-        # arm_name: recoverable from this table: `pandas.read_sql_table("redcap_events_arms", session.api["redcap_mysql_db"])`
+        # arm_num: e.g. 1
         # And 1 optional (if not passed, they will be replaced by the %s placeholder which can be replaced later with the real value):
         # subject_id: e.g. B-00002-F-2
         # To replace formatted args, do formattable_address % (subject_id)

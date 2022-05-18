@@ -414,7 +414,7 @@ def test_session_formattable_redcap_form_address(slog, session):
     assert session.connect_server('redcap_mysql_db', True), "Failed to connect to data_entry"
     project_id = redcap_project.export_project_info()['project_id']
     arm_num = 1
-    event_descrip = "7y visit"
+    visit = "7y_visit"
     event_id = 512
     subject_id = "A-00002-F-2"
     form_name = "clinical"
@@ -422,27 +422,27 @@ def test_session_formattable_redcap_form_address(slog, session):
     test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={form_name}"
 
     # Test formatting when passing neither subject_id nor form_name
-    formattable_address = session.get_formattable_redcap_form_address(project_id, arm_num, event_descrip)
+    formattable_address = session.get_formattable_redcap_form_address(project_id, visit, arm_num)
     formatted_address = formattable_address % (subject_id, form_name)
     assert formatted_address == test_link
 
     # Test passing only subject_id
     missing_form = session.get_formattable_redcap_form_address(
-        project_id, arm_num, event_descrip, subject_id=subject_id
+        project_id, visit, arm_num, subject_id=subject_id
     )
     formatted_address = missing_form % (form_name)
     assert formatted_address == test_link
 
     # Test passing only subject_id
     missing_sid = session.get_formattable_redcap_form_address(
-        project_id, arm_num, event_descrip, subject_id=None, name_of_form=form_name
+        project_id, visit, arm_num, subject_id=None, name_of_form=form_name
     )
     formatted_address = missing_sid % (subject_id)
     assert formatted_address == test_link
 
     # Test passing both directly to function
     complete_address = session.get_formattable_redcap_form_address(
-        project_id, arm_num, event_descrip, subject_id, form_name
+        project_id, visit, arm_num, subject_id, form_name
     )
     assert complete_address == test_link
 
