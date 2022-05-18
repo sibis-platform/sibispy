@@ -294,8 +294,11 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     assert subject_project_list != None, "Search result should not be None."
 
 def test_session_formattable_redcap_form_address(slog, session):
+    session.configure(ordered_config_load_flag = True)
     version = str(session.get_redcap_version())
     redcap_project = session.connect_server('data_entry', True)
+    assert redcap_project, "Failed to connect to data_entry"
+    assert session.connect_server('redcap_mysql_db', True), "Failed to connect to data_entry"
     project_id = redcap_project.export_project_info()['project_id']
     arm_name = 'Standard Protocol'
     event_descrip = "7y visit"
@@ -322,6 +325,29 @@ def test_session_formattable_redcap_form_address(slog, session):
     # Test passing both directly to function
     complete_address = session.get_formattable_redcap_form_address(project_id, arm_name, event_descrip, subject_id, form_name)    
     assert(complete_address == test_link)
+
+
+def test_session_formattable_redcap_subject_address(slog, session):
+    version = str(session.get_redcap_version())
+    redcap_project = session.connect_server('data_entry', True)
+    assert redcap_project, "Failed to connect to data_entry"
+    assert session.connect_server('redcap_mysql_db', True), "Failed to connect to data_entry"
+    project_id = redcap_project.export_project_info()['project_id']
+    arm_name = 'Standard Protocol'
+    arm_id = 1
+    subject_id = 'A-00002-F-2'
+    test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+
+    # Test formatting when not passing subject_id
+    formattable_address = session.get_formattable_redcap_subject_address(project_id, arm_name)
+    formatted_address = formattable_address % (subject_id)
+    assert(formatted_address == test_link)
+
+    # Test passing subject_id directly to function
+    complete_address = session.get_formattable_redcap_subject_address(project_id, arm_name, subject_id)
+    assert(complete_address == test_link)
+
+
     
 @pytest.fixture
 def penncnp_cleanup(session):
