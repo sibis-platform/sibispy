@@ -1006,6 +1006,29 @@ class Session(object):
         version = str(self.get_redcap_version())
         formattable_address = base_address + f"redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={name_of_form}"
         return formattable_address
+
+
+    def get_formattable_redcap_subject_address(self,
+                                       project_id: int,
+                                       arm_name: str,
+                                       subject_id=None):
+        # Returns a possibly formattable redcap link for the passed arguments, 2 mandatory:
+        # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
+        # arm_name: recoverable from this table: `pandas.read_sql_table("redcap_events_arms", session.api["redcap_mysql_db"])`
+        # And 1 optional (if not passed, they will be replaced by the %s placeholder which can be replaced later with the real value):
+        # subject_id: e.g. B-00002-F-2
+        # To replace formatted args, do formattable_address % (subject_id)
+
+        arm_id = self.get_mysql_arm_id(arm_name, project_id)
+
+        if not subject_id:
+            subject_id = "%s"
+
+        base_address = self.get_redcap_base_address()
+        version = str(self.get_redcap_version())
+        formattable_address = base_address + f"redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+        return formattable_address
+
     
     #
     # REDCAP API CALLS
