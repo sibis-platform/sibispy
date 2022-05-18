@@ -411,7 +411,6 @@ def test_session_formattable_redcap_form_address(slog, session):
     session.configure(ordered_config_load_flag=True)
     redcap_project = session.connect_server("data_entry", True)
     assert redcap_project, "Failed to connect to data_entry"
-    assert session.connect_server('redcap_mysql_db', True), "Failed to connect to data_entry"
     project_id = redcap_project.export_project_info()['project_id']
     arm_num = 1
     visit = "7y_visit"
@@ -451,10 +450,6 @@ def test_session_formattable_redcap_form_address(slog, session):
 def test_session_formattable_redcap_subject_address(slog, session):
     redcap_project = session.connect_server("data_entry", True)
     assert redcap_project, "Failed to connect to data_entry"
-
-    assert session.connect_server(
-        "redcap_mysql_db", True
-    ), "Failed to connect to data_entry"
     project_id = redcap_project.export_project_info()["project_id"]
     arm_num = 1
     arm_id = 22

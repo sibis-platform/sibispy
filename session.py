@@ -1013,7 +1013,8 @@ class Session(object):
             if visit == 'baseline':
                 visit = 'Baseline'
             event_descrip = visit + " visit" # -> '7y visit'
-            
+
+        self.connect_server('redcap_mysql_db', True)
         arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
@@ -1041,6 +1042,7 @@ class Session(object):
         # subject_id: e.g. B-00002-F-2
         # To replace formatted args, do formattable_address % (subject_id)
 
+        self.connect_server('redcap_mysql_db', True)
         arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
 
         if not subject_id:
