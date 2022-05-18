@@ -684,7 +684,16 @@ class Session(object):
     def get_xnat_experiments_address(self):
         return self.get_xnat_data_address() + "/experiments"
 
-    def get_xnat_session_address(self, experiment_id: str, output_format: Literal['html', 'csv', 'json'] = 'html'):        return self.get_xnat_experiments_address() + "/" + experiment_id + "?format=" + output_format
+    def get_xnat_session_address(
+        self, experiment_id: str, output_format: Literal["html", "csv", "json"] = "html"
+    ):
+        return (
+            self.get_xnat_experiments_address()
+            + "/"
+            + experiment_id
+            + "?format="
+            + output_format
+        )
 
     def xnat_http_get_all_experiments(self):
         xnat_http_api = self.__get_xnat_http_api__()
@@ -698,7 +707,7 @@ class Session(object):
         if not xnat_http_api:
             return None
 
-        return xnat_http_api.get(self.get_xnat_session_address(experiment_id, 'csv'))
+        return xnat_http_api.get(self.get_xnat_session_address(experiment_id, "csv"))
 
     def xnat_get_classes(self):
         xnat_api = self.__get_xnat_api__()
@@ -979,12 +988,14 @@ class Session(object):
     def get_redcap_base_address(self):
         return self.__config_usr_data.get_value("redcap", "base_address")
 
-    def get_formattable_redcap_form_address(self,
-                                       project_id: int,
-                                       arm_num: str,
-                                       event_descrip: str,
-                                       subject_id=None,
-                                       name_of_form=None):
+    def get_formattable_redcap_form_address(
+        self,
+        project_id: int,
+        arm_name: str,
+        event_descrip: str,
+        subject_id=None,
+        name_of_form=None,
+    ):
         # Returns a possibly formattable redcap link for the passed arguments, 3 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
         # arm_name: recoverable from this table: `pandas.read_sql_table("redcap_events_arms", session.api["redcap_mysql_db"])`
@@ -1004,9 +1015,11 @@ class Session(object):
 
         base_address = self.get_redcap_base_address()
         version = str(self.get_redcap_version())
-        formattable_address = base_address + f"redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={name_of_form}"
+        formattable_address = (
+            base_address
+            + f"redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={name_of_form}"
+        )
         return formattable_address
-
 
     def get_formattable_redcap_subject_address(self,
                                        project_id: int,
@@ -1026,10 +1039,12 @@ class Session(object):
 
         base_address = self.get_redcap_base_address()
         version = str(self.get_redcap_version())
-        formattable_address = base_address + f"redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+        formattable_address = (
+            base_address
+            + f"redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+        )
         return formattable_address
 
-    
     #
     # REDCAP API CALLS
     #
@@ -1100,7 +1115,7 @@ class Session(object):
                             time.asctime()
                         ),
                         warning_msg=w_msg,
-                        **selectStmt
+                        **selectStmt,
                     )
 
         except Exception as err_msg:
@@ -1108,7 +1123,7 @@ class Session(object):
                 "session.redcap_export_records",
                 "ERROR: exporting data from REDCap failed at {}".format(time.asctime()),
                 err_msg=str(err_msg),
-                **selectStmt
+                **selectStmt,
             )
             return None
 
