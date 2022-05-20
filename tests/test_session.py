@@ -452,10 +452,9 @@ def test_session_formattable_redcap_subject_address(slog, session):
     assert redcap_project, "Failed to connect to data_entry"
     project_id = redcap_project.export_project_info()["project_id"]
     arm_num = 1
-    arm_id = 22
     subject_id = "A-00002-F-2"
     version = str(session.get_redcap_version())
-    test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+    test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_num}&id={subject_id}"
 
     # Test formatting when not passing subject_id
     formattable_address = session.get_formattable_redcap_subject_address(

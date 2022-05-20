@@ -1042,9 +1042,6 @@ class Session(object):
         # subject_id: e.g. B-00002-F-2
         # To replace formatted args, do formattable_address % (subject_id)
 
-        self.connect_server('redcap_mysql_db', True)
-        arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
-
         if not subject_id:
             subject_id = "%s"
 
@@ -1052,7 +1049,7 @@ class Session(object):
         version = str(self.get_redcap_version())
         formattable_address = (
             base_address
-            + f"redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_id}&id={subject_id}"
+            + f"redcap_v{version}/DataEntry/record_home.php?pid={project_id}&arm={arm_num}&id={subject_id}"
         )
         return formattable_address
 
