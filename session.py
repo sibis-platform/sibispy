@@ -23,6 +23,7 @@ import requests
 import hashlib
 import pandas as pd
 from pandas.io.sql import execute
+import re
 import warnings
 from sibispy.svn_util import SibisSvnClient
 
@@ -989,19 +990,21 @@ class Session(object):
         return self.__config_usr_data.get_value("redcap", "base_address")
 
     def get_event_descrip_from_redcap_event_name(self, redcap_event_name:str):
+        if redcap_event_name == "submission_4_inper_arm_6":
+            return "Submission 4 In-person"
         visit_regex = "(recovery_baseline)|(recovery_daily_\d*)|(recovery_weekly_\d)|(recovery_final)|(baseline_night_\d)|(\d*y_visit_night_\d)|(\d*y_visit)|(baseline_visit)|(\d*month_followup)|(submission_\d)"
         visit_match = re.match(visit_regex, redcap_event_name)
         if visit_match is None:
             raise ValueError(f"No matching visit for {redcap_event_name}")
         visit = visit_match.group()
-
+        
         month_match = re.match("(\d*)month_followup", visit)
-        if month_match
+        if month_match:
             visit = month_match.group(1) # '66month_followup' -> '66'
             event_descrip = visit + "-month follow-up" # -> "66-month follow-up'
             return event_descrip
 
-        yearly_standard_match = re.match("(\d*y)_visit_arm", visit)
+        yearly_standard_match = re.match("(\d*y)_visit", visit)
         if yearly_standard_match:
             visit = yearly_standard_match.group(1) # '7y_visit' -> '7y'
             event_descrip = visit + " visit" # -> '7y visit'
@@ -1031,7 +1034,7 @@ class Session(object):
             raise ValueError(f"No arm for {redcap_event_name}")
         arm_num = int(arm_match.group(1))
 
-        event_descrip = get_event_descrip_from_redcap_event_name(redcap_event_name)
+        event_descrip = self.get_event_descrip_from_redcap_event_name(redcap_event_name)
 
         self.connect_server('redcap_mysql_db', True)
         arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
