@@ -19,6 +19,7 @@ import tempfile
 import warnings
 from sibispy import session as sess
 from . import utils
+import pandas as pd
 
 
 @pytest.fixture
@@ -406,7 +407,27 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     )
     assert subject_project_list != None, "Search result should not be None."
 
+def test_session_event_descrip_from_redcap_event_name(slog, session):
+    session.connect_server("data_entry", True)
+    session.connect_server('redcap_mysql_db', True)
+    event_descrips = pd.read_sql_table(
+            "redcap_events_metadata", session.api["redcap_mysql_db"]
+        )['descrip'].to_list()
 
+    entry_data = session.redcap_export_records_from_api(
+        time_label=None,
+        api_type="data_entry",
+        fields=['study_id'],
+        event_name="unique",
+        format="df",
+        export_data_access_groups=False,
+    ).reset_index()
+    redcap_event_names = entry_data['redcap_event_name'].to_list()
+    for redcap_event_name in redcap_event_names:
+        event_descrip = session.get_event_descrip_from_redcap_event_name(redcap_event_name)
+        assert event_descrip in event_descrips, f"{event_descrip} incorrect event descrip for {redcap_event_name}"
+    
+    
 def test_session_formattable_redcap_form_address(slog, session):
     session.configure(ordered_config_load_flag=True)
     redcap_project = session.connect_server("data_entry", True)
@@ -414,34 +435,35 @@ def test_session_formattable_redcap_form_address(slog, session):
     project_id = redcap_project.export_project_info()['project_id']
     arm_num = 1
     visit = "7y_visit"
-    event_id = 512
+    redcap_event_name = f"{visit}_arm_{arm_num}"
+    event_id = 493
     subject_id = "A-00002-F-2"
     form_name = "clinical"
     version = str(session.get_redcap_version())
     test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={form_name}"
 
     # Test formatting when passing neither subject_id nor form_name
-    formattable_address = session.get_formattable_redcap_form_address(project_id, visit, arm_num)
+    formattable_address = session.get_formattable_redcap_form_address(project_id, redcap_event_name)
     formatted_address = formattable_address % (subject_id, form_name)
     assert formatted_address == test_link
 
     # Test passing only subject_id
     missing_form = session.get_formattable_redcap_form_address(
-        project_id, visit, arm_num, subject_id=subject_id
+        project_id, redcap_event_name, subject_id=subject_id
     )
     formatted_address = missing_form % (form_name)
     assert formatted_address == test_link
 
     # Test passing only subject_id
     missing_sid = session.get_formattable_redcap_form_address(
-        project_id, visit, arm_num, subject_id=None, name_of_form=form_name
+        project_id, redcap_event_name, subject_id=None, name_of_form=form_name
     )
     formatted_address = missing_sid % (subject_id)
     assert formatted_address == test_link
 
     # Test passing both directly to function
     complete_address = session.get_formattable_redcap_form_address(
-        project_id, visit, arm_num, subject_id, form_name
+        project_id, redcap_event_name, subject_id, form_name
     )
     assert complete_address == test_link
 
