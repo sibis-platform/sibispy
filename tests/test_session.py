@@ -407,32 +407,37 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     )
     assert subject_project_list != None, "Search result should not be None."
 
+
 def test_session_event_descrip_from_redcap_event_name(slog, session):
     session.connect_server("data_entry", True)
-    session.connect_server('redcap_mysql_db', True)
+    session.connect_server("redcap_mysql_db", True)
     event_descrips = pd.read_sql_table(
-            "redcap_events_metadata", session.api["redcap_mysql_db"]
-        )['descrip'].to_list()
+        "redcap_events_metadata", session.api["redcap_mysql_db"]
+    )["descrip"].to_list()
 
     entry_data = session.redcap_export_records_from_api(
         time_label=None,
         api_type="data_entry",
-        fields=['study_id'],
+        fields=["study_id"],
         event_name="unique",
         format="df",
         export_data_access_groups=False,
     ).reset_index()
-    redcap_event_names = entry_data['redcap_event_name'].to_list()
+    redcap_event_names = entry_data["redcap_event_name"].to_list()
     for redcap_event_name in redcap_event_names:
-        event_descrip = session.get_event_descrip_from_redcap_event_name(redcap_event_name)
-        assert event_descrip in event_descrips, f"{event_descrip} incorrect event descrip for {redcap_event_name}"
-    
-    
+        event_descrip = session.get_event_descrip_from_redcap_event_name(
+            redcap_event_name
+        )
+        assert (
+            event_descrip in event_descrips
+        ), f"{event_descrip} incorrect event descrip for {redcap_event_name}"
+
+
 def test_session_formattable_redcap_form_address(slog, session):
     session.configure(ordered_config_load_flag=True)
     redcap_project = session.connect_server("data_entry", True)
     assert redcap_project, "Failed to connect to data_entry"
-    project_id = redcap_project.export_project_info()['project_id']
+    project_id = redcap_project.export_project_info()["project_id"]
     arm_num = 1
     visit = "7y_visit"
     redcap_event_name = f"{visit}_arm_{arm_num}"
@@ -443,7 +448,9 @@ def test_session_formattable_redcap_form_address(slog, session):
     test_link = f"{session.get_redcap_base_address()}redcap_v{version}/DataEntry/index.php?pid={project_id}&id={subject_id}&event_id={event_id}&page={form_name}"
 
     # Test formatting when passing neither subject_id nor form_name
-    formattable_address = session.get_formattable_redcap_form_address(project_id, redcap_event_name)
+    formattable_address = session.get_formattable_redcap_form_address(
+        project_id, redcap_event_name
+    )
     formatted_address = formattable_address % (subject_id, form_name)
     assert formatted_address == test_link
 
@@ -466,7 +473,6 @@ def test_session_formattable_redcap_form_address(slog, session):
         project_id, redcap_event_name, subject_id, form_name
     )
     assert complete_address == test_link
-
 
 
 def test_session_formattable_redcap_subject_address(slog, session):

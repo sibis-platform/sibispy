@@ -989,7 +989,7 @@ class Session(object):
     def get_redcap_base_address(self):
         return self.__config_usr_data.get_value("redcap", "base_address")
 
-    def get_event_descrip_from_redcap_event_name(self, redcap_event_name:str):
+    def get_event_descrip_from_redcap_event_name(self, redcap_event_name: str):
         if redcap_event_name == "submission_4_inper_arm_6":
             return "Submission 4 In-person"
         visit_regex = "(recovery_baseline)|(recovery_daily_\d*)|(recovery_weekly_\d)|(recovery_final)|(baseline_night_\d)|(\d*y_visit_night_\d)|(\d*y_visit)|(baseline_visit)|(\d*month_followup)|(submission_\d)"
@@ -997,24 +997,24 @@ class Session(object):
         if visit_match is None:
             raise ValueError(f"No matching visit for {redcap_event_name}")
         visit = visit_match.group()
-        
+
         month_match = re.match("(\d*)month_followup", visit)
         if month_match:
-            visit = month_match.group(1) # '66month_followup' -> '66'
-            event_descrip = visit + "-month follow-up" # -> "66-month follow-up'
+            visit = month_match.group(1)  # '66month_followup' -> '66'
+            event_descrip = visit + "-month follow-up"  # -> "66-month follow-up'
             return event_descrip
 
         yearly_standard_match = re.match("(\d*y)_visit", visit)
         if yearly_standard_match:
-            visit = yearly_standard_match.group(1) # '7y_visit' -> '7y'
-            event_descrip = visit + " visit" # -> '7y visit'
+            visit = yearly_standard_match.group(1)  # '7y_visit' -> '7y'
+            event_descrip = visit + " visit"  # -> '7y visit'
             return event_descrip
 
         visit_words = visit.split("_")
         visit_words = [x.capitalize() for x in visit_words]
         event_descrip = " ".join(visit_words)
         return event_descrip
-        
+
     def get_formattable_redcap_form_address(
         self,
         project_id: int,
@@ -1029,14 +1029,14 @@ class Session(object):
         # subject_id: e.g. B-00002-F-2
         # name_of_form: e.g. stroop
         # To replace formatted args, do formattable_address % (subject_id, form_name)
-        arm_match = re.search('arm_(\d*)', redcap_event_name)
+        arm_match = re.search("arm_(\d*)", redcap_event_name)
         if arm_match is None:
             raise ValueError(f"No arm for {redcap_event_name}")
         arm_num = int(arm_match.group(1))
 
         event_descrip = self.get_event_descrip_from_redcap_event_name(redcap_event_name)
 
-        self.connect_server('redcap_mysql_db', True)
+        self.connect_server("redcap_mysql_db", True)
         arm_id = self.get_mysql_arm_id_from_arm_num(arm_num, project_id)
         event_id = self.get_mysql_event_id(event_descrip, arm_id)
 
@@ -1053,10 +1053,9 @@ class Session(object):
         )
         return formattable_address
 
-    def get_formattable_redcap_subject_address(self,
-                                       project_id: int,
-                                       arm_num: int,
-                                       subject_id=None):
+    def get_formattable_redcap_subject_address(
+        self, project_id: int, arm_num: int, subject_id=None
+    ):
         # Returns a possibly formattable redcap link for the passed arguments, 2 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
         # arm_num: e.g. 1
@@ -1401,7 +1400,6 @@ class Session(object):
         ].arm_id
         return int(arm_id)
 
-    
     def get_mysql_event_id(self, event_descrip, arm_id):
         """
         Get an event_id using the event description and arm_id
