@@ -1004,7 +1004,7 @@ class Session(object):
             event_descrip = visit + "-month follow-up"  # -> "66-month follow-up'
             return event_descrip
 
-        yearly_standard_match = re.match("(\d*y)_visit", visit)
+        yearly_standard_match = re.match("(\d*y)_visit$", visit)
         if yearly_standard_match:
             visit = yearly_standard_match.group(1)  # '7y_visit' -> '7y'
             event_descrip = visit + " visit"  # -> '7y visit'
