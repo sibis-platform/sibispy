@@ -1006,8 +1006,12 @@ class Session(object):
 
         yearly_standard_match = re.match("(\d*y)_visit$", visit)
         if yearly_standard_match:
-            visit = yearly_standard_match.group(1)  # '7y_visit' -> '7y'
-            event_descrip = visit + " visit"  # -> '7y visit'
+            year = yearly_standard_match.group(1)  # '7y_visit' -> '7y'
+            event_descrip = year + " visit"  # -> '7y visit'
+            return event_descrip
+
+        if visit == "baseline_visit":
+            event_descrip = "Baseline visit"
             return event_descrip
 
         visit_words = visit.split("_")
