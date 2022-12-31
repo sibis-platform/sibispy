@@ -8,9 +8,8 @@ Create the SIBIS Session Object
 The SIBIS Session Object provides a single point of reference to access
 multiple systems. For example, XNAT, REDDCap, and Github.
 """
-from __future__ import print_function, absolute_import
+from __future__ import print_function, absolute_import 
 from future import standard_library
-
 standard_library.install_aliases()
 from builtins import str
 from builtins import object
@@ -36,9 +35,14 @@ from sibispy import config_file_parser as cfg_parser
 # if one cannot connect to server
 from io import StringIO
 import sys
-from typing import Mapping, Literal
+from typing import Mapping
 
-
+try:
+    from typing import Literal
+except:
+    # for python < 3.8
+    from typing_extensions import Literal
+ 
 class Capturing(list):
     def __enter__(self):
         self._stdout = sys.stdout
