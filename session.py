@@ -219,7 +219,7 @@ class Session(object):
 
         return True
 
-    def connect_server(self, api_type, timeFlag=False):
+    def connect_server(self, api_type, timeFlag=False, penncnp_HiddenBrowserFlag=True):
         """
         Connect to servers, setting each property.
         """
@@ -239,7 +239,7 @@ class Session(object):
         elif api_type == "xnat_http":
             connectionPtr = self.__connect_xnat_http__()
         elif api_type == "browser_penncnp":
-            connectionPtr = self.__connect_penncnp__()
+            connectionPtr = self.__connect_penncnp__(penncnp_HiddenBrowserFlag)
         elif api_type == "svn_laptop":
             connectionPtr = self.__connect_svn_laptop__()
         elif api_type == "redcap_mysql_db":
@@ -309,7 +309,7 @@ class Session(object):
             return (None, str(err_msg))
 
     @contextmanager
-    def __connect_penncnp__(self):
+    def __connect_penncnp__(self, penncnp_HiddenBrowserFlag=True):
         # Check that config file is correctly defined
         if "penncnp" not in list(self.__config_srv_data.keys()):
             slog.info(
@@ -330,78 +330,83 @@ class Session(object):
 
         penncnp_usr_data = self.__config_usr_data.get_category("penncnp")
 
-        # Check if display is open
-        display = ":" + str(penncnp_srv_data["display"])
-        vfb_cmd = "vfb +extension RANDR " + display
-        check_cmd = "[X]" + vfb_cmd
+        if penncnp_HiddenBrowserFlag:         
+            # Check if display is open
+            display = ":" + str(penncnp_srv_data["display"])
+            vfb_cmd = "vfb +extension RANDR " + display
+            check_cmd = "[X]" + vfb_cmd
+            
+            (pip_list, err_msg) = self.__list_running_process__(check_cmd)
+            if err_msg:
+                slog.info(
+                    "session.__connect_penncnp__",
+                    "Checking if command %s is already running failed with the following error message: %s"
+                    % (check_cmd, strcheck_err),
+                )
+                yield
+                return
 
-        (pip_list, err_msg) = self.__list_running_process__(check_cmd)
-        if err_msg:
-            slog.info(
-                "session.__connect_penncnp__",
-                "Checking if command %s is already running failed with the following error message: %s"
-                % (check_cmd, strcheck_err),
-            )
-            yield
-            return
+            if pip_list:
+                slog.info(
+                    "session.__connect_penncnp__",
+                    "Error: sessions with display "
+                    + display
+                    + " are already running ! Please execute 'kill -9 "
+                    + pip_list.decode("utf-8")
+                    + "' before proceeding!",
+                )
+                yield
+                return
 
-        if pip_list:
-            slog.info(
-                "session.__connect_penncnp__",
-                "Error: sessions with display "
-                + display
-                + " are already running ! Please execute 'kill -9 "
-                + pip_list.decode("utf-8")
-                + "' before proceeding!",
-            )
-            yield
-            return
+            # Open screen
+            import subprocess
 
-        # Open screen
-        import subprocess
+            display_cmd = "X" + vfb_cmd + " &> /dev/null"
+            try:
+                proc = subprocess.Popen(display_cmd, shell=True)
+                proc.poll()
+                if proc.returncode is not None:
+                    (out, err_msg) = proc.communicate(timeout=30)
+            except Exception as err_msg:
+                pass
 
-        display_cmd = "X" + vfb_cmd + " &> /dev/null"
-        try:
-            proc = subprocess.Popen(display_cmd, shell=True)
-            proc.poll()
-            if proc.returncode is not None:
-                (out, err_msg) = proc.communicate(timeout=30)
-        except Exception as err_msg:
-            pass
+            if err_msg:
+                slog.info(
+                    "session.__connect_penncnp__",
+                    "The following command failed %s with the following output %s"
+                    % (display_cmd, str(err_msg)),
+                )
+                yield
+                self.disconnect_penncnp()
+                return
 
-        if err_msg:
-            slog.info(
-                "session.__connect_penncnp__",
-                "The following command failed %s with the following output %s"
-                % (display_cmd, str(err_msg)),
-            )
-            yield
-            self.disconnect_penncnp()
-            return
-
-        (pip, err_msg) = self.__list_running_process__(check_cmd)
-        if err_msg:
-            slog.info(
-                "session.__connect_penncnp__",
-                "Checking if command %s is already running failed with the following error message: %s"
-                % (check_cmd, strcheck_err),
-            )
-            yield
-            self.disconnect_penncnp()
-            return
+            (pip, err_msg) = self.__list_running_process__(check_cmd)
+            if err_msg:
+                slog.info(
+                    "session.__connect_penncnp__",
+                    "Checking if command %s is already running failed with the following error message: %s"
+                    % (check_cmd, strcheck_err),
+                )
+                yield
+                self.disconnect_penncnp()
+                return
         
-        # if multiple pips are returned (run outside the container)
-        pip=pip.decode("utf-8").split('\n')[0]
-        if not pip:
-            slog.info(
-                "session.__connect_penncnp__",
-                "Error: sessions with display " + display + " did not start up!",
-            )
-            yield
-            self.disconnect_penncnp()
-            return
+            # if multiple pips are returned (run outside the container)
+            pip=pip.decode("utf-8").split('\n')[0]
+            if not pip:
+                slog.info(
+                    "session.__connect_penncnp__",
+                    "Error: sessions with display " + display + " did not start up!",
+                )
+                yield
+                self.disconnect_penncnp()
+                return
 
-        os.environ["DISPLAY"] = display
+            os.environ["DISPLAY"] = display
+        else:
+            # Do not set display
+            display=""
+            pip=-1
 
         # Set up Browser
         # Configure Firefox profile for automated file download
@@ -968,26 +973,26 @@ class Session(object):
 
         self.api["browser_penncnp"]["browser"].quit()
 
-        if (
-            "DISPLAY" in list(os.environ.keys())
-            and os.environ["DISPLAY"] == self.api["browser_penncnp"]["display"]
-        ):
-            del os.environ["DISPLAY"]
+        display=self.api["browser_penncnp"]["display"]
+        if display != "":  
+            if ("DISPLAY" in list(os.environ.keys()) and os.environ["DISPLAY"] == display):
+                del os.environ["DISPLAY"]
 
-        import subprocess
-
-        kill_cmd = "kill -9 " + str(self.api["browser_penncnp"]["pip"])
-        try:
-            err_msg = subprocess.check_output(kill_cmd, shell=True)
-        except Exception as err:
-            err_msg = err
-        if err_msg:
-            slog.info(
-                "session.__connect_penncnp__",
-                "The following command failed %s with the following output %s"
-                % (kill_cmd, str(err_msg)),
-            )
-            return None
+        pip=self.api["browser_penncnp"]["pip"]
+        if pip > 0 :     
+            kill_cmd = "kill -9 " + str(pip)
+            try:
+                import subprocess
+                err_msg = subprocess.check_output(kill_cmd, shell=True)
+            except Exception as err:
+                err_msg = err
+                if err_msg:
+                    slog.info(
+                        "session.__connect_penncnp__",
+                        "The following command failed %s with the following output %s"
+                        % (kill_cmd, str(err_msg)),
+                    )
+                    return None
 
     def get_redcap_server_address(self):
         return self.__config_usr_data.get_value("redcap", "server")
