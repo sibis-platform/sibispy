@@ -389,7 +389,9 @@ class Session(object):
             yield
             self.disconnect_penncnp()
             return
-
+        
+        # if multiple pips are returned (run outside the container)
+        pip=pip.decode("utf-8").split('\n')[0]
         if not pip:
             slog.info(
                 "session.__connect_penncnp__",
