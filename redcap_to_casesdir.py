@@ -580,14 +580,19 @@ class redcap_to_casesdir(object):
     def schedule_cluster_job(self, job_script: str, job_title: str, submit_log: Union[str, Path] = None,
                              job_log: str = '/dev/null', verbose: bool = False) -> bool:
 
-        slurm_config = self.__sibis_defs['cluster_config']
+        slurm_config = self.__sibis_defs['cluster_config']        
         slurm = SlurmScheduler(slurm_config)
-        try:  
+        try:
             return slurm.schedule_job(job_script, job_title, submit_log, job_log, verbose)[0]
         
         except Exception as err_msg:
-            slog.info(job_title + "-" +hashlib.sha1(str(job_script).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job via slurm !", job_script = str(job_script), err_msg = str(err_msg),slurm_config=str(slurm_config))  
-            return None
+            sbatch_cmd=slurm_config['base_cmd'].split(' ')[-1]        
+            slog.info(job_title + "-" +hashlib.sha1(str(job_script).encode('utf-8')).hexdigest()[0:6],"ERROR: Failed to schedule job via slurm !",
+                      job_script = str(job_script),
+                      err_msg = str(err_msg),
+                      slurm_config=str(slurm_config),
+                      info="Make sure '" + sbatch_cmd +"' on '"+ slurm_config['connection']['host'] +"' exists!")
+            return False
 
     def schedule_old_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
         qsub_cmd= '/opt/sge/bin/lx-amd64/qsub'
