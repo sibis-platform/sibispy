@@ -136,7 +136,7 @@ subject_xnat_id =  str(subject_visit_data['mri_xnat_sid'])
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 
 subject_fields = ['study_id', 'dob',  'exclude', 'enroll_exception',
-                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code', 'family_id']
+                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code', 'family_id','ndar_guid_id','ndar_consent']
 #baseline_events = ['baseline_visit_arm_1','baseline_visit_arm_4']
 #for speed up just the single subject- records flag
 baseline_events = ['baseline_visit_arm_1']
@@ -192,6 +192,8 @@ mock_baseline_data = pandas.DataFrame({
   'family_id': [10],
   'enroll_exception___drinking': [0],
   'exclude': [0],
+  'ndar_guid_id':['TEST_GUID'],
+  'ndar_consent':[5]  
 }).set_index('study_id').loc['X-00001-X-9']
 
 from functools import partial

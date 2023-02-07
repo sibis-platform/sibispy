@@ -402,6 +402,8 @@ class redcap_to_casesdir(object):
                 ['participant_id', subject],
                 ['scanner', scanner_mfg],
                 ['scanner_model', scanner_model],
+                ['ndar_guid_id',subject_data['ndar_guid_id']],
+                ['ndar_consent',subject_data['ndar_consent']],
             ]
 
             series = pandas.Series()
@@ -510,25 +512,6 @@ class redcap_to_casesdir(object):
 
     # Export selected REDCap data to cases dir
     def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, exceeds_criteria_baseline, siblings_enrolled_yn_corrected,siblings_id_first_corrected, select_exports=None, verbose=False):
-        # Do not really use this feature later
-        # Mark subjects/visits that have QA completed by creating a hidden marker file
-        # qafile_path = os.path.join(subject_datadir, '.qacomplete')
-        # if visit_data['mri_qa_completed'] == '1':
-        #    try:
-        #        if not os.path.exists(qafile_path):
-        #            qafile = open(qafile_path, 'w')
-        #            qafile.close()
-        #    except IOError as error:
-        #        slog.info(subject_code,"ERROR: unable to open QA marker file in {}. {}".format(subject_datadir, error))
-        # else:
-        #    try:
-        #        if os.path.exists(qafile_path):
-        #            os.remove(qafile_path)
-        #    except OSError as error:
-        #        print("ERROR: unable to remove QA marker file {}. {}".format(qafile_path, error))
-
-        # Check if the "measures" subdirectory already exists - this is where all
-        # the csv files go. Create it if necessary.
 
         measures_dir = os.path.join(subject_datadir, 'measures')
         if not os.path.exists(measures_dir):
