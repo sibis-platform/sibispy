@@ -26,19 +26,20 @@ import pwd
 # =============================
 
 def test_cluster():
+  print("== test_cluster only needs to work on backend ==")
   cluster_submit_log = os.path.join(outdir,'cluster-submit.log')
   cluster_job_log = os.path.join(session.get_beta_dir(),'cluster-job.log')
   if os.path.exists(cluster_job_log):
-     os.remove(cluster_job_log)
+    print("INFO:Removing", cluster_job_log) 
+    os.remove(cluster_job_log)
 
   cluster_test_file = os.path.join(session.get_cases_dir(),"test_redcap_to_casesdir.cluster")
   user_id =  os.getuid()
   user_name = pwd.getpwuid(user_id )[ 0 ]
-  cmd = 'echo "Submitting User:' + user_name + '(' + str(user_id) + ')"; echo "Exe  cuting User: ${LOGNAME}(${UID})"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file)
+  cmd = 'echo "Submitting User:' + user_name + '(' + str(user_id) + ')"; echo "Executing User: ${LOGNAME}(${UID})"; touch ' + str(cluster_test_file) + '; rm -f '  + str(cluster_test_file)
 
-  print("== test_cluster only needs to work on backend ==")
   assert(red2cas.schedule_cluster_job(cmd, "test_redcap_to_casesdir", submit_log=cluster_submit_log, job_log=cluster_job_log, verbose = False))
-  print("Please check " +  cluster_job_log + " if cluster job was successfully executed !")
+  print("INFO:Please check " +  cluster_job_log + " if cluster job was successfully executed !")
 
 #=====================================
 def test_save_demographics_to_file():
@@ -89,6 +90,7 @@ else :
 
 
 slog.init_log(False, False,'test_redcap_to_casesdir', 'test_redcap_to_casesdir',None)
+# slog.init_log(True, True,'test_redcap_to_casesdir', 'testing',None)
 
 session = sibispy.Session()
 assert(session.configure(config_file=config_file,ordered_config_load_flag = True))
