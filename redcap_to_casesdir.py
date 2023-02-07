@@ -591,7 +591,7 @@ class redcap_to_casesdir(object):
                       job_script = str(job_script),
                       err_msg = str(err_msg),
                       slurm_config=str(slurm_config),
-                      info="Make sure '" + sbatch_cmd +"' on '"+ slurm_config['connection']['host'] +"' exists!")
+                      info="Make sure '" + sbatch_cmd +"' on '"+ slurm_config['connection']['host'] +"' exists! Debug by running test/test_redcap_to_casesdir.py")
             return False
 
     def schedule_old_cluster_job(self,job_script, job_title,submit_log=None, job_log=None, verbose=False):
