@@ -58,7 +58,9 @@ all_forms = {
              'lssaga2_parent': 'limesurvey_ssaga_part_2_parent',
              'lssaga3_parent': 'limesurvey_ssaga_part_3_parent',
              'lssaga4_parent': 'limesurvey_ssaga_part_4_parent',
-             'plus': 'participant_last_use_summary'}
+             'plus': 'participant_last_use_summary',
+             'myy': 'midyear_youth_interview'}
+
 # Preferred format for cli.add_form_param:
 all_forms_tuple = [(k, v) for k, v in all_forms.items()]
 
@@ -96,7 +98,7 @@ form_subgroup.add_argument("-a", "--all-forms",
 cli.add_form_param(form_subgroup, eligible_forms=all_forms_tuple)
 
 cli.add_subject_param(parser, dest="study_id")
-cli.add_event_param(parser, accepted_regex=r'^(baseline|\dy)$', template='{}')
+cli.add_event_param(parser, accepted_regex=r'^(baseline|\d{1,2}y|\d{1,3}m)$', template='{}')
 args = parser.parse_args()
 
 if len(args.event) > 0:
