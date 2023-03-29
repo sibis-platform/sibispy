@@ -13,6 +13,7 @@ from past.utils import old_div
 import os
 import sys
 import glob
+import shutil
 import pandas
 import numpy as np
 
@@ -79,15 +80,17 @@ def test_save_form_to_file(name_of_form):
 # =============================
 # Main 
 # =============================
+
+#
+# do not run via pytest but simply the command directly 
+#
 specific_subject=None
+config_file = os.path.join(os.path.expanduser("~"),'.sibis-general-config.yml')
 if sys.argv.__len__() > 1 :
     config_file = sys.argv[1]
     # execute for a specific subject, e.g. B-00000-M-6
     if sys.argv.__len__() > 2 :
-      specific_subject=[sys.argv[2]]
-else :
-    config_file = os.path.join(os.path.expanduser("~"),'.sibis-general-config.yml')
-
+        specific_subject=[sys.argv[2]]
 
 slog.init_log(False, False,'test_redcap_to_casesdir', 'test_redcap_to_casesdir',None)
 # slog.init_log(True, True,'test_redcap_to_casesdir', 'testing',None)
@@ -104,8 +107,12 @@ if not red2cas.configure(session,redcap_project.metadata) :
     sys.exit(1)
 
 outdir = "/tmp/test_redcap_to_casedir"
-if not os.path.exists(outdir) :
-    os.makedirs(outdir)
+if os.path.exists(outdir) :
+  shutil.rmtree(outdir)
+  
+
+
+os.makedirs(outdir)
 
 #
 # SUBJECT SPECIFIC INFO 
