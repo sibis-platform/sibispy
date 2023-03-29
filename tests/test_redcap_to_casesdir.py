@@ -143,7 +143,10 @@ subject_xnat_id =  str(subject_visit_data['mri_xnat_sid'])
 (arm_code,visit_code,subject_datadir_rel) = red2cas.translate_subject_and_event(subject_xnat_id, subject_event_id)
 
 subject_fields = ['study_id', 'dob',  'exclude', 'enroll_exception',
-                  'siblings_enrolled', 'siblings_id1', 'hispanic', 'race','race_other_code', 'family_id','ndar_guid_id','ndar_consent']
+                  'siblings_enrolled', 'siblings_id1', 'hispanic', 
+                  'race','race_other_code', 'family_id','ndar_guid_id',
+                  'ndar_consent', 'ndar_guid_anomaly', 'ndar_guid_anomaly_visit',
+                  'ndar_guid_aud_dx_followup', 'ndar_guid_aud_dx_initial']
 #baseline_events = ['baseline_visit_arm_1','baseline_visit_arm_4']
 #for speed up just the single subject- records flag
 baseline_events = ['baseline_visit_arm_1']
