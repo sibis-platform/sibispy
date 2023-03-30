@@ -388,7 +388,13 @@ class redcap_to_casesdir(object):
             ndar_guid_anomaly_visit = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly_visit']))
             ndar_guid_aud_dx_followup = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_followup']))
             ndar_guid_aud_dx_initial = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_initial']))
-
+            
+            # convert visit date from YYYY-MM-DD to MM/YYYY
+            if pandas.isnull(visit_data['visit_date']):
+                visit_date = ""
+            else:
+                visit_date = datetime.datetime.strptime(visit_data['visit_date'], "%Y-%m-%d").strftime("%m/%Y")
+            
             demographics = [
                 ['subject', subject_code],
                 ['arm', arm_code],
@@ -415,6 +421,7 @@ class redcap_to_casesdir(object):
                 ['participant_id', subject],
                 ['scanner', scanner_mfg],
                 ['scanner_model', scanner_model],
+                ['visit_date', visit_date],
                 ['ndar_guid_id', ndar_guid_id],
                 ['ndar_consent', ndar_consent],
                 ['ndar_guid_anomaly', ndar_guid_anomaly],
