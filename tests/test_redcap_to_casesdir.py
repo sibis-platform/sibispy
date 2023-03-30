@@ -203,7 +203,11 @@ mock_baseline_data = pandas.DataFrame({
   'enroll_exception___drinking': [0],
   'exclude': [0],
   'ndar_guid_id':['TEST_GUID'],
-  'ndar_consent':[5]  
+  'ndar_consent':[5],
+  'ndar_guid_anomaly': [0],
+  'ndar_guid_anomaly_visit': [np.nan],
+  'ndar_guid_aud_dx_followup': [0],
+  'ndar_guid_aud_dx_initial': [np.nan]  
 }).set_index('study_id').loc['X-00001-X-9']
 
 from functools import partial
