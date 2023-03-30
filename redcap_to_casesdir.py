@@ -338,6 +338,7 @@ class redcap_to_casesdir(object):
             hispanic_code = re.sub('(.0)|(nan)', '', str(subject_data['hispanic']))
             race_code = re.sub('(.0)|(nan)', '', str(subject_data['race']))
 
+
             # scanner manufacturer map
             scanner_mfg, scanner_model = self.__get_scanner_mfg_and_model__(str(visit_data['mri_scanner']), subject + "-" + visit_code)
 
@@ -375,6 +376,18 @@ class redcap_to_casesdir(object):
                 visit_age = ''
             else:
                 visit_age = self.__truncate_age__(visit_age)
+                
+            # define ndar values
+            if pandas.isnull(subject_data['ndar_guid_id']):
+                ndar_guid_id = ""
+            else:
+                ndar_guid_id = subject_data['ndar_guid_id']
+
+            ndar_consent = re.sub('(.0)|(nan)', '', str(subject_data['ndar_consent']))
+            ndar_guid_anomaly = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly']))
+            ndar_guid_anomaly_visit = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly_visit']))
+            ndar_guid_aud_dx_followup = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_followup']))
+            ndar_guid_aud_dx_initial = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_initial']))
 
             demographics = [
                 ['subject', subject_code],
@@ -402,8 +415,12 @@ class redcap_to_casesdir(object):
                 ['participant_id', subject],
                 ['scanner', scanner_mfg],
                 ['scanner_model', scanner_model],
-                ['ndar_guid_id',subject_data['ndar_guid_id']],
-                ['ndar_consent',subject_data['ndar_consent']],
+                ['ndar_guid_id', ndar_guid_id],
+                ['ndar_consent', ndar_consent],
+                ['ndar_guid_anomaly', ndar_guid_anomaly],
+                ['ndar_guid_anomaly_visit', ndar_guid_anomaly_visit],
+                ['ndar_guid_aud_dx_followup', ndar_guid_aud_dx_followup],
+                ['ndar_guid_aud_dx_initial', ndar_guid_aud_dx_initial],
             ]
 
             series = pandas.Series()
