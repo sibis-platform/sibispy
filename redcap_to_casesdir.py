@@ -332,6 +332,13 @@ class redcap_to_casesdir(object):
         conditional=False,
         verbose=False,
     ):
+            target_path = os.path.join(measures_dir, 'demographics.csv')
+            # this is done so that midyear visit does not ovewrite the main visit  demographic file 
+            if conditional and os.path.exists(target_path):
+                if verbose :
+                    print("Skipping updating demographics based on midyear visit: " + target_path)
+                return 0
+            
             # Latino and race coding arrives here as floating point numbers; make
             # int strings from that (cannot use "int()" because it would fail for
             # missing data
@@ -434,11 +441,8 @@ class redcap_to_casesdir(object):
             for (key, value) in demographics:
                 series.at[key] = value
 
-            target_path = os.path.join(measures_dir, 'demographics.csv')
-            if conditional and os.path.exists(target_path):
-                pass
-            else:
-                return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,
+
+            return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,
                                                     target_path,
                                                     verbose=verbose)
 
@@ -535,14 +539,18 @@ class redcap_to_casesdir(object):
         return (all_records,export_list)
 
     # Export selected REDCap data to cases dir
-    def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, exceeds_criteria_baseline, siblings_enrolled_yn_corrected,siblings_id_first_corrected, select_exports=None, verbose=False):
+    def export_subject_all_forms(self,redcap_project, site, subject, event, subject_data, visit_age, visit_data, arm_code, visit_code, subject_code, subject_datadir,forms_this_event, exceeds_criteria_baseline, siblings_enrolled_yn_corrected,siblings_id_first_corrected, select_exports=None, force_demo_flag=False, verbose=False):
 
         measures_dir = os.path.join(subject_datadir, 'measures')
         if not os.path.exists(measures_dir):
             os.makedirs(measures_dir)
 
         # Export demographics (if selected)
-        conditional = event in self.__demographic_event_skips
+        if force_demo_flag :
+            conditional = False
+        else :
+            conditional = event in self.__demographic_event_skips
+            
         if not select_exports or 'demographics' in select_exports:
             self.export_subject_demographics(
                 subject=subject,
