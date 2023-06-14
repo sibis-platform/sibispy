@@ -281,7 +281,7 @@ def restrict_to_existing_files(path_to_visits, visits, files_to_validate):
     return existing_visits, existing_files
 
 
-def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config, credentials):
+def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
     """
     Validates the ndar files using the NDATools validate() function.
     Credentials have been added to the validation config to comply with nda-tools==0.2.17.
@@ -290,15 +290,11 @@ def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config, crede
     :param visits: specific visits from which files will be validated
     :param files_to_validate: E.g. ndar_subject01.csv, image03.csv, etc.
     :param vtcmd_config: contains all config paramters for vtcmd
-    :param credentials: credentials pulled from sibis_general_config for ndar account
 
     :returns: validation_results_df, dataframe containing the results of 
     validate() for each file to validate.
     """
     validation_responses = []
-    
-    vtcmd_config.username = credentials['username']
-    vtcmd_config.password = credentials['password']
     
     for i in range(len(visits)):
         path_to_validate = path_to_visits / visits[i] / files_to_validate[i]
@@ -569,7 +565,7 @@ def update_error_log(validation_errors_df, validation_errors_path):
         validation_errors_df.to_csv(error_path, index=False)
 
 
-def recheck_validation(included_visits, staging_path, args, path_to_visits, files_to_validate, credentials):
+def recheck_validation(included_visits, staging_path, args, path_to_visits, files_to_validate):
     # Load validation errors log
     validation_errors_path = staging_path / StagingPaths.validation_errors
     error_path = validation_errors_path / "validation_error_log.csv"
@@ -592,7 +588,7 @@ def recheck_validation(included_visits, staging_path, args, path_to_visits, file
     # Revalidate
     vtcmd_config = vtcmd.configure(args)
     validation_results_df = ndar_validate(
-        path_to_visits, visits, files_to_validate, vtcmd_config, credentials
+        path_to_visits, visits, files_to_validate, vtcmd_config
     )
     move_validated_files(validation_results_df, staging_path, path_to_visits, args)
     # Filter only rows failing validation
@@ -852,8 +848,6 @@ def doMain():
 
     # Get base paths for everything from config
     staging_path, data_path, consent_path, files_to_validate, data_dict_path = get_paths_from_config(args, config)
-
-    credentials = config["credentials"]
     
     # set the path to the visit directory depending on args operation type
     path_to_visits = set_path(args, staging_path, data_path)
@@ -898,7 +892,7 @@ def doMain():
 
             
             validation_results_df = ndar_validate(
-                path_to_visits, visits, files_to_validate, vtcmd_config, credentials
+                path_to_visits, visits, files_to_validate, vtcmd_config
             )
 
             move_validated_files(validation_results_df, staging_path, path_to_visits, data_dict_path, args)
@@ -927,7 +921,7 @@ def doMain():
                 delete_visits(path_to_visits, valid_visits)
 
     else:  # if args.check_validation
-        recheck_validation(included_visits, staging_path, args, path_to_visits, files_to_validate, credentials)
+        recheck_validation(included_visits, staging_path, args, path_to_visits, files_to_validate)
 
 
 if __name__ == "__main__":
