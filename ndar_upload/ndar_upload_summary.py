@@ -416,7 +416,7 @@ def doMain():
     # define collection id based on project being uploaded
     setattr(args, 'collectionID', config.get('collection_id'))
 
-    # get base paths from config (summaries and uplaoded)
+    # get base paths from config (summaries and uploaded)
     summaries_path, uploaded_path, files_to_upload = get_paths_from_config(args, config)
 
     vtcmd_config = vtcmd.configure(args)
