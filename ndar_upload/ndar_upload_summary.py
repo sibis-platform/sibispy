@@ -378,18 +378,15 @@ def get_paths_from_config(args: argparse.Namespace, config: Any) -> tuple:
         - uploaded_path: the base dir where uploaded files will be moved to
     """
     try:
-        summaries_path = pathlib.Path(
-            config.get("summaries_directory")
-        )   # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/staging/summaries
+        staging_path = pathlib.Path(
+            config.get("staging_directory")
+        )
+        summaries_path = staging_path / 'staging' / 'summaries'
+        # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/staging/summaries
+        uploaded_path = staging_path / 'uploaded'
+        # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/uploaded
     except:
-        raise ValueError(f"No summaries_directory in {args.sibis_general_config}")
-
-    try:
-        uploaded_path = pathlib.Path(
-            config.get("uploaded_directory")
-    )   # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/uploaded
-    except:
-        raise ValueError(f"No uploaded_directory in {args.sibis_general_config}")
+        raise ValueError(f"No staging_directory in {args.sibis_general_config}")
 
     try:
         files_to_upload = config.get(
