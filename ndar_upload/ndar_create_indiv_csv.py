@@ -705,7 +705,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
         try:
-            gen_cfg = cfg['ndar']['create_csv']
+            gen_cfg = cfg['ndar']['create_csv'][ns.source]
 
             fmt_env = {
                 "subject": ns.subject,
