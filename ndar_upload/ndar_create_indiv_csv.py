@@ -675,12 +675,19 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
         required=True, type=str
     )
     p.add_argument(
-        '--subject', help="The Subject ID, typ: LAB_SXXXXX",
+        '--subject', help="The Subject ID, typ: LAB_SXXXXX/NCANDA_SXXXXX",
         required=True, type=str
     )
-    p.add_argument(
-        '--visit', help="The Visit ID, usually <visit>_<scan_id>",
-        required=True, type=str
+    # Visit or followup year depending on if hivalc or ncanda
+    me_parser = p.add_mutually_exclusive_group(required=True)
+    me_parser.add_argument(
+       '--visit', help="ONLY FOR HIVALC: The Visit ID, usually <visit>_<scan_id>",
+        type=str,
+    )
+    me_parser.add_argument(
+        "--followup_year",
+        help="ONLY FOR NCANDA: Followup year of the data",
+        type=str,
     )
 
     p.add_argument(
@@ -751,10 +758,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
 def get_sys_config_values(args):
     """Returns the source specific demographics mappings"""
     if not args.sys_config:
-        if args.source == "hivalc":
-            sys_file = "/fs/share/operations/sibis_sys_config.yml"
-        else:
-            sys_file = "/fs/ncanda-share/operations/sibis_sys_config.yml"
+        sys_file = "/fs/share/operations/sibis_sys_config.yml"
     else:
         sys_file = args.sys_config
 
