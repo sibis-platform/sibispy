@@ -662,41 +662,53 @@ class ConfigError(Exception):
 def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
 
-    p.add_argument(
+   
+
+    # Standard config args independent of source
+    config_args = p.add_argument_group('Config', 'Config args regardless of source (enter first before source)')
+    config_args.add_argument(
         '--config', help="SIBIS General Configuration file",
         type=is_file("config", os.X_OK), default="~/.sibis-general-config.yml"
     )
-    p.add_argument(
+    config_args.add_argument(
         '--sys_config', help="SIBIS System Configuration file",
         type=is_file("config", os.X_OK)
     )
-    p.add_argument(
-        '--source', help="Data source (hivalc or ncanda)",
-        required=True, type=str
-    )
-    p.add_argument(
-        '--subject', help="The Subject ID, typ: LAB_SXXXXX/NCANDA_SXXXXX",
-        required=True, type=str
-    )
-    # Visit or followup year depending on if hivalc or ncanda
-    me_parser = p.add_mutually_exclusive_group(required=True)
-    me_parser.add_argument(
-       '--visit', help="ONLY FOR HIVALC: The Visit ID, usually <visit>_<scan_id>",
-        type=str,
-    )
-    me_parser.add_argument(
-        "--followup_year",
-        help="ONLY FOR NCANDA: Followup year of the data",
-        type=str,
-    )
-
-    p.add_argument(
+    config_args.add_argument(
         '--ndar_dir', help="Base output directory for NDAR directory and CSV files to be written",
         type=is_dir("ndar_dir", os.X_OK | os.R_OK | os.W_OK, create_if_missing=True)
     )
-
-    p.add_argument(
+    config_args.add_argument(
         '--verbose', '-v', action='count', default=0
+    )
+
+    # HIVALC Specific args
+    subparsers = p.add_subparsers(title='Data Souce', dest='source', help='Define the data source for csv creation')
+    hivalc_parser = subparsers.add_parser('hivalc', help='Hivalc CSV Creation')
+    hivalc_parser.add_argument(
+        '--subject', help="The Subject ID, typ: LAB_SXXXXX",
+        required=True, type=str
+    )
+    hivalc_parser.add_argument(
+       '--visit', help="The Visit ID, usually <visit>_<scan_id>",
+        type=str, required=True,
+    )
+
+    # NCANDA Specific args
+    ncanda_parser = subparsers.add_parser('ncanda', help='Ncanda CSV Creation')
+    ncanda_parser.add_argument(
+        '--subject', help="The Subject ID, typ: NCANDA_SXXXXX",
+        required=True, type=str
+    )
+    ncanda_parser.add_argument(
+        "--release_year",
+        help="Release year of the data (parent dir of desired NCANDA_SNAPS* dir)",
+        type=str, required=True,
+    )
+    ncanda_parser.add_argument(
+        "--followup_year",
+        help="Followup year of the data in release (parent dir of desired measures/imaging dirs in case)",
+        type=str, required=True,
     )
 
     ns =  p.parse_args(input_args)
