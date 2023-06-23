@@ -724,21 +724,29 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
         try:
-            gen_cfg = cfg['ndar']['create_csv'][ns.source]
+            if ns.source == 'hivalc':
+                gen_cfg = cfg['ndar']['create_csv'][ns.source]
 
-            fmt_env = {
-                "subject": ns.subject,
-                "visit": ns.visit
-            }
-            fmt_env.update(gen_cfg)
-            
-            ns.scan_dir = Path(gen_cfg['visit_dir'].format(**fmt_env))
-            if not ns.scan_dir.exists():
-                raise ConfigError(f"The `visit_dir`, {ns.scan_dir}, does not exist.")
+                fmt_env = {
+                    "subject": ns.subject,
+                    "visit": ns.visit
+                }
+                fmt_env.update(gen_cfg)
+                
+                ns.scan_dir = Path(gen_cfg['visit_dir'].format(**fmt_env))
+                if not ns.scan_dir.exists():
+                    raise ConfigError(f"The `visit_dir`, {ns.scan_dir}, does not exist.")
 
-            ns.visit_demographics = ns.scan_dir / gen_cfg['visit_demographics']
-            if not ns.visit_demographics.exists():
-                raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
+                ns.visit_demographics = ns.scan_dir / gen_cfg['visit_demographics']
+                if not ns.visit_demographics.exists():
+                    raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
+            else:
+                # ncanda scan dir and demographics endpoint TODO: just set it to /fs/neuro/ncanda/releases/internal
+                cfg_paths = cfg['ndar']['create_csv'][ns.source]
+                ns.scan_dir = Path(cfg_paths['visit_dir'])
+                ns.visit_demographics = ns.scan_dir
+                
+
 
             if  ns.ndar_dir is None:
                 ns.ndar_dir = Path(gen_cfg['output_dir'])
@@ -795,6 +803,26 @@ def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
                                             sep=' ', quoting=None, float_format='%.5f',
                                             index=False, header=False)
 
+def set_ndar_path(args):
+    """Set specific ndar path"""
+    pass
+
+def set_output_dir(args) -> pathlib.path:
+    """Set the path for the output directory aka ndar_dir"""
+    if args.source == 'hivalc':
+        ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
+    else:
+        # /tmp/ncanda-ndarupload/NCANDA_SXXXXX/followup_yr
+        ndar_dir: Path = args.ndar_dir / args.subject / args.followup_year
+
+    return ndar_dir
+
+
+def set_dir_paths(args):
+    """Set path to scan dir (input) and ndar dir (output)"""
+    scan_dir: Path = args.scan_dir
+    ndar_dir = set_output_dir(args)
+
 
 def main(input_args: List[str] = None):
     logging.basicConfig(level=logging.WARNING,
@@ -805,9 +833,8 @@ def main(input_args: List[str] = None):
         logging.config.fileConfig(log_config.absolute().as_posix())
 
     args = _parse_args(input_args)
-    scan_dir: Path = args.scan_dir # /fs/process/LAB_S01669/standard/20220517_6909_05172022
-    ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
-
+    scan_dir, ndar_dir = set_dir_paths(args)
+    
     # Get the sibis_sys_config file
     sys_values = get_sys_config_values(args)
 
@@ -852,6 +879,8 @@ def main(input_args: List[str] = None):
 
     # find_diffusion_nifti(args.scan_dir)
 
+    # TODO: what if I pass just args to this rather than just scan_dir, then in each function
+    # I generate the necessary scan_directory
     dicom_metadata = get_dicom_structural_metadata(args.scan_dir)
     nifti_metadata = get_nifti_metadata(args.scan_dir)
     dti_metadata = get_dicom_diffusion_metadata(args.scan_dir)
