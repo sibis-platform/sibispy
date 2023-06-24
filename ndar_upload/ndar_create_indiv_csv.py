@@ -63,8 +63,10 @@ def find_diffusion_nifti_xml(visit_dir: Path):
         diffusion_scans[symlink.name] = nifti_xml
     return diffusion_scans
 
-def find_first_diffusion_nifti(visit_dir: Path) -> Generator[Path, None, None]:
+def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     nifti_files = []
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
         return nifti_files
@@ -75,7 +77,9 @@ def find_first_diffusion_nifti(visit_dir: Path) -> Generator[Path, None, None]:
             nifti_files.append(possible_nifti[0])
     return nifti_files
 
-def find_structural_nifti(visit_dir: Path) -> Generator[Path, None, None]:
+def find_structural_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'structural')
     structural_native = visit_dir / "structural" / "native"
     if not structural_native.exists() :
         return [] 
@@ -184,11 +188,12 @@ def fill_modality_obj(meta_root: ET.Element, modality_obj: dict, section: str):
             if attribs != {}:
                 modality_obj[section][tag_name].update({"attribs": attribs})
 
-def get_dicom_structural_metadata(visit_dir: Path):
+def get_dicom_structural_metadata(args):
+    visit_dir = args.scan_dir
     dicom_metadata = {}
 
-    structural_nifti_files = find_structural_nifti(visit_dir)
-    diffusion_nifti_files = find_first_diffusion_nifti(visit_dir)
+    structural_nifti_files = find_structural_nifti(args, visit_dir)
+    diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     nifti_files = structural_nifti_files + diffusion_nifti_files
     for nifti_gz in nifti_files:
         nifti_xml = find_nifti_xml(nifti_gz)
@@ -724,9 +729,9 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
         try:
-            if ns.source == 'hivalc':
-                gen_cfg = cfg['ndar']['create_csv'][ns.source]
+            gen_cfg = cfg['ndar']['create_csv'][ns.source]
 
+            if ns.source == 'hivalc':
                 fmt_env = {
                     "subject": ns.subject,
                     "visit": ns.visit
@@ -803,26 +808,33 @@ def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
                                             sep=' ', quoting=None, float_format='%.5f',
                                             index=False, header=False)
 
-def set_ndar_path(args):
-    """Set specific ndar path"""
-    pass
+def set_ncanda_visit_dir(args, file_type: str):
+    """Given all args and type of directory to pull from, return the path endpoint"""
+    base_path = args.scan_dir / ("followup_" + args.release_year + "y")
+    snaps_dir_sub_ver = "NCANDA_SNAPS_" + args.release_year + "Y_" + file_type.upper() + "_"
 
-def set_output_dir(args) -> pathlib.path:
+    # get latest version of directory released (multiple possible)
+    latest_dir = sorted(base_path.glob(snaps_dir_sub_ver + "*"))[-1]
+    
+    final_path = base_path / latest_dir / "cases" / args.subject / "standard" / ("followup_" + args.followup_year + "y")
+
+    return final_path
+
+def set_output_dir(args):
     """Set the path for the output directory aka ndar_dir"""
     if args.source == 'hivalc':
         ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
     else:
         # /tmp/ncanda-ndarupload/NCANDA_SXXXXX/followup_yr
-        ndar_dir: Path = args.ndar_dir / args.subject / args.followup_year
+        ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
 
     return ndar_dir
-
 
 def set_dir_paths(args):
     """Set path to scan dir (input) and ndar dir (output)"""
     scan_dir: Path = args.scan_dir
     ndar_dir = set_output_dir(args)
-
+    return scan_dir, ndar_dir
 
 def main(input_args: List[str] = None):
     logging.basicConfig(level=logging.WARNING,
@@ -881,7 +893,7 @@ def main(input_args: List[str] = None):
 
     # TODO: what if I pass just args to this rather than just scan_dir, then in each function
     # I generate the necessary scan_directory
-    dicom_metadata = get_dicom_structural_metadata(args.scan_dir)
+    dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args.scan_dir)
     dti_metadata = get_dicom_diffusion_metadata(args.scan_dir)
 
