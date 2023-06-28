@@ -50,17 +50,24 @@ def describe_nifti(nifti_gz: Path) -> dict:
     
     return nifti_meta
 
-def find_diffusion_nifti_xml(visit_dir: Path):
+def find_diffusion_nifti_xml(args, visit_dir: Path):
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
     diffusion_scans = {}
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
         return diffusion_scans
-    
-    diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
-    symlink_dirs = [x for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
-    for symlink, diffusion_dir in zip(symlink_dirs, diffusion_dirs):
-        nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
-        diffusion_scans[symlink.name] = nifti_xml
+    if args.source == 'hivalc':
+        diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+        symlink_dirs = [x for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+        for symlink, diffusion_dir in zip(symlink_dirs, diffusion_dirs):
+            nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
+            diffusion_scans[symlink.name] = nifti_xml
+    else:
+        diffusion_dirs = [x for x in diffusion_native.iterdir() if x.is_dir()]
+        for diffusion_dir in diffusion_dirs:
+            nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
+            diffusion_scans[diffusion_dir.name] = nifti_xml
     return diffusion_scans
 
 def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
@@ -71,6 +78,8 @@ def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, N
     if not diffusion_native.exists() :
         return nifti_files
     diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+    if args.source == 'ncanda':
+        diffusion_dirs = [x for x in diffusion_native.iterdir() if x.is_dir()]
     for diffusion_dir in diffusion_dirs:
         possible_nifti = sorted(diffusion_dir.rglob("*.nii.gz"))
         if len(possible_nifti) > 0:
@@ -115,11 +124,12 @@ def get_element_for_cmtk_nifti_xml(nifti_xml: Path) -> ET.Element:
             meta_root = ET.fromstringlist(bad_xml_lines)
     return meta_root
 
-def get_nifti_metadata(visit_dir: Path):
+def get_nifti_metadata(args):
+    visit_dir = args.scan_dir
     nifti_metadata = {}
 
-    structural_nifti_files = find_structural_nifti(visit_dir)
-    diffusion_nifti_files = find_first_diffusion_nifti(visit_dir)
+    structural_nifti_files = find_structural_nifti(args, visit_dir)
+    diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     nifti_files = structural_nifti_files + diffusion_nifti_files
     for nifti_gz in nifti_files:
         modality = NDARImageType.get_modality(nifti_gz)
@@ -154,8 +164,9 @@ def get_bvector_bvalue(nii_xml_files: Sequence[Path]):
     b_vector_df = pd.DataFrame(b_vector_df)
     return DiffusionMeta(b_value_df, b_vector_df)
 
-def get_dicom_diffusion_metadata(visit_dir: Path) -> Dict[str, DiffusionMeta]:
-    all_nii_xml = find_diffusion_nifti_xml(visit_dir)
+def get_dicom_diffusion_metadata(args) -> Dict[str, DiffusionMeta]:
+    visit_dir = args.scan_dir
+    all_nii_xml = find_diffusion_nifti_xml(args, visit_dir)
     diffusion_meta = {}
     for dti_kind, xml_files in all_nii_xml.items():
         diffusion_meta[dti_kind] = get_bvector_bvalue(xml_files)
@@ -894,8 +905,8 @@ def main(input_args: List[str] = None):
     # TODO: what if I pass just args to this rather than just scan_dir, then in each function
     # I generate the necessary scan_directory
     dicom_metadata = get_dicom_structural_metadata(args)
-    nifti_metadata = get_nifti_metadata(args.scan_dir)
-    dti_metadata = get_dicom_diffusion_metadata(args.scan_dir)
+    nifti_metadata = get_nifti_metadata(args)
+    dti_metadata = get_dicom_diffusion_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
     demo_dict = get_demo_dict(args.visit_demographics)
