@@ -371,10 +371,13 @@ class NDARFileVariant():
             return NDARFileVariant.headers['subject']
 
 
-def get_demo_dict(demo_csv_file: Path) -> dict:
+def get_demo_dict(args) -> dict:
     """
     Convert the demographics.csv file into a dictionary where key=col name, value=value of col
     """
+    demo_csv_file = args.visit_demographics
+    if args.source == 'ncanda':
+        demo_csv_file = set_ncanda_visit_dir(args, 'redcap') / 'measures' / 'demographics.csv'
     with demo_csv_file.open() as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -399,6 +402,14 @@ def convert_interview_date(date):
     month = mmddyyyy[:2]
     year = mmddyyyy[4:]
     return month+"/01/"+year
+
+def convert_ncanda_interview_date(date):
+    try:
+        interview_date = datetime.strptime(date, "%m/%Y").strftime("%m/01/%Y")
+    except:
+        # no interview_date from demographics file
+        interview_date = "XX/XXXX"
+    return interview_date
 
 def get_interview_age(visit_date, dob):
     interview_date = convert_interview_date(visit_date)
@@ -434,6 +445,95 @@ def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
         phenotype_desc = EmptyString
     return phenotype_desc
 
+def anomoly_scan(self, current_visit) -> bool:
+    """Helper function to return if current scan has an anomoly"""
+    if pd.isnull(self.demo_data['ndar_guid_anomaly_visit']):
+        logging.error(f"Anomaly scan indicated. Could not find anomaly visit value \
+            for {self.src_subject_id}.")
+        return False
+    if current_visit >= self.demo_data['ndar_guid_anomaly_visit']:
+        # current scan is an anomoly, add this to phenotype
+        return True
+    
+def aud_scan(self, current_visit) -> bool:
+    """Helper function to return if current scan is AUD"""
+    if pd.isnull(self.demo_data['ndar_guid_aud_dx_initial']):
+        logging.error(f"AUD scan indicated. Could not find AUD visit value for {self.src_subject_id}.")
+        return False
+    if current_visit >= self.demo_data['ndar_guid_aud_dx_initial']:
+        return True
+    
+def get_ncanda_pheno(demo_data, desired):
+    """Return the desired phenotype component (either phenotype or its description)"""
+    phenotype, phenotype_description = get_ncanda_phenotype_all(demo_data)
+    if desired == "pheno":
+        return phenotype
+    else:
+        return phenotype_description
+
+def get_ncanda_phenotype_all(demo_data) -> str:
+    """
+    Get the phenotype and phenotype description
+    possible diagnosis + description:
+    normal, structural brain anomaly, Exceeds Baseline Drinking Criteria, 
+    Exceeds Baseline Drinking Criteria & structural brain anomaly, AUD, 
+    AUD & structural brain anomaly
+    # SBA&EDB&AUD -- order to report
+    """
+    #TODO: change it so this only returns phenotype and the next function returns phenotype desc
+    phenotype = None
+    phenotype_description = None
+    try:
+        anomaly_flag = demo_data['ndar_guid_anomaly'] # SBA 
+        aud_flag = demo_data['ndar_guid_aud_dx_followup'] # AUD
+        exceed_flag = demo_data['exceeds_bl_drinking_2'] # EDB
+    except:
+        # demographics files are not yet updated
+        phenotype = "TBD"
+        phenotype_description = "Not Yet Indicated"
+        return
+
+    flag_list = [anomaly_flag, aud_flag, exceed_flag]
+    for flag in flag_list:
+        if pd.isnull(flag):
+            phenotype = "TBD"
+            phenotype_description = "Not Yet Indicated"
+            return
+
+    current_visit = int(re.sub("[^0-9]", "", demo_data['visit'])) 
+    # if subject is normal, return:
+    if anomaly_flag == 0 and aud_flag == 0 and exceed_flag == 0:
+        phenotype = "NOR"
+        phenotype_description = "Normal"
+        return
+    # check for anomaly first
+    if anomaly_flag != 0 and anomoly_scan(current_visit):
+        phenotype = "SBA"
+        phenotype_description = "Structural Brain Anomaly"
+    # check for exceeds baseline drinking
+    if exceed_flag != 0:
+        if phenotype is not None:
+            phenotype += "&EDB"
+            phenotype_description += " & Exceeds Baseline Drinking Criteria"
+        else:
+            phenotype = "EDB"
+            phenotype_description = "Exceeds Baseline Drinking Criteria"
+    # check for aud 
+    if aud_flag != 0 and aud_scan(current_visit):
+        if phenotype is not None:
+            phenotype += "&AUD"
+            phenotype_description += " & Alcohol Use Disorder"
+        else:
+            phenotype = "AUD"
+            phenotype_description = "Alcohol Use Disorder"
+
+def get_ncanda_ethn(ethn):
+    """Input whether hispanic or not"""
+    if ethn == "Y":
+        ethnic_group = "Hispanic/Latino"
+    else:
+        ethnic_group = "Non-Hispanic/Latino"
+    return ethnic_group
 
 @dataclass(frozen=True)
 class DefinitionHeader:
@@ -449,8 +549,11 @@ class DefinitionHeader:
 
 
 def get_subjectkey(subject: SubjectData, *_) -> str:
+    """Get ndar guid of the subject"""
     if "demo_ndar_guid" in subject.demographics and len(subject.demographics["demo_ndar_guid"].strip()):
         field_value =  subject.demographics["demo_ndar_guid"]
+    elif "ndar_guid_id" in subject.demographics and len(subject.demographics["ndar_guid_id"].strip()):
+        field_value = subject.demographics["ndar_guid_id"]
     else:
         field_value =  "NDARXXXXXXXX"
     return field_value
@@ -757,12 +860,10 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
                 if not ns.visit_demographics.exists():
                     raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
             else:
-                # ncanda scan dir and demographics endpoint TODO: just set it to /fs/neuro/ncanda/releases/internal
+                # ncanda scan dir and demographics endpoint
                 cfg_paths = cfg['ndar']['create_csv'][ns.source]
                 ns.scan_dir = Path(cfg_paths['visit_dir'])
                 ns.visit_demographics = ns.scan_dir
-                
-
 
             if  ns.ndar_dir is None:
                 ns.ndar_dir = Path(gen_cfg['output_dir'])
@@ -781,8 +882,6 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
             ns.image_definition = ns.datadict_dir / gen_cfg['image_definition']
             if not ns.image_definition.exists():
                 raise ConfigError(f"The `image_definition`, {gen_cfg['image_definition']} is missing from {ns.datadict_dir}")
-            
-        
 
         except KeyError:
             p.exit(10, f"Could not find `ndar.create_csv` in {p.config.as_posix()}")
@@ -902,14 +1001,13 @@ def main(input_args: List[str] = None):
 
     # find_diffusion_nifti(args.scan_dir)
 
-    # TODO: what if I pass just args to this rather than just scan_dir, then in each function
-    # I generate the necessary scan_directory
     dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args)
     dti_metadata = get_dicom_diffusion_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
-    demo_dict = get_demo_dict(args.visit_demographics)
+    # TODO: change for ncanda so it creates correct path
+    demo_dict = get_demo_dict(args)
     logger.debug('demo_dict: %s\n' % (demo_dict))
 
     subj_data = SubjectData(dicom_metadata, demo_dict, nifti_metadata, dti_metadata)
