@@ -422,7 +422,8 @@ def get_interview_age(visit_date, dob):
     return str(12*(interview_year-dob_year) + (interview_month - dob_month))
 
 def get_race(sys_values, race: int) -> str:
-    RACE_MAP = sys_values['maps']['race_map']
+    # RACE_MAP = sys_values['maps']['race_map']
+    RACE_MAP = sys_values.race_map
     try:
         race = RACE_MAP[race]
     except KeyError:
@@ -437,7 +438,8 @@ def get_phenotype(diag, diag_new, diag_new_dx):
 
 def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
     phenotype = get_phenotype(diag, diag_new, diag_new_dx)
-    PHENOTYPE_MAP = sys_values['maps']['phenotype_map']
+    #PHENOTYPE_MAP = sys_values['maps']['phenotype_map']
+    PHENOTYPE_MAP = sys_values.phenotype_map
     try:
         phenotype_desc = PHENOTYPE_MAP[phenotype]
     except KeyError:
@@ -445,22 +447,23 @@ def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
         phenotype_desc = EmptyString
     return phenotype_desc
 
-def anomoly_scan(self, current_visit) -> bool:
+def anomoly_scan(demo_data, current_visit) -> bool:
     """Helper function to return if current scan has an anomoly"""
-    if pd.isnull(self.demo_data['ndar_guid_anomaly_visit']):
+    if pd.isnull(demo_data['ndar_guid_anomaly_visit']):
+        #FIXME: test if this error works
         logging.error(f"Anomaly scan indicated. Could not find anomaly visit value \
-            for {self.src_subject_id}.")
+            for {demo_data['src_subject_id']}.")
         return False
-    if current_visit >= self.demo_data['ndar_guid_anomaly_visit']:
+    if current_visit >= demo_data['ndar_guid_anomaly_visit']:
         # current scan is an anomoly, add this to phenotype
         return True
     
-def aud_scan(self, current_visit) -> bool:
+def aud_scan(demo_data, current_visit) -> bool:
     """Helper function to return if current scan is AUD"""
-    if pd.isnull(self.demo_data['ndar_guid_aud_dx_initial']):
-        logging.error(f"AUD scan indicated. Could not find AUD visit value for {self.src_subject_id}.")
+    if pd.isnull(demo_data['ndar_guid_aud_dx_initial']):
+        logging.error(f"AUD scan indicated. Could not find AUD visit value for {demo_data['src_subject_id']}.")
         return False
-    if current_visit >= self.demo_data['ndar_guid_aud_dx_initial']:
+    if current_visit >= demo_data['ndar_guid_aud_dx_initial']:
         return True
     
 def get_ncanda_pheno(demo_data, desired):
@@ -491,23 +494,23 @@ def get_ncanda_phenotype_all(demo_data) -> str:
         # demographics files are not yet updated
         phenotype = "TBD"
         phenotype_description = "Not Yet Indicated"
-        return
+        return phenotype, phenotype_description
 
     flag_list = [anomaly_flag, aud_flag, exceed_flag]
     for flag in flag_list:
-        if pd.isnull(flag):
+        if pd.isnull(flag) or flag == '':
             phenotype = "TBD"
             phenotype_description = "Not Yet Indicated"
-            return
+            return phenotype, phenotype_description
 
     current_visit = int(re.sub("[^0-9]", "", demo_data['visit'])) 
-    # if subject is normal, return:
+    # if subject is normal, return phenotype, phenotype_description:
     if anomaly_flag == 0 and aud_flag == 0 and exceed_flag == 0:
         phenotype = "NOR"
         phenotype_description = "Normal"
-        return
+        return phenotype, phenotype_description
     # check for anomaly first
-    if anomaly_flag != 0 and anomoly_scan(current_visit):
+    if anomaly_flag != 0 and anomoly_scan(demo_data, current_visit):
         phenotype = "SBA"
         phenotype_description = "Structural Brain Anomaly"
     # check for exceeds baseline drinking
@@ -519,7 +522,7 @@ def get_ncanda_phenotype_all(demo_data) -> str:
             phenotype = "EDB"
             phenotype_description = "Exceeds Baseline Drinking Criteria"
     # check for aud 
-    if aud_flag != 0 and aud_scan(current_visit):
+    if aud_flag != 0 and aud_scan(demo_data, current_visit):
         if phenotype is not None:
             phenotype += "&AUD"
             phenotype_description += " & Alcohol Use Disorder"
@@ -661,7 +664,8 @@ def get_image_units(subject: SubjectData, image_type: str):
     return units
 
 def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, sys_values: dict):
-    IMAGE_MAP = sys_values['maps']['image_map']
+    #IMAGE_MAP = sys_values['maps']['image_map']
+    IMAGE_MAP = sys_values.image_map
     
     field =  field_spec[DefinitionHeader.ElementName]
     field_value = EmptyString
@@ -689,7 +693,8 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, 
 
 def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
     field = field_spec[DefinitionHeader.ElementName]
-    SUBJECT_MAP = sys_values['maps']['subject_map']
+    #SUBJECT_MAP = sys_values['maps']['subject_map']
+    SUBJECT_MAP = sys_values.subject_map
     try:
         field_value = SUBJECT_MAP[field]
 
@@ -717,7 +722,7 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta, sys_
     """
     if ndar_csv_meta.image_type:
         if ndar_csv_meta.image_type not in subject_data.nifti.keys() :
-            logger.info("Skipping",ndar_csv_meta.image_type)
+            logger.info(f"Skipping {ndar_csv_meta.image_type}")
             return 
     
     if not ndar_csv_meta.output_file.parent.exists():
@@ -890,23 +895,6 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
 
     return ns
 
-def get_sys_config_values(args):
-    """Returns the source specific demographics mappings"""
-    if not args.sys_config:
-        sys_file = "/fs/share/operations/sibis_sys_config.yml"
-    else:
-        sys_file = args.sys_config
-
-    sys_file_parser = cfg_parser.config_file_parser()
-    err_msg = sys_file_parser.configure(sys_file)
-    if err_msg:
-        raise ConfigError(f"Could not get sys config file from {args}")
-
-    if sys_file_parser.has_category("ndar_upload"):
-        sys_vals = sys_file_parser.get_category('ndar_upload')[args.source]
-    
-    return sys_vals
-
 def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
     b_path = ndar_meta.output_file.parent
     if ndar_meta.image_type in DIFFUSION_MODALITIES and  ndar_meta.image_type in subject.diffusion:
@@ -957,9 +945,13 @@ def main(input_args: List[str] = None):
     args = _parse_args(input_args)
     scan_dir, ndar_dir = set_dir_paths(args)
     
-    # Get the sibis_sys_config file
-    sys_values = get_sys_config_values(args)
+    # Get the correct file
+    if args.source == 'hivalc':
+        import hivalc_mappings as mappings
+    else:
+        import ncanda_mappings as mappings
 
+    sys_values = mappings
     # Create output directory if it doesn't exist.
     if not ndar_dir.exists():
         ndar_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
