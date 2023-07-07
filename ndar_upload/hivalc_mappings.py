@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import logging
+
+
+logger = logging.getLogger("ndar_create_csv")
 
 race_map = {
     1: "American Indian/Alaska Native",
@@ -32,12 +36,12 @@ phenotype_map = {
 subject_map = {
     "subjectkey": "get_subjectkey(subject)",
     "src_subject_id": 'lambda subject, *_: subject.demographics["subject"]',
-    "interview_date": 'lambda subject, *_: convert_interview_date(str(subject.demographics["visit"]))',
-    "interview_age":  'lambda subject, *_: get_interview_age(str(subject.demographics["visit"]), str(subject.demographics["demo_dob"]))',
+    "interview_date": 'lambda subject, *_: hivalc_funcs.convert_interview_date(str(subject.demographics["visit"]))',
+    "interview_age":  'lambda subject, *_: hivalc_funcs.get_interview_age(str(subject.demographics["visit"]), str(subject.demographics["demo_dob"]))',
     "sex": 'lambda subject, *_: subject.demographics["sex"]',
     "race": 'get_race(sys_values, int(subject.demographics["demo_race"]))',
-    "phenotype": 'lambda subject, *_: get_phenotype(subject.demographics["demo_diag"], subject.demographics["demo_diag_new"], subject.demographics["demo_diag_new_dx"])',
-    "phenotype_description": 'get_phenotype_description(sys_values, subject.demographics["demo_diag"], subject.demographics["demo_diag_new"], subject.demographics["demo_diag_new_dx"])',
+    "phenotype": 'lambda subject, *_: hivalc_funcs.get_phenotype(subject.demographics["demo_diag"], subject.demographics["demo_diag_new"], subject.demographics["demo_diag_new_dx"])',
+    "phenotype_description": 'hivalc_funcs.get_phenotype_description(sys_values, subject.demographics["demo_diag"], subject.demographics["demo_diag_new"], subject.demographics["demo_diag_new_dx"])',
     "twins_study": "No",
     "sibling_study": "No",
     "family_study": "No",
@@ -47,8 +51,8 @@ subject_map = {
 image_map = {
     "subjectkey": 'get_subjectkey',
     "src_subject_id": 'lambda subject, *_: subject.demographics["subject"]',
-    "interview_date": 'lambda subject, *_: convert_interview_date(str(subject.demographics["visit"]))',
-    "interview_age":  'lambda subject, *_: get_interview_age(str(subject.demographics["visit"]), str(subject.demographics["demo_dob"]))',
+    "interview_date": 'lambda subject, *_: hivalc_funcs.convert_interview_date(str(subject.demographics["visit"]))',
+    "interview_age":  'lambda subject, *_: hivalc_funcs.get_interview_age(str(subject.demographics["visit"]), str(subject.demographics["demo_dob"]))',
     "sex": 'lambda subject, *_: subject.demographics["sex"]',
     "image_description": 'get_image_description',
     "image_modality": "MRI",
@@ -82,3 +86,35 @@ image_map = {
     "image_orientation": 'get_image_orientation',
     "bvek_bval_files": 'has_bvek_bval_files',
 }
+
+def get_phenotype(diag, diag_new, diag_new_dx):
+    if diag_new != "" and int(diag_new) == 1:
+        return str(diag_new_dx)
+    else:
+        return str(diag)
+
+def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
+    phenotype = get_phenotype(diag, diag_new, diag_new_dx)
+    PHENOTYPE_MAP = sys_values.phenotype_map
+    try:
+        phenotype_desc = PHENOTYPE_MAP[phenotype]
+    except KeyError:
+        logger.error(f'No mapping for {phenotype}')
+        phenotype_desc = ""
+    return phenotype_desc
+
+def convert_interview_date(date):
+    mmddyyyy = date.split('_')[2]
+    month = mmddyyyy[:2]
+    year = mmddyyyy[4:]
+    return month+"/01/"+year
+
+def get_interview_age(visit_date, dob):
+    interview_date = convert_interview_date(visit_date)
+    interview_month = int(interview_date.split('/')[0])
+    interview_year = int(interview_date.split('/')[2])
+
+    dob_month = int(dob.split('-')[1])
+    dob_year = int(dob.split('-')[0])
+
+    return str(12*(interview_year-dob_year) + (interview_month - dob_month))

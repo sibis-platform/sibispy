@@ -23,6 +23,9 @@ import yaml
 import pandas as pd
 import xml.etree.ElementTree as ET
 
+import hivalc_mappings as hivalc_funcs
+import ncanda_mappings as ncanda_funcs
+
 # Hack so that we don't have to rely on the package compilation
 scripts_dir = Path(__file__).parent / '..'
 sys.path.append(str(scripts_dir.resolve()))
@@ -397,29 +400,7 @@ def get_demo_dict(args) -> dict:
 
         return demo_dict
 
-def convert_interview_date(date):
-    mmddyyyy = date.split('_')[2]
-    month = mmddyyyy[:2]
-    year = mmddyyyy[4:]
-    return month+"/01/"+year
 
-def convert_ncanda_interview_date(date):
-    try:
-        interview_date = datetime.strptime(date, "%m/%Y").strftime("%m/01/%Y")
-    except:
-        # no interview_date from demographics file
-        interview_date = "XX/XXXX"
-    return interview_date
-
-def get_interview_age(visit_date, dob):
-    interview_date = convert_interview_date(visit_date)
-    interview_month = int(interview_date.split('/')[0])
-    interview_year = int(interview_date.split('/')[2])
-
-    dob_month = int(dob.split('-')[1])
-    dob_year = int(dob.split('-')[0])
-
-    return str(12*(interview_year-dob_year) + (interview_month - dob_month))
 
 def get_race(sys_values, race: int) -> str:
     # RACE_MAP = sys_values['maps']['race_map']
@@ -429,114 +410,6 @@ def get_race(sys_values, race: int) -> str:
     except KeyError:
         race = "Unknown or not reported"
     return race
-
-def get_phenotype(diag, diag_new, diag_new_dx):
-    if diag_new != "" and int(diag_new) == 1:
-        return str(diag_new_dx)
-    else:
-        return str(diag)
-
-def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
-    phenotype = get_phenotype(diag, diag_new, diag_new_dx)
-    #PHENOTYPE_MAP = sys_values['maps']['phenotype_map']
-    PHENOTYPE_MAP = sys_values.phenotype_map
-    try:
-        phenotype_desc = PHENOTYPE_MAP[phenotype]
-    except KeyError:
-        logger.error(f'No mapping for {phenotype}')
-        phenotype_desc = EmptyString
-    return phenotype_desc
-
-def anomoly_scan(demo_data, current_visit) -> bool:
-    """Helper function to return if current scan has an anomoly"""
-    if pd.isnull(demo_data['ndar_guid_anomaly_visit']):
-        #FIXME: test if this error works
-        logging.error(f"Anomaly scan indicated. Could not find anomaly visit value \
-            for {demo_data['src_subject_id']}.")
-        return False
-    if current_visit >= demo_data['ndar_guid_anomaly_visit']:
-        # current scan is an anomoly, add this to phenotype
-        return True
-    
-def aud_scan(demo_data, current_visit) -> bool:
-    """Helper function to return if current scan is AUD"""
-    if pd.isnull(demo_data['ndar_guid_aud_dx_initial']):
-        logging.error(f"AUD scan indicated. Could not find AUD visit value for {demo_data['src_subject_id']}.")
-        return False
-    if current_visit >= demo_data['ndar_guid_aud_dx_initial']:
-        return True
-    
-def get_ncanda_pheno(demo_data, desired):
-    """Return the desired phenotype component (either phenotype or its description)"""
-    phenotype, phenotype_description = get_ncanda_phenotype_all(demo_data)
-    if desired == "pheno":
-        return phenotype
-    else:
-        return phenotype_description
-
-def get_ncanda_phenotype_all(demo_data) -> str:
-    """
-    Get the phenotype and phenotype description
-    possible diagnosis + description:
-    normal, structural brain anomaly, Exceeds Baseline Drinking Criteria, 
-    Exceeds Baseline Drinking Criteria & structural brain anomaly, AUD, 
-    AUD & structural brain anomaly
-    # SBA&EDB&AUD -- order to report
-    """
-    #TODO: change it so this only returns phenotype and the next function returns phenotype desc
-    phenotype = None
-    phenotype_description = None
-    try:
-        anomaly_flag = demo_data['ndar_guid_anomaly'] # SBA 
-        aud_flag = demo_data['ndar_guid_aud_dx_followup'] # AUD
-        exceed_flag = demo_data['exceeds_bl_drinking_2'] # EDB
-    except:
-        # demographics files are not yet updated
-        phenotype = "TBD"
-        phenotype_description = "Not Yet Indicated"
-        return phenotype, phenotype_description
-
-    flag_list = [anomaly_flag, aud_flag, exceed_flag]
-    for flag in flag_list:
-        if pd.isnull(flag) or flag == '':
-            phenotype = "TBD"
-            phenotype_description = "Not Yet Indicated"
-            return phenotype, phenotype_description
-
-    current_visit = int(re.sub("[^0-9]", "", demo_data['visit'])) 
-    # if subject is normal, return phenotype, phenotype_description:
-    if anomaly_flag == 0 and aud_flag == 0 and exceed_flag == 0:
-        phenotype = "NOR"
-        phenotype_description = "Normal"
-        return phenotype, phenotype_description
-    # check for anomaly first
-    if anomaly_flag != 0 and anomoly_scan(demo_data, current_visit):
-        phenotype = "SBA"
-        phenotype_description = "Structural Brain Anomaly"
-    # check for exceeds baseline drinking
-    if exceed_flag != 0:
-        if phenotype is not None:
-            phenotype += "&EDB"
-            phenotype_description += " & Exceeds Baseline Drinking Criteria"
-        else:
-            phenotype = "EDB"
-            phenotype_description = "Exceeds Baseline Drinking Criteria"
-    # check for aud 
-    if aud_flag != 0 and aud_scan(demo_data, current_visit):
-        if phenotype is not None:
-            phenotype += "&AUD"
-            phenotype_description += " & Alcohol Use Disorder"
-        else:
-            phenotype = "AUD"
-            phenotype_description = "Alcohol Use Disorder"
-
-def get_ncanda_ethn(ethn):
-    """Input whether hispanic or not"""
-    if ethn == "Y":
-        ethnic_group = "Hispanic/Latino"
-    else:
-        ethnic_group = "Non-Hispanic/Latino"
-    return ethnic_group
 
 @dataclass(frozen=True)
 class DefinitionHeader:
@@ -664,7 +537,6 @@ def get_image_units(subject: SubjectData, image_type: str):
     return units
 
 def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, sys_values: dict):
-    #IMAGE_MAP = sys_values['maps']['image_map']
     IMAGE_MAP = sys_values.image_map
     
     field =  field_spec[DefinitionHeader.ElementName]
@@ -693,7 +565,6 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, 
 
 def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
     field = field_spec[DefinitionHeader.ElementName]
-    #SUBJECT_MAP = sys_values['maps']['subject_map']
     SUBJECT_MAP = sys_values.subject_map
     try:
         field_value = SUBJECT_MAP[field]
@@ -998,7 +869,6 @@ def main(input_args: List[str] = None):
     dti_metadata = get_dicom_diffusion_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
-    # TODO: change for ncanda so it creates correct path
     demo_dict = get_demo_dict(args)
     logger.debug('demo_dict: %s\n' % (demo_dict))
 
