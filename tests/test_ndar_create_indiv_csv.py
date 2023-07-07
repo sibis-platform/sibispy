@@ -1,8 +1,6 @@
 import pytest
 import subprocess
 
-from sibispy.ndar_upload import ndar_create_indiv_csv
-
 # create a temporary output dir
 @pytest.fixture
 def hivalc_temp_out_dir(tmp_path):
@@ -31,7 +29,7 @@ def test_full_call(hivalc_script_call, hivalc_temp_out_dir):
     args = [
         '-v',
         '--ndar_dir', str(hivalc_temp_out_dir),
-        '--source', 'hivalc',
+        'hivalc',
         '--subject',  'LAB_S01671',
         '--visit', '20220503_6886_05032022'
     ]
