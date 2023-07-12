@@ -199,7 +199,7 @@ ncanda_upload_to_ndar() {
 
     ncanda_internal_base=/fs/neurosci01/ncanda/releases/internal
     cases_dir=${2:-${ncanda_internal_base}/${followup_yr}}
-    ndar_dir=${3:-/fs/neurosci01/ncanda/releases/internal/upload2ndar}
+    ndar_dir=${3:-/fs/neurosci01/ncanda/releases/public/upload2ndar}
 
     #
     # Move ndar_subject01.csv
