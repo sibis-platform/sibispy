@@ -2,6 +2,7 @@
 import logging
 import pandas as pd
 from datetime import datetime
+import re
 
 logger = logging.getLogger("ndar_create_csv")
 
@@ -90,21 +91,20 @@ def convert_ncanda_interview_date(date):
 
 def anomoly_scan(demo_data, current_visit) -> bool:
     """Helper function to return if current scan has an anomoly"""
-    if pd.isnull(demo_data['ndar_guid_anomaly_visit']):
+    if pd.isnull(demo_data['ndar_guid_anomaly_visit']) or demo_data['ndar_guid_anomaly_visit'] == '':
         #FIXME: test if this error works
-        logging.error(f"Anomaly scan indicated. Could not find anomaly visit value \
-            for {demo_data['src_subject_id']}.")
+        logging.error(f"Anomaly scan indicated. Could not find anomaly visit value for {demo_data['subject']}.")
         return False
-    if current_visit >= demo_data['ndar_guid_anomaly_visit']:
+    if current_visit >= int(demo_data['ndar_guid_anomaly_visit']):
         # current scan is an anomoly, add this to phenotype
         return True
     
 def aud_scan(demo_data, current_visit) -> bool:
     """Helper function to return if current scan is AUD"""
-    if pd.isnull(demo_data['ndar_guid_aud_dx_initial']):
-        logging.error(f"AUD scan indicated. Could not find AUD visit value for {demo_data['src_subject_id']}.")
+    if pd.isnull(demo_data['ndar_guid_aud_dx_initial']) or demo_data['ndar_guid_aud_dx_initial'] == '':
+        logging.error(f"AUD scan indicated. Could not find AUD visit value for {demo_data['subject']}.")
         return False
-    if current_visit >= demo_data['ndar_guid_aud_dx_initial']:
+    if current_visit >= int(demo_data['ndar_guid_aud_dx_initial']):
         return True
     
 def get_ncanda_pheno(demo_data, desired):
@@ -127,9 +127,9 @@ def get_ncanda_phenotype_all(demo_data) -> str:
     phenotype = None
     phenotype_description = None
     try:
-        anomaly_flag = demo_data['ndar_guid_anomaly'] # SBA 
-        aud_flag = demo_data['ndar_guid_aud_dx_followup'] # AUD
-        exceed_flag = demo_data['exceeds_bl_drinking_2'] # EDB
+        anomaly_flag = int(demo_data['ndar_guid_anomaly']) # SBA 
+        aud_flag = int(demo_data['ndar_guid_aud_dx_followup']) # AUD
+        exceed_flag = int(demo_data['exceeds_bl_drinking_2']) # EDB
     except:
         # demographics files are not yet updated
         phenotype = "TBD"
