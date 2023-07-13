@@ -338,3 +338,34 @@ def restrict_to_existing_files(args, path_to_visits, visits, files_to_validate):
             if file_to_validate == "ndar_subject01.csv":
                 raise ValueError("ndar_subject01.csv file not found for {visit}")
     return existing_visits, existing_files
+
+
+#
+# Ndar summary csv upload functions
+#
+def get_upload_paths_from_config(args, config):
+    """
+    The returns a tuple:
+        - summaries_path: the base dir for the ndar summaries
+        - uploaded_path: the base dir where uploaded files will be moved to
+    """
+    try:
+        staging_path = pathlib.Path(
+            config.get("staging_directory").replace('*', args.followup_year)
+        )
+        summaries_path = staging_path / 'staging' / 'summaries'
+        uploaded_path = staging_path / 'uploaded'
+    except:
+        raise ValueError(f"No staging_directory in {args.sibis_general_config}")
+
+    try:
+        files_to_upload = config.get(
+            "files_to_upload"
+        ) # e.g. ndar_subject01.csv, image03.csv
+        files_to_upload = list(
+            map(pathlib.Path, files_to_upload)
+        ) # map strings to paths
+    except:
+        raise ValueError(f"No files to upload found in {args.sibis_general_config}")
+
+    return summaries_path, uploaded_path, files_to_upload

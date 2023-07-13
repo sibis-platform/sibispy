@@ -266,7 +266,9 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
                     'your home directory under NDAValidationResults. If your submission was interrupted in the middle'
                     ', you may resume your upload by entering a valid submission ID. ',
         usage='%(prog)s <file_list>')
-    parser.add_argument(
+
+    config_args = parser.add_argument_group('Config', 'Config args regardless of project (Enter before project).')
+    config_args.add_argument(
         "--sibis_general_config",
         help="Path of sibis-general-config.yml **in the current context**. Relevant if this is "
         "run in a container and the cases directory is mounted to a different "
@@ -274,14 +276,14 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         type=is_file,
         default="~/.sibis/.sibis-general-config.yml",
     )
-    parser.add_argument(
-        "--project",
-        help="Project to upload data for.",
-        type=str,
-        choices=["cns_deficit", "mci_cb"],
-        required=True,
-    )
-    parser.add_argument(
+    # config_args.add_argument(
+    #     "--project",
+    #     help="Project to upload data for.",
+    #     type=str,
+    #     choices=["cns_deficit", "mci_cb", "ncanda"],
+    #     required=True,
+    # )
+    config_args.add_argument(
         "-u",
         "--username",
         metavar="<arg>",
@@ -289,7 +291,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store",
         help="NDA username",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-p",
         "--password",
         metavar="<arg>",
@@ -297,7 +299,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store",
         help="NDA password",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-a",
         "--alternateEndpoint",
         metavar="<arg>",
@@ -305,31 +307,43 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store",
         help="An alternate upload location for the submission package",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-b",
         "--buildPackage",
         action="store_true",
         help="Flag whether to construct the submission package",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-v", "--verbose", help="Verbose operation", action="store_true",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-x", "--do_not_upload", 
         help="Do not build submission package and upload to ndar, only validate",
         action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-y", "--do_not_move",
         help="Do not move the files from summaries to uploaded, copy them instead.",
         action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         '--validation-timeout', 
         default=300, 
         type=int, 
         action='store', 
         help='Timeout in seconds until the program errors out with an error. Default=300s'
+    )
+
+    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
+    mci_cb_parser = subparsers.add_parser('mci_cb')
+    cns_deficit_parser = subparsers.add_parser('cns_deficit')
+    
+    # specific ncanda parser for followup year of values to be uploaded
+    ncanda_parser = subparsers.add_parser('ncanda')
+    ncanda_parser.add_argument(
+        "--followup_year",
+        help="Followup year of the data being added to summary file (number only).",
+        type=str, required=True,
     )
 
     args = parser.parse_args()
@@ -371,35 +385,6 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
 
     return args
 
-def get_paths_from_config(args: argparse.Namespace, config: Any) -> tuple:
-    """
-    The returns a tuple:
-        - summaries_path: the base dir for the ndar summaries
-        - uploaded_path: the base dir where uploaded files will be moved to
-    """
-    try:
-        staging_path = pathlib.Path(
-            config.get("staging_directory")
-        )
-        summaries_path = staging_path / 'staging' / 'summaries'
-        # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/staging/summaries
-        uploaded_path = staging_path / 'uploaded'
-        # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb/uploaded
-    except:
-        raise ValueError(f"No staging_directory in {args.sibis_general_config}")
-
-    try:
-        files_to_upload = config.get(
-            "files_to_upload"
-        ) # e.g. ndar_subject01.csv, image03.csv
-        files_to_upload = list(
-            map(pathlib.Path, files_to_upload)
-        ) # map strings to paths
-    except:
-        raise ValueError(f"No files to upload found in {args.sibis_general_config}")
-
-    return summaries_path, uploaded_path, files_to_upload
-
 def doMain():
     # parse arguments
     args = _parse_args()
@@ -410,11 +395,16 @@ def doMain():
         config = yaml.safe_load(f)
     config = config.get("ndar").get(args.project)
 
+    if args.project == 'ncanda':
+        import ncanda_mappings as mappings
+    else:
+        import hivalc_mappings as mappings
+
     # define collection id based on project being uploaded
     setattr(args, 'collectionID', config.get('collection_id'))
 
     # get base paths from config (summaries and uploaded)
-    summaries_path, uploaded_path, files_to_upload = get_paths_from_config(args, config)
+    summaries_path, uploaded_path, files_to_upload = mappings.get_upload_paths_from_config(args, config)
 
     vtcmd_config = vtcmd.configure(args)
 
