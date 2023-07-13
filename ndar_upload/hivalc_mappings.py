@@ -141,20 +141,15 @@ def set_visit_path(args, staging_path, data_path):
     3. rechecking study = this should pull data from the waiting for study path
     4. checking validation - this should pull data only from validation_errors path
     """
-    if args.project == 'ncanda':
-        if args.check_new:
-            path_to_visits = ad
-
-    else:
-        if args.check_new:
-            path_to_visits = data_path
-        elif args.recheck_consent:
-            path_to_visits = staging_path / StagingPaths.waiting_for_consent
-        elif args.recheck_study:
-            path_to_visits = staging_path / StagingPaths.waiting_for_study
-        else:  # if args.check_validation
-            path_to_visits = staging_path / StagingPaths.validation_errors
-        
+    if args.check_new:
+        path_to_visits = data_path
+    elif args.recheck_consent:
+        path_to_visits = staging_path / StagingPaths.waiting_for_consent
+    elif args.recheck_study:
+        path_to_visits = staging_path / StagingPaths.waiting_for_study
+    else:  # if args.check_validation
+        path_to_visits = staging_path / StagingPaths.validation_errors
+    
     return path_to_visits
 
 def get_visit_path(args, path_to_visits, visit):
@@ -191,7 +186,7 @@ def get_paths_from_config(args, config):
     except:
         raise ValueError(f"No data_directory in {args.sibis_general_config}")
 
-    try:    #TODO: update for ncanda, because it has to be more complex
+    try:
         consent_path = pathlib.Path(
             config.get("cases_directory")
         )  # e.g. /fs/neurosci01/lab/cases_next/
