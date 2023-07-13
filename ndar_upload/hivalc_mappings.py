@@ -370,3 +370,14 @@ def process_consent(visit_path: pathlib.Path, staging_path: pathlib.Path, consen
             f"Value {consent} for demo_ndar_consent unrecognized in demographics file."
         )
 
+def restrict_to_existing_files(args, path_to_visits, visits, files_to_validate):
+    existing_visits, existing_files = [], []
+    for visit, file_to_validate in zip(visits, files_to_validate):
+        path = path_to_visits / visit / file_to_validate
+        if path.exists():
+            existing_visits.append(visit)
+            existing_files.append(file_to_validate)
+        else:
+            if file_to_validate == "ndar_subject01.csv":
+                raise ValueError("ndar_subject01.csv file not found for {visit}")
+    return existing_visits, existing_files

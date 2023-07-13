@@ -38,9 +38,6 @@ def check_consent(args, mappings, included_visits, path_to_visits, consent_path,
     for visit in included_visits:
         logging.info(f"Checking consent for visit {visit}")
         visit_path = mappings.get_visit_path(args, path_to_visits, visit)
-        # visit_path = (
-        #     path_to_visits / visit
-        # )  # e.g. /fs/neurosci01/lab/upload2ndar/mci_cb/LAB_S01669_20220517_6909_05172022 or  /fs/neurosci01/lab/releases/ndar/staging/waiting_for_consent/LAB_S01669_20220517_6909_05172022
         consent = mappings.get_consent(
             visit_path, consent_path
         )  # Retrieve consent from consent_dir
@@ -94,17 +91,7 @@ def unpack_errors(errors_dict: dict):
     return error_types, all_errors
 
 
-def restrict_to_existing_files(path_to_visits, visits, files_to_validate):
-    existing_visits, existing_files = [], []
-    for visit, file_to_validate in zip(visits, files_to_validate):
-        path = path_to_visits / visit / file_to_validate
-        if path.exists():
-            existing_visits.append(visit)
-            existing_files.append(file_to_validate)
-        else:
-            if file_to_validate == "ndar_subject01.csv":
-                raise ValueError("ndar_subject01.csv file not found for {visit}")
-    return existing_visits, existing_files
+
 
 
 def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
@@ -459,7 +446,8 @@ def is_file(file_path: str) -> pathlib.Path:
 
 def _parse_args(input_args: List = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    config_args = parser.add_argument_group('Config', 'Config args regardless of project (Enter before project).')
+    config_args.add_argument(
         "--sibis_general_config",
         help="Path of sibis-general-config.yml **in the current context**. Relevant if this is "
         "run in a container and the cases directory is mounted to a different "
@@ -467,22 +455,9 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         type=is_file,
         default="~/.sibis/.sibis-general-config.yml",
     )
-    parser.add_argument(
-        "--project",
-        help="Project to upload data for.",
-        type=str,
-        choices=["cns_deficit", "mci_cb", "ncanda"],
-        required=True,
-    )
-    parser.add_argument(
-        "--visits",
-        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
-        type=str,
-        nargs="+",
-    )
 
     # We can only perform one of these operations.
-    me_parser = parser.add_mutually_exclusive_group(required=True)
+    me_parser = config_args.add_mutually_exclusive_group(required=True)
     me_parser.add_argument(
         "-n",
         "--check_new",
@@ -508,7 +483,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store_true",
     )
 
-    parser.add_argument(
+    config_args.add_argument(
         "-u",
         "--username",
         metavar="<arg>",
@@ -517,7 +492,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         help="NDA username",
     )
 
-    parser.add_argument(
+    config_args.add_argument(
         "-p",
         "--password",
         metavar="<arg>",
@@ -525,18 +500,48 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store",
         help="NDA password",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-v", "--verbose", help="Verbose operation", action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-r", "--do_not_remove", help="Do not remove files once they pass validation", action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         '--validation-timeout', 
         default=300, 
         type=int, 
         action='store', 
         help='Timeout in seconds until the program errors out with an error. Default=300s'
+    )
+
+    # HIVALC Specific Args
+    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
+    mci_cb_parser = subparsers.add_parser('mci_cb')
+    mci_cb_parser.add_argument(
+        "--visits",
+        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
+        type=str,
+        nargs="+",
+    )
+
+    cns_deficit_parser = subparsers.add_parser('cns_deficit')
+    cns_deficit_parser.add_argument(
+        "--visits",
+        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
+        type=str,
+        nargs="+",
+    )
+
+    ncanda_parser = subparsers.add_parser('ncanda')
+    ncanda_parser.add_argument(
+        '--subject', dest='visits',
+        help="The Subject ID of specific subject to add to summary file, typ: NCANDA_SXXXXX",
+        type=str
+    )
+    ncanda_parser.add_argument(
+        "--followup_year",
+        help="Followup year of the data being added to summary file (number only).",
+        type=str, required=True,
     )
 
     args = parser.parse_args()
@@ -550,12 +555,6 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
 
     logging.info(f"Loading sibis-general-config from {args.sibis_general_config}")
     args.sibis_general_config = pathlib.Path(args.sibis_general_config)
-
-    #FIXME: Is this even needed w/ the added mutually exclusive group? Think it can be deleted
-    if args.check_new + args.recheck_consent + args.recheck_validation + args.recheck_study != 1:
-        raise ValueError(
-            "Please use 1 and only 1 of check_new, recheck_consent, recheck_study and recheck_validation"
-        )
 
     # Add defaults for args the vtcmd module expects
     vtcmd_args = [
@@ -646,14 +645,13 @@ def doMain():
                 consented_visits
             )  # -> [a,b,c,a,b,c]
             vtcmd_config = vtcmd.configure(args)
-            visits, files_to_validate = restrict_to_existing_files(
-                path_to_visits, visits, files_to_validate
+            visits, files_to_validate = mappings.restrict_to_existing_files(
+                args, path_to_visits, visits, files_to_validate
             )
-            if  len(visits) == 0 or len(files_to_validate) == 0 :
+            if len(visits) == 0 or len(files_to_validate) == 0 :
                 logging.info(f"Nothing to validate!")
                 sys.exit(0)
 
-            
             validation_results_df = ndar_validate(
                 path_to_visits, visits, files_to_validate, vtcmd_config
             )
