@@ -23,8 +23,8 @@ import yaml
 import pandas as pd
 import xml.etree.ElementTree as ET
 
-import hivalc_mappings as hivalc_funcs
-import ncanda_mappings as ncanda_funcs
+# import hivalc_mappings as hivalc_funcs
+# import ncanda_mappings as ncanda_funcs
 
 # Hack so that we don't have to rely on the package compilation
 scripts_dir = Path(__file__).parent / '..'
@@ -402,9 +402,9 @@ def get_demo_dict(args) -> dict:
 
 
 
-def get_race(sys_values, race: int) -> str:
+def get_race(race: int) -> str:
     # RACE_MAP = sys_values['maps']['race_map']
-    RACE_MAP = sys_values.race_map
+    RACE_MAP = mappings.race_map
     try:
         race = RACE_MAP[race]
     except KeyError:
@@ -536,8 +536,8 @@ def get_image_units(subject: SubjectData, image_type: str):
         units = unit_map["mm"]
     return units
 
-def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, sys_values: dict):
-    IMAGE_MAP = sys_values.image_map
+def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData):
+    IMAGE_MAP = mappings.image_map
     
     field =  field_spec[DefinitionHeader.ElementName]
     field_value = EmptyString
@@ -563,9 +563,9 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, 
     return field_value
 
 
-def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
+def handle_field(field_spec: dict, subject: SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
-    SUBJECT_MAP = sys_values.subject_map
+    SUBJECT_MAP = mappings.subject_map
     try:
         field_value = SUBJECT_MAP[field]
 
@@ -587,7 +587,7 @@ def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
     return field_value
 
 
-def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta, sys_values):
+def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
     """
     Create ndar_subject01.csv using the demographics dictionary
     """
@@ -608,9 +608,9 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta, sys_
             csv_reader = csv.DictReader(csv_file, delimiter=',')
             for field_spec in csv_reader:
                 if NDARFileVariant.is_image_type(ndar_csv_meta.image_type):
-                    val = handle_image_field(ndar_csv_meta.image_type, field_spec, subject_data, sys_values)
+                    val = handle_image_field(ndar_csv_meta.image_type, field_spec, subject_data)
                 else:
-                    val = handle_field(field_spec, subject_data, sys_values)
+                    val = handle_field(field_spec, subject_data)
                 header_row.append(field_spec[DefinitionHeader.ElementName])
                 val_row.append(val)
         csvwriter.writerow(NDARFileVariant.get_version_header(ndar_csv_meta.image_type))
@@ -759,6 +759,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
             if not ns.image_definition.exists():
                 raise ConfigError(f"The `image_definition`, {gen_cfg['image_definition']} is missing from {ns.datadict_dir}")
 
+            ns.mappings_dir = gen_cfg['mappings_dir']
         except KeyError:
             p.exit(10, f"Could not find `ndar.create_csv` in {p.config.as_posix()}")
         except ConfigError as ce:
@@ -814,15 +815,18 @@ def main(input_args: List[str] = None):
         logging.config.fileConfig(log_config.absolute().as_posix())
 
     args = _parse_args(input_args)
+
+    # add mappings files to the system path so it can be imported
+    sys.path.append(args.mappings_dir)
+
     scan_dir, ndar_dir = set_dir_paths(args)
     
-    # Get the correct file
+    # import respective mappings file as a global import
     if args.source == 'hivalc':
-        import hivalc_mappings as mappings
+        globals()['mappings'] = __import__('hivalc_mappings')
     else:
-        import ncanda_mappings as mappings
+        globals()['mappings'] = __import__('ncanda_mappings')
 
-    sys_values = mappings
     # Create output directory if it doesn't exist.
     if not ndar_dir.exists():
         ndar_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
@@ -877,7 +881,7 @@ def main(input_args: List[str] = None):
     # Create each CSV file
     for some_ndar_meta in ndar_csv_meta_files:
         logger.info(f'Starting  {scan_dir} ({some_ndar_meta})')
-        write_ndar_csv(subj_data, some_ndar_meta, sys_values)
+        write_ndar_csv(subj_data, some_ndar_meta)
         write_bvec_bval_files(subj_data, some_ndar_meta)
 
 
