@@ -603,6 +603,8 @@ def doMain():
         config = yaml.safe_load(f)
     config = config.get("ndar").get(args.project)
 
+    sys.path.append(config.get('mappings_dir'))
+
     if args.project == 'ncanda':
         import ncanda_mappings as mappings
     else:

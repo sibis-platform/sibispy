@@ -23,9 +23,6 @@ import yaml
 import pandas as pd
 import xml.etree.ElementTree as ET
 
-# import hivalc_mappings as hivalc_funcs
-# import ncanda_mappings as ncanda_funcs
-
 # Hack so that we don't have to rely on the package compilation
 scripts_dir = Path(__file__).parent / '..'
 sys.path.append(str(scripts_dir.resolve()))
