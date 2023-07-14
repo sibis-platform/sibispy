@@ -654,8 +654,6 @@ class ConfigError(Exception):
 def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
 
-   
-
     # Standard config args independent of source
     config_args = p.add_argument_group('Config', 'Config args regardless of source (enter first before source)')
     config_args.add_argument(
@@ -694,12 +692,12 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     )
     ncanda_parser.add_argument(
         "--release_year",
-        help="Release year of the data (parent dir of desired NCANDA_SNAPS* dir)",
+        help="Release year (digit only, ex: 8) of the data (parent dir of desired NCANDA_SNAPS* dir)",
         type=str, required=True,
     )
     ncanda_parser.add_argument(
         "--followup_year",
-        help="Followup year of the data in release (parent dir of desired measures/imaging dirs in case)",
+        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in case)",
         type=str, required=True,
     )
 
