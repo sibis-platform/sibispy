@@ -352,7 +352,7 @@ def move_validated_files(validation_results_df, staging_path, path_to_visits, da
                     )
                     summaries_root_dir = summaries_manifest_dir / relative_root
 
-                    subprocess.call(["rsync", "-a", str(valid_manifest_dir / relative_root), str(summaries_root_dir)])
+                    subprocess.call(["rsync", "-a", (str(valid_manifest_dir / relative_root) + "/"), str(summaries_root_dir)])
                         
                 # Then move the manifest file
                 logging.info(
