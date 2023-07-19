@@ -50,32 +50,45 @@ def describe_nifti(nifti_gz: Path) -> dict:
     
     return nifti_meta
 
-def find_diffusion_nifti_xml(visit_dir: Path):
+def find_diffusion_nifti_xml(args, visit_dir: Path):
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
     diffusion_scans = {}
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
         return diffusion_scans
-    
-    diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
-    symlink_dirs = [x for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
-    for symlink, diffusion_dir in zip(symlink_dirs, diffusion_dirs):
-        nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
-        diffusion_scans[symlink.name] = nifti_xml
+    if args.source == 'hivalc':
+        diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+        symlink_dirs = [x for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+        for symlink, diffusion_dir in zip(symlink_dirs, diffusion_dirs):
+            nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
+            diffusion_scans[symlink.name] = nifti_xml
+    else:
+        diffusion_dirs = [x for x in diffusion_native.iterdir() if x.is_dir()]
+        for diffusion_dir in diffusion_dirs:
+            nifti_xml = sorted(diffusion_dir.rglob("*.nii.xml"))
+            diffusion_scans[diffusion_dir.name] = nifti_xml
     return diffusion_scans
 
-def find_first_diffusion_nifti(visit_dir: Path) -> Generator[Path, None, None]:
+def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     nifti_files = []
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
         return nifti_files
     diffusion_dirs =  [x.resolve() for x in diffusion_native.iterdir() if x.is_dir() and x.is_symlink()]
+    if args.source == 'ncanda':
+        diffusion_dirs = [x for x in diffusion_native.iterdir() if x.is_dir()]
     for diffusion_dir in diffusion_dirs:
         possible_nifti = sorted(diffusion_dir.rglob("*.nii.gz"))
         if len(possible_nifti) > 0:
             nifti_files.append(possible_nifti[0])
     return nifti_files
 
-def find_structural_nifti(visit_dir: Path) -> Generator[Path, None, None]:
+def find_structural_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
+    if args.source == 'ncanda':
+        visit_dir = set_ncanda_visit_dir(args, 'structural')
     structural_native = visit_dir / "structural" / "native"
     if not structural_native.exists() :
         return [] 
@@ -111,11 +124,12 @@ def get_element_for_cmtk_nifti_xml(nifti_xml: Path) -> ET.Element:
             meta_root = ET.fromstringlist(bad_xml_lines)
     return meta_root
 
-def get_nifti_metadata(visit_dir: Path):
+def get_nifti_metadata(args):
+    visit_dir = args.scan_dir
     nifti_metadata = {}
 
-    structural_nifti_files = find_structural_nifti(visit_dir)
-    diffusion_nifti_files = find_first_diffusion_nifti(visit_dir)
+    structural_nifti_files = find_structural_nifti(args, visit_dir)
+    diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     nifti_files = structural_nifti_files + diffusion_nifti_files
     for nifti_gz in nifti_files:
         modality = NDARImageType.get_modality(nifti_gz)
@@ -150,8 +164,9 @@ def get_bvector_bvalue(nii_xml_files: Sequence[Path]):
     b_vector_df = pd.DataFrame(b_vector_df)
     return DiffusionMeta(b_value_df, b_vector_df)
 
-def get_dicom_diffusion_metadata(visit_dir: Path) -> Dict[str, DiffusionMeta]:
-    all_nii_xml = find_diffusion_nifti_xml(visit_dir)
+def get_dicom_diffusion_metadata(args) -> Dict[str, DiffusionMeta]:
+    visit_dir = args.scan_dir
+    all_nii_xml = find_diffusion_nifti_xml(args, visit_dir)
     diffusion_meta = {}
     for dti_kind, xml_files in all_nii_xml.items():
         diffusion_meta[dti_kind] = get_bvector_bvalue(xml_files)
@@ -184,11 +199,12 @@ def fill_modality_obj(meta_root: ET.Element, modality_obj: dict, section: str):
             if attribs != {}:
                 modality_obj[section][tag_name].update({"attribs": attribs})
 
-def get_dicom_structural_metadata(visit_dir: Path):
+def get_dicom_structural_metadata(args):
+    visit_dir = args.scan_dir
     dicom_metadata = {}
 
-    structural_nifti_files = find_structural_nifti(visit_dir)
-    diffusion_nifti_files = find_first_diffusion_nifti(visit_dir)
+    structural_nifti_files = find_structural_nifti(args, visit_dir)
+    diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     nifti_files = structural_nifti_files + diffusion_nifti_files
     for nifti_gz in nifti_files:
         nifti_xml = find_nifti_xml(nifti_gz)
@@ -355,10 +371,13 @@ class NDARFileVariant():
             return NDARFileVariant.headers['subject']
 
 
-def get_demo_dict(demo_csv_file: Path) -> dict:
+def get_demo_dict(args) -> dict:
     """
     Convert the demographics.csv file into a dictionary where key=col name, value=value of col
     """
+    demo_csv_file = args.visit_demographics
+    if args.source == 'ncanda':
+        demo_csv_file = set_ncanda_visit_dir(args, 'redcap') / 'measures' / 'demographics.csv'
     with demo_csv_file.open() as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -378,46 +397,16 @@ def get_demo_dict(demo_csv_file: Path) -> dict:
 
         return demo_dict
 
-def convert_interview_date(date):
-    mmddyyyy = date.split('_')[2]
-    month = mmddyyyy[:2]
-    year = mmddyyyy[4:]
-    return month+"/01/"+year
 
-def get_interview_age(visit_date, dob):
-    interview_date = convert_interview_date(visit_date)
-    interview_month = int(interview_date.split('/')[0])
-    interview_year = int(interview_date.split('/')[2])
 
-    dob_month = int(dob.split('-')[1])
-    dob_year = int(dob.split('-')[0])
-
-    return str(12*(interview_year-dob_year) + (interview_month - dob_month))
-
-def get_race(sys_values, race: int) -> str:
-    RACE_MAP = sys_values['maps']['race_map']
+def get_race(race: int) -> str:
+    # RACE_MAP = sys_values['maps']['race_map']
+    RACE_MAP = mappings.race_map
     try:
         race = RACE_MAP[race]
     except KeyError:
         race = "Unknown or not reported"
     return race
-
-def get_phenotype(diag, diag_new, diag_new_dx):
-    if diag_new != "" and int(diag_new) == 1:
-        return str(diag_new_dx)
-    else:
-        return str(diag)
-
-def get_phenotype_description(sys_values, diag, diag_new, diag_new_dx):
-    phenotype = get_phenotype(diag, diag_new, diag_new_dx)
-    PHENOTYPE_MAP = sys_values['maps']['phenotype_map']
-    try:
-        phenotype_desc = PHENOTYPE_MAP[phenotype]
-    except KeyError:
-        logger.error(f'No mapping for {phenotype}')
-        phenotype_desc = EmptyString
-    return phenotype_desc
-
 
 @dataclass(frozen=True)
 class DefinitionHeader:
@@ -433,8 +422,11 @@ class DefinitionHeader:
 
 
 def get_subjectkey(subject: SubjectData, *_) -> str:
+    """Get ndar guid of the subject"""
     if "demo_ndar_guid" in subject.demographics and len(subject.demographics["demo_ndar_guid"].strip()):
         field_value =  subject.demographics["demo_ndar_guid"]
+    elif "ndar_guid_id" in subject.demographics and len(subject.demographics["ndar_guid_id"].strip()):
+        field_value = subject.demographics["ndar_guid_id"]
     else:
         field_value =  "NDARXXXXXXXX"
     return field_value
@@ -541,8 +533,8 @@ def get_image_units(subject: SubjectData, image_type: str):
         units = unit_map["mm"]
     return units
 
-def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, sys_values: dict):
-    IMAGE_MAP = sys_values['maps']['image_map']
+def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData):
+    IMAGE_MAP = mappings.image_map
     
     field =  field_spec[DefinitionHeader.ElementName]
     field_value = EmptyString
@@ -568,9 +560,9 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData, 
     return field_value
 
 
-def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
+def handle_field(field_spec: dict, subject: SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
-    SUBJECT_MAP = sys_values['maps']['subject_map']
+    SUBJECT_MAP = mappings.subject_map
     try:
         field_value = SUBJECT_MAP[field]
 
@@ -592,13 +584,13 @@ def handle_field(field_spec: dict, subject: SubjectData, sys_values: dict):
     return field_value
 
 
-def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta, sys_values):
+def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
     """
     Create ndar_subject01.csv using the demographics dictionary
     """
     if ndar_csv_meta.image_type:
         if ndar_csv_meta.image_type not in subject_data.nifti.keys() :
-            logger.info("Skipping",ndar_csv_meta.image_type)
+            logger.info(f"Skipping {ndar_csv_meta.image_type}")
             return 
     
     if not ndar_csv_meta.output_file.parent.exists():
@@ -613,9 +605,9 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta, sys_
             csv_reader = csv.DictReader(csv_file, delimiter=',')
             for field_spec in csv_reader:
                 if NDARFileVariant.is_image_type(ndar_csv_meta.image_type):
-                    val = handle_image_field(ndar_csv_meta.image_type, field_spec, subject_data, sys_values)
+                    val = handle_image_field(ndar_csv_meta.image_type, field_spec, subject_data)
                 else:
-                    val = handle_field(field_spec, subject_data, sys_values)
+                    val = handle_field(field_spec, subject_data)
                 header_row.append(field_spec[DefinitionHeader.ElementName])
                 val_row.append(val)
         csvwriter.writerow(NDARFileVariant.get_version_header(ndar_csv_meta.image_type))
@@ -662,34 +654,51 @@ class ConfigError(Exception):
 def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
 
-    p.add_argument(
+    # Standard config args independent of source
+    config_args = p.add_argument_group('Config', 'Config args regardless of source (enter first before source)')
+    config_args.add_argument(
         '--config', help="SIBIS General Configuration file",
         type=is_file("config", os.X_OK), default="~/.sibis-general-config.yml"
     )
-    p.add_argument(
+    config_args.add_argument(
         '--sys_config', help="SIBIS System Configuration file",
         type=is_file("config", os.X_OK)
     )
-    p.add_argument(
-        '--source', help="Data source (hivalc or ncanda)",
-        required=True, type=str
-    )
-    p.add_argument(
-        '--subject', help="The Subject ID, typ: LAB_SXXXXX",
-        required=True, type=str
-    )
-    p.add_argument(
-        '--visit', help="The Visit ID, usually <visit>_<scan_id>",
-        required=True, type=str
-    )
-
-    p.add_argument(
+    config_args.add_argument(
         '--ndar_dir', help="Base output directory for NDAR directory and CSV files to be written",
         type=is_dir("ndar_dir", os.X_OK | os.R_OK | os.W_OK, create_if_missing=True)
     )
-
-    p.add_argument(
+    config_args.add_argument(
         '--verbose', '-v', action='count', default=0
+    )
+
+    # HIVALC Specific args
+    subparsers = p.add_subparsers(title='Data Souce', dest='source', help='Define the data source for csv creation')
+    hivalc_parser = subparsers.add_parser('hivalc', help='Hivalc CSV Creation')
+    hivalc_parser.add_argument(
+        '--subject', help="The Subject ID, typ: LAB_SXXXXX",
+        required=True, type=str
+    )
+    hivalc_parser.add_argument(
+       '--visit', help="The Visit ID, usually <visit>_<scan_id>",
+        type=str, required=True,
+    )
+
+    # NCANDA Specific args
+    ncanda_parser = subparsers.add_parser('ncanda', help='Ncanda CSV Creation')
+    ncanda_parser.add_argument(
+        '--subject', help="The Subject ID, typ: NCANDA_SXXXXX",
+        required=True, type=str
+    )
+    ncanda_parser.add_argument(
+        "--release_year",
+        help="Release year (digit only, ex: 8) of the data (parent dir of desired NCANDA_SNAPS* dir)",
+        type=str, required=True,
+    )
+    ncanda_parser.add_argument(
+        "--followup_year",
+        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in case)",
+        type=str, required=True,
     )
 
     ns =  p.parse_args(input_args)
@@ -705,21 +714,27 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
         try:
-            gen_cfg = cfg['ndar']['create_csv']
+            gen_cfg = cfg['ndar']['create_csv'][ns.source]
 
-            fmt_env = {
-                "subject": ns.subject,
-                "visit": ns.visit
-            }
-            fmt_env.update(gen_cfg)
-            
-            ns.scan_dir = Path(gen_cfg['visit_dir'].format(**fmt_env))
-            if not ns.scan_dir.exists():
-                raise ConfigError(f"The `visit_dir`, {ns.scan_dir}, does not exist.")
+            if ns.source == 'hivalc':
+                fmt_env = {
+                    "subject": ns.subject,
+                    "visit": ns.visit
+                }
+                fmt_env.update(gen_cfg)
+                
+                ns.scan_dir = Path(gen_cfg['visit_dir'].format(**fmt_env))
+                if not ns.scan_dir.exists():
+                    raise ConfigError(f"The `visit_dir`, {ns.scan_dir}, does not exist.")
 
-            ns.visit_demographics = ns.scan_dir / gen_cfg['visit_demographics']
-            if not ns.visit_demographics.exists():
-                raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
+                ns.visit_demographics = ns.scan_dir / gen_cfg['visit_demographics']
+                if not ns.visit_demographics.exists():
+                    raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
+            else:
+                # ncanda scan dir and demographics endpoint
+                cfg_paths = cfg['ndar']['create_csv'][ns.source]
+                ns.scan_dir = Path(cfg_paths['visit_dir'])
+                ns.visit_demographics = ns.scan_dir
 
             if  ns.ndar_dir is None:
                 ns.ndar_dir = Path(gen_cfg['output_dir'])
@@ -738,35 +753,14 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
             ns.image_definition = ns.datadict_dir / gen_cfg['image_definition']
             if not ns.image_definition.exists():
                 raise ConfigError(f"The `image_definition`, {gen_cfg['image_definition']} is missing from {ns.datadict_dir}")
-            
-        
 
+            ns.mappings_dir = gen_cfg['mappings_dir']
         except KeyError:
             p.exit(10, f"Could not find `ndar.create_csv` in {p.config.as_posix()}")
         except ConfigError as ce:
             p.exit(1, f"Configuration Error: {ce.msg}")
 
     return ns
-
-def get_sys_config_values(args):
-    """Returns the source specific demographics mappings"""
-    if not args.sys_config:
-        if args.source == "hivalc":
-            sys_file = "/fs/share/operations/sibis_sys_config.yml"
-        else:
-            sys_file = "/fs/ncanda-share/operations/sibis_sys_config.yml"
-    else:
-        sys_file = args.sys_config
-
-    sys_file_parser = cfg_parser.config_file_parser()
-    err_msg = sys_file_parser.configure(sys_file)
-    if err_msg:
-        raise ConfigError(f"Could not get sys config file from {args}")
-
-    if sys_file_parser.has_category("ndar_upload"):
-        sys_vals = sys_file_parser.get_category('ndar_upload')[args.source]
-    
-    return sys_vals
 
 def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
     b_path = ndar_meta.output_file.parent
@@ -779,6 +773,33 @@ def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
                                             sep=' ', quoting=None, float_format='%.5f',
                                             index=False, header=False)
 
+def set_ncanda_visit_dir(args, file_type: str):
+    """Given all args and type of directory to pull from, return the path endpoint"""
+    base_path = args.scan_dir / ("followup_" + args.release_year + "y")
+    snaps_dir_sub_ver = "NCANDA_SNAPS_" + args.release_year + "Y_" + file_type.upper() + "_"
+
+    # get latest version of directory released (multiple possible)
+    latest_dir = sorted(base_path.glob(snaps_dir_sub_ver + "*"))[-1]
+    
+    final_path = base_path / latest_dir / "cases" / args.subject / "standard" / ("followup_" + args.followup_year + "y")
+
+    return final_path
+
+def set_output_dir(args):
+    """Set the path for the output directory aka ndar_dir"""
+    if args.source == 'hivalc':
+        ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
+    else:
+        # /tmp/ncanda-ndarupload/NCANDA_SXXXXX/followup_yr
+        ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
+
+    return ndar_dir
+
+def set_dir_paths(args):
+    """Set path to scan dir (input) and ndar dir (output)"""
+    scan_dir: Path = args.scan_dir
+    ndar_dir = set_output_dir(args)
+    return scan_dir, ndar_dir
 
 def main(input_args: List[str] = None):
     logging.basicConfig(level=logging.WARNING,
@@ -789,11 +810,17 @@ def main(input_args: List[str] = None):
         logging.config.fileConfig(log_config.absolute().as_posix())
 
     args = _parse_args(input_args)
-    scan_dir: Path = args.scan_dir # /fs/process/LAB_S01669/standard/20220517_6909_05172022
-    ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
 
-    # Get the sibis_sys_config file
-    sys_values = get_sys_config_values(args)
+    # add mappings files to the system path so it can be imported
+    sys.path.append(args.mappings_dir)
+
+    scan_dir, ndar_dir = set_dir_paths(args)
+    
+    # import respective mappings file as a global import
+    if args.source == 'hivalc':
+        globals()['mappings'] = __import__('hivalc_mappings')
+    else:
+        globals()['mappings'] = __import__('ncanda_mappings')
 
     # Create output directory if it doesn't exist.
     if not ndar_dir.exists():
@@ -836,12 +863,12 @@ def main(input_args: List[str] = None):
 
     # find_diffusion_nifti(args.scan_dir)
 
-    dicom_metadata = get_dicom_structural_metadata(args.scan_dir)
-    nifti_metadata = get_nifti_metadata(args.scan_dir)
-    dti_metadata = get_dicom_diffusion_metadata(args.scan_dir)
+    dicom_metadata = get_dicom_structural_metadata(args)
+    nifti_metadata = get_nifti_metadata(args)
+    dti_metadata = get_dicom_diffusion_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
-    demo_dict = get_demo_dict(args.visit_demographics)
+    demo_dict = get_demo_dict(args)
     logger.debug('demo_dict: %s\n' % (demo_dict))
 
     subj_data = SubjectData(dicom_metadata, demo_dict, nifti_metadata, dti_metadata)
@@ -849,7 +876,7 @@ def main(input_args: List[str] = None):
     # Create each CSV file
     for some_ndar_meta in ndar_csv_meta_files:
         logger.info(f'Starting  {scan_dir} ({some_ndar_meta})')
-        write_ndar_csv(subj_data, some_ndar_meta, sys_values)
+        write_ndar_csv(subj_data, some_ndar_meta)
         write_bvec_bval_files(subj_data, some_ndar_meta)
 
 

@@ -12,26 +12,14 @@ staging/summaries directory, where the individual subject files are appended to 
    
 """
 
-from asyncore import file_dispatcher
 from dataclasses import dataclass
-import datetime
 import argparse
-from importlib.resources import path
 import os
 import pathlib
-import re
-import string
 import sys
-from this import d
-from tokenize import String
-from isodate import date_isoformat
 
-from pymysql import Date
-from sqlalchemy import Float
-from traitlets import Integer
-import sibispy
 import yaml
-from typing import Any, List
+from typing import List
 import logging
 import pandas as pd
 import shutil
@@ -44,178 +32,13 @@ import NDATools
 from NDATools.Validation import Validation
 from NDATools.clientscripts import vtcmd
 
-
-
-
-def decompose_visit(visit: str):
-    regex = "(LAB_S\d{5})_(\d{8}_\d{4}_\d{8})"
-    matches = re.match(regex, visit)
-    lab_id = matches.group(1)
-    visit_date = matches.group(2)
-    return lab_id, visit_date
-
-
-@dataclass
-class StudyDesignations():
-    cns_deficit: int
-    mci_cb: int
-    other: int
-    excluded: int
-    
-    def get_study(self, study_name):
-        if study_name == "cns_deficit":
-            return self.cns_deficit
-        elif study_name == "mci_cb":
-            return self.mci_cb
-        else:
-            return self.other
-    
-    def get_study_sum(self):
-        sum = self.cns_deficit + self.mci_cb + self.other
-        return sum
-    
-    def check_excluded(self):
-        if self.excluded == 1:
-            return True
-        return False
-            
-def check_study_designation(included_visits, path_to_visits, consent_path, staging_path, args) -> list:
-    """
-    Retuns the visit list w/ subjects who's study designation matches the current project.
-    If the subjects study designation does not match, the directory is moved to the exempt from release
-    directory in releases.
-    
-    :param included_visits: List of visits that have consent validated
-    :param path_to_visits: base path to visits in upload2ndar
-    :param consent_path: base path to subjects demographics file
-    :param staging_path: base path to staging parent directory in releases
-    :param args: contains argument for current project that is being validated
-    
-    :returns: Updated consented visits list that only contains visits w/ matching study designation.
-    """
-    
-    for visit in included_visits:
-        logging.info(f"Checking study designation for visit {visit}")
-        visit_path = (path_to_visits / visit)
-        exempt_path = staging_path / "exempt_from_release"
-        waiting_for_study = staging_path / "staging" / "waiting_for_study"
-        
-        # get study designations:
-        lab_id, visit_date = decompose_visit(visit)
-        
-        demographics_path = (
-            consent_path / lab_id / "standard" / visit_date / "redcap" / "demographics.csv"
-        )
-
-        try:
-            demographics_csv = pd.read_csv(demographics_path, keep_default_na=False)
-            # demographics vars: demo_ndar_study___cns,demo_ndar_study___mci,demo_ndar_study___oth, demo_ndar_excluded
-            study_designations = StudyDesignations(
-                cns_deficit= demographics_csv["demo_ndar_study___cns"].item(),
-                mci_cb= demographics_csv["demo_ndar_study___mci"].item(),
-                other= demographics_csv["demo_ndar_study___oth"].item(),
-                excluded = demographics_csv["demo_ndar_excluded"].item(),
-            )
-            
-            # if visit is exempt from all studies, move to exempt
-            if study_designations.check_excluded():
-                logging.info(f"Visit is exempt from all studies. Moving {visit_path} to {exempt_path}")
-                shutil.move(str(visit_path), str(exempt_path))
-            
-            current_study = args.project
-            
-            # if there are no study designations, move it to waiting_for_study in staging
-            # e.g: releases/ndar/mci_cb/staging/waiting_for_study
-            if study_designations.get_study_sum() == 0:
-                logging.info(f"There are no study designations for this visit. Moving {visit_path} to {waiting_for_study}.")
-                shutil.move(str(visit_path), str(waiting_for_study))
-
-                # and remove visit from consented visits
-                included_visits.remove(visit)
-                
-            # if subject is not under the current study but under others, move to the projects exempt from release
-            # e.g: releases/ndar/mci_cb/exempt_from_release
-            elif study_designations.get_study(current_study) == 0:              
-                logging.info(f"Study designation does not match project. Moving {visit_path} to {exempt_path}")
-                shutil.move(str(visit_path), str(exempt_path))
-                
-                # remove visit from visit list
-                included_visits.remove(visit)
-            
-            # otherwise, just continue on to next visit
-
-        except Exception as e:
-            logging.error(f"Problem reading study designation from {demographics_path}", e)
-            included_visits.remove(visit)
-        
-    return included_visits
-
-
-def get_consent(visit_path: pathlib.Path, consent_path: pathlib.Path):
-    visit = visit_path.name
-    lab_id, visit_date = decompose_visit(visit)
-
-    # Check for consent
-    demographics_path = (
-        consent_path / lab_id / "standard" / visit_date / "redcap" / "demographics.csv"
-    )
-    try:
-        # keep_default_na turns blank fields to empty string
-        demographics = pd.read_csv(demographics_path, keep_default_na=False)
-        consent = demographics["demo_ndar_consent"].item()
-        return consent
-    except Exception as e:
-        logging.error(f"Problem reading consent from {demographics_path}", e)
-        return None
-
-
-def process_consent(visit_path: pathlib.Path, staging_path: pathlib.Path, consent: int):
-    # If consent denied
-    if consent in [1, 9]:
-        # move to non_consent dir
-        non_consent_path = staging_path / "non_consent"
-        logging.info(f"Consent denied. Moving {visit_path} to {non_consent_path}")
-        shutil.move(str(visit_path), str(non_consent_path))
-        return False
-    
-    # if the subject is exempt from upload
-    if consent == 7:
-        # move to exempt_from_upload dir
-        exempt_path = staging_path / "exempt_from_release"
-        logging.info(f"Visit is exempt from uploading to NDAR. Moving {visit_path} to {exempt_path}")
-        shutil.move(str(visit_path), str(exempt_path))
-        return False
-
-    # If consent 0 or empty
-    elif consent == 0 or consent == "":
-        # move to waiting_for_consent dir (RAs still need to ask for consent)
-        waiting_for_consent_path = staging_path / "staging" / "waiting_for_consent"
-        logging.info(
-            f"Still waiting for consent. Moving {visit_path} to {waiting_for_consent_path}"
-        )
-        shutil.move(str(visit_path), str(waiting_for_consent_path))
-        return False
-
-    # If consent 5
-    elif consent == 5:
-        # Don't move anywhere yet, still have to validate
-        logging.info("Consent given.")
-        return True
-    else:
-        # If the consent value was not 0,1,5,9, or empty, complain
-        raise ValueError(
-            f"Value {consent} for demo_ndar_consent unrecognized in demographics file."
-        )
-
-
-def check_consent(included_visits, path_to_visits, consent_path, staging_path):
+def check_consent(args, mappings, included_visits, path_to_visits, consent_path, staging_path):
     consented_visits = []
+    
     for visit in included_visits:
         logging.info(f"Checking consent for visit {visit}")
-        visit_path = (
-            path_to_visits / visit
-        )  # e.g. /fs/neurosci01/lab/upload2ndar/mci_cb/LAB_S01669_20220517_6909_05172022 or  /fs/neurosci01/lab/releases/ndar/staging/waiting_for_consent/LAB_S01669_20220517_6909_05172022
-        consent = get_consent(
+        visit_path = mappings.get_visit_path(args, path_to_visits, visit)
+        consent = mappings.get_consent(
             visit_path, consent_path
         )  # Retrieve consent from consent_dir
         if consent is None:
@@ -228,7 +51,7 @@ def check_consent(included_visits, path_to_visits, consent_path, staging_path):
 
             move_visits(path_to_visits, [visit_path], validation_errors_path)
         else:
-            consent_given = process_consent(
+            consent_given = mappings.process_consent(
                 visit_path, staging_path, consent
             )  # Move visit to correct place in staging if consent not given
             if consent_given:
@@ -268,17 +91,7 @@ def unpack_errors(errors_dict: dict):
     return error_types, all_errors
 
 
-def restrict_to_existing_files(path_to_visits, visits, files_to_validate):
-    existing_visits, existing_files = [], []
-    for visit, file_to_validate in zip(visits, files_to_validate):
-        path = path_to_visits / visit / file_to_validate
-        if path.exists():
-            existing_visits.append(visit)
-            existing_files.append(file_to_validate)
-        else:
-            if file_to_validate == "ndar_subject01.csv":
-                raise ValueError("ndar_subject01.csv file not found for {visit}")
-    return existing_visits, existing_files
+
 
 
 def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
@@ -490,6 +303,7 @@ def move_validated_files(validation_results_df, staging_path, path_to_visits, da
                 f"Summaries file does not exist already, creating one by moving {valid_file_path} to {summaries_file_path}"
             )
             # rsync the files from the valid file path to the summaries file path
+            #TODO: add check for if summaries file path exists or not, if not then create it
             if args.do_not_remove:
                 subprocess.call(["rsync", "-a", str(valid_file_path), str(summaries_file_path)])
             else:
@@ -538,7 +352,7 @@ def move_validated_files(validation_results_df, staging_path, path_to_visits, da
                     )
                     summaries_root_dir = summaries_manifest_dir / relative_root
 
-                    subprocess.call(["rsync", "-a", str(valid_manifest_dir / relative_root), str(summaries_root_dir)])
+                    subprocess.call(["rsync", "-a", (str(valid_manifest_dir / relative_root) + "/"), str(summaries_root_dir)])
                         
                 # Then move the manifest file
                 logging.info(
@@ -632,7 +446,8 @@ def is_file(file_path: str) -> pathlib.Path:
 
 def _parse_args(input_args: List = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    config_args = parser.add_argument_group('Config', 'Config args regardless of project (Enter before project).')
+    config_args.add_argument(
         "--sibis_general_config",
         help="Path of sibis-general-config.yml **in the current context**. Relevant if this is "
         "run in a container and the cases directory is mounted to a different "
@@ -640,22 +455,9 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         type=is_file,
         default="~/.sibis/.sibis-general-config.yml",
     )
-    parser.add_argument(
-        "--project",
-        help="Project to upload data for.",
-        type=str,
-        choices=["cns_deficit", "mci_cb"],
-        required=True,
-    )
-    parser.add_argument(
-        "--visits",
-        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
-        type=str,
-        nargs="+",
-    )
 
     # We can only perform one of these operations.
-    me_parser = parser.add_mutually_exclusive_group(required=True)
+    me_parser = config_args.add_mutually_exclusive_group(required=True)
     me_parser.add_argument(
         "-n",
         "--check_new",
@@ -681,7 +483,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store_true",
     )
 
-    parser.add_argument(
+    config_args.add_argument(
         "-u",
         "--username",
         metavar="<arg>",
@@ -690,7 +492,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         help="NDA username",
     )
 
-    parser.add_argument(
+    config_args.add_argument(
         "-p",
         "--password",
         metavar="<arg>",
@@ -698,18 +500,48 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         action="store",
         help="NDA password",
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-v", "--verbose", help="Verbose operation", action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         "-r", "--do_not_remove", help="Do not remove files once they pass validation", action="store_true"
     )
-    parser.add_argument(
+    config_args.add_argument(
         '--validation-timeout', 
         default=300, 
         type=int, 
         action='store', 
         help='Timeout in seconds until the program errors out with an error. Default=300s'
+    )
+
+    # HIVALC Specific Args
+    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
+    mci_cb_parser = subparsers.add_parser('mci_cb')
+    mci_cb_parser.add_argument(
+        "--visits",
+        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
+        type=str,
+        nargs="+",
+    )
+
+    cns_deficit_parser = subparsers.add_parser('cns_deficit')
+    cns_deficit_parser.add_argument(
+        "--visits",
+        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
+        type=str,
+        nargs="+",
+    )
+
+    ncanda_parser = subparsers.add_parser('ncanda')
+    ncanda_parser.add_argument(
+        '--subject', dest='visits',
+        help="The Subject ID of specific subject to add to summary file, typ: NCANDA_SXXXXX",
+        type=str
+    )
+    ncanda_parser.add_argument(
+        "--followup_year",
+        help="Followup year of the data being added to summary file (number only).",
+        type=str, required=True,
     )
 
     args = parser.parse_args()
@@ -723,12 +555,6 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
 
     logging.info(f"Loading sibis-general-config from {args.sibis_general_config}")
     args.sibis_general_config = pathlib.Path(args.sibis_general_config)
-
-    #FIXME: Is this even needed w/ the added mutually exclusive group? Think it can be deleted
-    if args.check_new + args.recheck_consent + args.recheck_validation + args.recheck_study != 1:
-        raise ValueError(
-            "Please use 1 and only 1 of check_new, recheck_consent, recheck_study and recheck_validation"
-        )
 
     # Add defaults for args the vtcmd module expects
     vtcmd_args = [
@@ -767,75 +593,6 @@ class StagingPaths:
     validation_errors: pathlib.Path = staging / "validation_errors"
     exempt_from_release: pathlib.Path = staging / "exempt_from_release"
 
-def get_paths_from_config(args: argparse.Namespace, config: Any) -> tuple:
-    '''
-    This returns a tuple:
-        - staging_path: the base dir for the ndar staging workflow
-        - data_path: the base dir where ndar csv files and imagery that are to be located live
-        - consent_path: the base dir where consent data can be located
-        - files_to_validate: a list of filenames in ndar csv format that should be validated
-    '''
-    try:
-        staging_path = pathlib.Path(
-            config.get("staging_directory")
-        )  # e.g. /fs/neurosci01/lab/releases/ndar/mci_cb
-    except:
-        raise ValueError(f"No staging_directory in {args.sibis_general_config}")
-
-    try:
-        data_path = pathlib.Path(
-            config.get("data_directory")
-        )  # e.g. /fs/neurosci01/lab/upload2ndar/mci_cb
-    except:
-        raise ValueError(f"No data_directory in {args.sibis_general_config}")
-
-    try:
-        consent_path = pathlib.Path(
-            config.get("cases_directory")
-        )  # e.g. /fs/neurosci01/lab/cases_next/
-    except:
-        raise ValueError(f"No cases_directory in {args.sibis_general_config}")
-
-    try:
-        files_to_validate = config.get(
-            "files_to_validate"
-        )  # e.g. ['ndar_subject01.csv, 't1/image03.csv', 't2/image03.csv']
-        files_to_validate = list(
-            map(pathlib.Path, files_to_validate)
-        )  # Map strings to paths
-    except:
-        raise ValueError(f"No ndar_cases_directory in {args.sibis_general_config}")
-
-    try:
-        data_dict_path = pathlib.Path(
-        config.get("data_dict_directory")
-        ) # e.g. '/fs/share/datadict/ndar'
-    except:
-        raise ValueError(f"No data_dict_directory in {args.sibis_general_config}")
-
-    return staging_path, data_path, consent_path, files_to_validate, data_dict_path
-
-
-def set_path(args, staging_path, data_path):
-    """
-    Set the path to the visit directories based upon whether we are:
-    1. checking new - this should pull data from the data_path
-    2. rechecking consents = this should pull data from the waiting for consent path
-    3. rechecking study = this should pull data from the waiting for study path
-    4. checking validation - this should pull data only from validation_errors path
-    """
-    
-    if args.check_new:
-        path_to_visits = data_path
-    elif args.recheck_consent:
-        path_to_visits = staging_path / StagingPaths.waiting_for_consent
-    elif args.recheck_study:
-        path_to_visits = staging_path / StagingPaths.waiting_for_study
-    else:  # if args.check_validation
-        path_to_visits = staging_path / StagingPaths.validation_errors
-        
-    return path_to_visits
-
 
 def doMain():
     args = _parse_args()
@@ -846,11 +603,18 @@ def doMain():
         config = yaml.safe_load(f)
     config = config.get("ndar").get(args.project)
 
+    sys.path.append(config.get('mappings_dir'))
+
+    if args.project == 'ncanda':
+        import ncanda_mappings as mappings
+    else:
+        import hivalc_mappings as mappings
+
     # Get base paths for everything from config
-    staging_path, data_path, consent_path, files_to_validate, data_dict_path = get_paths_from_config(args, config)
+    staging_path, data_path, consent_path, files_to_validate, data_dict_path = mappings.get_paths_from_config(args, config)
     
     # set the path to the visit directory depending on args operation type
-    path_to_visits = set_path(args, staging_path, data_path)
+    path_to_visits = mappings.set_visit_path(args, staging_path, data_path)
     
     # if no specific visits were specified, then get a list of visits from path_to_visits
     if args.visits:
@@ -860,15 +624,15 @@ def doMain():
         logging.info(f"No visits given, checking all visits in {path_to_visits}")
         visit_list = os.listdir(path_to_visits)
 
-    # Regardless of operation, drop all visits that are not associated w/ the current study/project
-    included_visits = check_study_designation(visit_list, path_to_visits, consent_path, staging_path, args)        
+    # Drop all visits that are not associated w/ the current study/project
+    included_visits = mappings.check_study_designation(visit_list, path_to_visits, consent_path, staging_path, args)
 
     # check_new, recheck_consent, and recheck_study are the same operation, difference is location of the visit directories:
     # check_new = data directory, recheck_consent = waiting for consent directory, recheck_study = waiting for study dir    
     if args.check_new or args.recheck_consent or args.recheck_study:
         
-        ## Step 1: Check Consents
-        consented_visits = check_consent(included_visits, path_to_visits, consent_path, staging_path)
+        ## Step 1: Check Consents 
+        consented_visits = check_consent(args, mappings, included_visits, path_to_visits, consent_path, staging_path)
 
         ## Step 2: Validate visits that have consents and study designation.
         if len(consented_visits) > 0:
@@ -883,14 +647,13 @@ def doMain():
                 consented_visits
             )  # -> [a,b,c,a,b,c]
             vtcmd_config = vtcmd.configure(args)
-            visits, files_to_validate = restrict_to_existing_files(
-                path_to_visits, visits, files_to_validate
+            visits, files_to_validate = mappings.restrict_to_existing_files(
+                args, path_to_visits, visits, files_to_validate
             )
-            if  len(visits) == 0 or len(files_to_validate) == 0 :
+            if len(visits) == 0 or len(files_to_validate) == 0 :
                 logging.info(f"Nothing to validate!")
                 sys.exit(0)
 
-            
             validation_results_df = ndar_validate(
                 path_to_visits, visits, files_to_validate, vtcmd_config
             )
