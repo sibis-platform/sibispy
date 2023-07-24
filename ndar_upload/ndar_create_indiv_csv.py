@@ -458,10 +458,11 @@ def get_subjectkey(subject: SubjectData, *_) -> str:
         field_value =  "NDARXXXXXXXX"
     return field_value
 
-#TODO: add image description for rsfmri
 def get_image_description(subject: SubjectData, image_type: str) -> str:
     if image_type == NDARImageType.t1:
         field_value =  "SPGR"
+    elif image_type == NDARImageType.rs_fMRI:
+        field_value = "fMRI"
     elif image_type in [NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar]:
         field_value =  "DTI"
     else:
@@ -505,7 +506,10 @@ def conform_field_specs_datatype(field_value, field_spec:dict, subject:SubjectDa
 
     if datatype == "Integer":
         try:
-            field_value = int(round(float(field_value)))
+            if field_value == "":
+                field_value = ""
+            else:
+                field_value = int(round(float(field_value)))
         except:
             logger.error(f"cannot convert {field} [{field_value}] to int")
     
@@ -532,6 +536,13 @@ DIFFUSION_MODALITIES = [NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARI
 def has_bvek_bval_files(subject: SubjectData, image_type: str):
     if (image_type in DIFFUSION_MODALITIES and image_type in subject.diffusion.keys()):
         return "Yes"
+    else:
+        return ""
+
+def get_experiment_id(subject: SubjectData, image_type: str):
+    """Sets the experiment_id to 1 for resting state scans"""
+    if (image_type == NDARImageType.rs_fMRI):
+        return '1'
     else:
         return ""
 
