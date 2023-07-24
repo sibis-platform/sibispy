@@ -52,7 +52,7 @@ def describe_nifti(nifti_gz: Path) -> dict:
 
 def find_diffusion_nifti_xml(args, visit_dir: Path):
     if args.source == 'ncanda':
-        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
+        visit_dir = mappings.set_ncanda_visit_dir(args, 'diffusion')
     diffusion_scans = {}
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
@@ -73,7 +73,7 @@ def find_diffusion_nifti_xml(args, visit_dir: Path):
 def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     nifti_files = []
     if args.source == 'ncanda':
-        visit_dir = set_ncanda_visit_dir(args, 'diffusion')
+        visit_dir = mappings.set_ncanda_visit_dir(args, 'diffusion')
     diffusion_native = visit_dir / "diffusion" / "native"
     if not diffusion_native.exists() :
         return nifti_files
@@ -86,9 +86,24 @@ def find_first_diffusion_nifti(args, visit_dir: Path) -> Generator[Path, None, N
             nifti_files.append(possible_nifti[0])
     return nifti_files
 
+def find_first_rsfmri_nifti(args, visit_dir: Path):
+    nifti_files = []
+    if args.source == 'ncanda':
+        visit_dir = mappings.set_ncanda_visit_dir(args, 'restingstate')
+    rsfmri_native = visit_dir / "restingstate" / "native" 
+    if not rsfmri_native.exists():
+        return nifti_files
+    rsfmri_dirs = [x for x in rsfmri_native.iterdir() if x.is_dir()]
+    for rsfmri_dir in rsfmri_dirs:
+        possible_nifti = sorted(rsfmri_dir.rglob("*.nii.gz"))
+        if len(possible_nifti) > 0:
+            nifti_files.append(possible_nifti[0])
+    return nifti_files
+
+
 def find_structural_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     if args.source == 'ncanda':
-        visit_dir = set_ncanda_visit_dir(args, 'structural')
+        visit_dir = mappings.set_ncanda_visit_dir(args, 'structural')
     structural_native = visit_dir / "structural" / "native"
     if not structural_native.exists() :
         return [] 
@@ -130,7 +145,8 @@ def get_nifti_metadata(args):
 
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files
+    rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
     for nifti_gz in nifti_files:
         modality = NDARImageType.get_modality(nifti_gz)
         nifti_metadata[modality] = describe_nifti(nifti_gz)
@@ -200,12 +216,17 @@ def fill_modality_obj(meta_root: ET.Element, modality_obj: dict, section: str):
                 modality_obj[section][tag_name].update({"attribs": attribs})
 
 def get_dicom_structural_metadata(args):
+    """
+    Gathers all structural nifti's and the first niftis of diffusion
+    
+    """
     visit_dir = args.scan_dir
     dicom_metadata = {}
 
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files
+    rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
     for nifti_gz in nifti_files:
         nifti_xml = find_nifti_xml(nifti_gz)
         if nifti_xml.exists():
@@ -222,12 +243,14 @@ def get_dicom_structural_metadata(args):
 
     return dicom_metadata
 
+#TODO: update
 @dataclass
 class SubjectData:
     dicom: dict = None
     demographics: dict = None
     nifti: dict = None
     diffusion: Dict[str, DiffusionMeta] = None
+    rsfmri: dict = None
 
 def get_stack_value(stack_key: str):
 
@@ -326,18 +349,22 @@ def get_patient_position(subject: SubjectData, image_type: str):
 
 @dataclass(frozen=True)
 class NDARImageType:
+    #TODO: check that the naming of rs is right
     t1 = "t1"
     t2 = "t2"
     dti30b400 = "dti30b400"
     dti60b1000 = "dti60b1000"
     dti6b500pepolar = "dti6b500pepolar"
+    rs_fMRI = "rs-fMRI"
 
     @classmethod
     def get_modality(self, nii_path:Path) -> str:
         members = inspect.getmembers(self)
         for m, v in members:
-            if not m.startswith('_') and nii_path.as_posix().find(m) > 0:
-                return m
+            if not m.startswith('_'):
+                m = m.replace('_', '-')
+                if nii_path.as_posix().find(m) > 0:
+                    return m
         return None
 
 
@@ -359,7 +386,7 @@ class NDARFileVariant():
 
     @classmethod
     def is_image_type(clazz, file_type: str) -> bool:
-        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar]:
+        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar, NDARImageType.rs_fMRI]:
             return True
         return False
 
@@ -377,7 +404,7 @@ def get_demo_dict(args) -> dict:
     """
     demo_csv_file = args.visit_demographics
     if args.source == 'ncanda':
-        demo_csv_file = set_ncanda_visit_dir(args, 'redcap') / 'measures' / 'demographics.csv'
+        demo_csv_file = mappings.set_ncanda_visit_dir(args, 'redcap') / 'measures' / 'demographics.csv'
     with demo_csv_file.open() as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -431,6 +458,7 @@ def get_subjectkey(subject: SubjectData, *_) -> str:
         field_value =  "NDARXXXXXXXX"
     return field_value
 
+#TODO: add image description for rsfmri
 def get_image_description(subject: SubjectData, image_type: str) -> str:
     if image_type == NDARImageType.t1:
         field_value =  "SPGR"
@@ -440,13 +468,13 @@ def get_image_description(subject: SubjectData, image_type: str) -> str:
         field_value =  "FSE"
     return field_value
 
-
 SCAN_TYPE_MAP = {
     NDARImageType.t1: "MR structural (T1)",
     NDARImageType.t2: "MR structural (T2)",
     NDARImageType.dti30b400: "single-shell DTI",
     NDARImageType.dti60b1000: "single-shell DTI",
     NDARImageType.dti6b500pepolar: "single-shell DTI",
+    NDARImageType.rs_fMRI: "fMRI",
 }
 def get_scan_type(subject: SubjectData, image_type: str) -> str:
     try:
@@ -773,18 +801,6 @@ def write_bvec_bval_files(subject: SubjectData, ndar_meta: TargetCSVMeta):
                                             sep=' ', quoting=None, float_format='%.5f',
                                             index=False, header=False)
 
-def set_ncanda_visit_dir(args, file_type: str):
-    """Given all args and type of directory to pull from, return the path endpoint"""
-    base_path = args.scan_dir / ("followup_" + args.release_year + "y")
-    snaps_dir_sub_ver = "NCANDA_SNAPS_" + args.release_year + "Y_" + file_type.upper() + "_"
-
-    # get latest version of directory released (multiple possible)
-    latest_dir = sorted(base_path.glob(snaps_dir_sub_ver + "*"))[-1]
-    
-    final_path = base_path / latest_dir / "cases" / args.subject / "standard" / ("followup_" + args.followup_year + "y")
-
-    return final_path
-
 def set_output_dir(args):
     """Set the path for the output directory aka ndar_dir"""
     if args.source == 'hivalc':
@@ -859,6 +875,11 @@ def main(input_args: List[str] = None):
             ndar_dir  / NDARImageType.dti6b500pepolar / "image03.csv",
             image_definitions_csv,
             NDARImageType.dti6b500pepolar),
+
+        TargetCSVMeta(
+            ndar_dir / NDARImageType.rs_fMRI / "image03.csv",
+            image_definitions_csv,
+            NDARImageType.rs_fMRI),
     ]
 
     # find_diffusion_nifti(args.scan_dir)
@@ -866,6 +887,7 @@ def main(input_args: List[str] = None):
     dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args)
     dti_metadata = get_dicom_diffusion_metadata(args)
+    #rs_fMRI_metadata = get_rs_fMRI_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
     demo_dict = get_demo_dict(args)
