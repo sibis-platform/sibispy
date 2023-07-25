@@ -315,27 +315,66 @@ ncanda_upload_to_ndar() {
 	    # Bvalue and bvec 
 	    JSON_LINE=""
 	    for FILE in bval bvec; do
-		if [ "$JSON_LINE" != "" ]; then 
-		    echo "${JSON_LINE}," >> $TYPE_DIR/${JSON}
-		fi
-    
-		absFILE=${ndar_csv_temp_dir}/$TYPE/$FILE 
-		if [ ! -e $absFILE ]; then 
-		    echo "ERROR:$absFILE missing!"
-		    exit 1
-		fi
-		cp $absFILE $IMG_DIR/$FILE
+			if [ "$JSON_LINE" != "" ]; then 
+				echo "${JSON_LINE}," >> $TYPE_DIR/${JSON}
+			fi
+		
+			absFILE=${ndar_csv_temp_dir}/$TYPE/$FILE 
+			if [ ! -e $absFILE ]; then 
+				echo "ERROR:$absFILE missing!"
+				exit 1
+			fi
+			cp $absFILE $IMG_DIR/$FILE
 
-		FILESIZE=`wc -c $IMG_DIR/$FILE | awk '{print $1}'`
-		md5=($(md5sum $IMG_DIR/$FILE))
-		FILEPATH=${REL_IMG_DIR}/${FILE}
-		JSON_LINE="{\"path\": \"$FILEPATH\", \"name\": \"$FILE\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}"
+			FILESIZE=`wc -c $IMG_DIR/$FILE | awk '{print $1}'`
+			md5=($(md5sum $IMG_DIR/$FILE))
+			FILEPATH=${REL_IMG_DIR}/${FILE}
+			JSON_LINE="{\"path\": \"$FILEPATH\", \"name\": \"$FILE\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}"
 	    done
             echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
         done
     else
         echo "SKIPPING dti creation, could not find ${diffusion_dir}"
     fi
+
+	#
+    # Resting State fMRI
+    #
+	restingstate_dirs=`ls ${cases_dir} | grep RESTINGSTATE`
+	# get latest restingstate dir release
+    restingstate_dir_name=`echo ${restingstate_dirs} | rev | cut -d ' ' -f1 | rev`
+	# only pull nifti's from rs-fMRI directory of native
+    restingstate_dir=${cases_dir}/${restingstate_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${followup_yr}/restingstate/native/rs-fMRI
+	if [ -d "${restingstate_dir}" ]; then
+
+		TYPE=rs-fMRI
+	    TYPE_DIR=${BASE_DIR}/$TYPE
+	    mkdir -p ${TYPE_DIR} 
+
+	    JSON=${GUID}-${followup_yr}-${TYPE}.json
+
+	    # mv image03.csv
+	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
+	    
+	    # copy nii.gz 
+	    REL_IMG_DIR=${GUID}/${followup_yr}/$TYPE
+	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
+            mkdir -p $IMG_DIR
+		
+	    rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $restingstate_dir/ $IMG_DIR
+
+	    echo "{\"files\": [" > $TYPE_DIR/${JSON}
+	    for FILE in $IMG_DIR/*.nii.gz; do
+		FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
+		FILESIZE=`wc -c $FILE | awk '{print $1}'`
+		md5=($(md5sum $FILE))
+		FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+		echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
+	    done
+    else
+        echo "SKIPPING restingstate creation, could not find ${restingstate_dir}"
+    fi
+
 }
 
 "$@"

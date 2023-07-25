@@ -243,7 +243,6 @@ def get_dicom_structural_metadata(args):
 
     return dicom_metadata
 
-#TODO: update
 @dataclass
 class SubjectData:
     dicom: dict = None
@@ -349,7 +348,6 @@ def get_patient_position(subject: SubjectData, image_type: str):
 
 @dataclass(frozen=True)
 class NDARImageType:
-    #TODO: check that the naming of rs is right
     t1 = "t1"
     t2 = "t2"
     dti30b400 = "dti30b400"
