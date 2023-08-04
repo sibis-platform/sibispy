@@ -540,7 +540,7 @@ def has_bvek_bval_files(subject: SubjectData, image_type: str):
 def get_experiment_id(subject: SubjectData, image_type: str):
     """Sets the experiment_id to 1 for resting state scans"""
     if (image_type == NDARImageType.rs_fMRI):
-        return '1'
+        return '2335'
     else:
         return ""
 
