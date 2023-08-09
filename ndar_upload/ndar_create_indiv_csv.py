@@ -537,13 +537,6 @@ def has_bvek_bval_files(subject: SubjectData, image_type: str):
     else:
         return ""
 
-def get_experiment_id(subject: SubjectData, image_type: str):
-    """Sets the experiment_id to 1 for resting state scans"""
-    if (image_type == NDARImageType.rs_fMRI):
-        return '2335'
-    else:
-        return ""
-
 unit_map = {
     "in": "Inches",
     "cm": "Centimeters",
@@ -581,7 +574,7 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData):
             if field_value.startswith('lambda'):
                 func = eval(field_value)
                 field_value = func(subject, image_type)
-            elif field_value.startswith(('get', 'has')):
+            elif field_value.startswith(('get', 'has', 'mappings')):
                 func = field_value + '(subject, "' + image_type + '")'
                 field_value = eval(func)
 
