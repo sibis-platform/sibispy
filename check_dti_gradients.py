@@ -96,16 +96,23 @@ class check_dti_gradients(object):
         lxml.objectify
         """
         abs_path = os.path.abspath(filepath)
-        with open(abs_path, 'rb') as fi:
-            lines = fi.readlines()
-            lines.insert(1, '<root>')
-            lines.append('</root>')
-        string = r''.join(ln.decode('utf-8') if isinstance(ln, bytes) else ln for ln in lines)
-        strip_ge = string.replace(r'dicom:GE:', '')
-        strip_dicom = strip_ge.replace(r'dicom:', '')
-        result = objectify.fromstring(strip_dicom.encode('utf-8'))
-        return result
+        try:
+            # running dcm2image with --strict-xml 
+            tree = objectify.parse(open(abs_path, 'rb'))
+            result = tree.getroot()
+        except:
+            # old version - running dcm2image without --strict-xml 
+            with open(abs_path, 'rb') as fi:
+                lines = fi.readlines()
+                lines.insert(1, '<root>')
+                lines.append('</root>')
+            string = r''.join(ln.decode('utf-8') if isinstance(ln, bytes) else ln for ln in lines)
+            strip_ge = string.replace(r'dicom:GE:', '')
+            strip_dicom = strip_ge.replace(r'dicom:', '')
+            result = objectify.fromstring(strip_dicom.encode('utf-8'))
 
+        return result
+    
 
     def __get_array(self,array_string):
         """
@@ -166,7 +173,7 @@ class check_dti_gradients(object):
         if error_xml_path_list != [] :
             slog.info(session_label + "-" + hashlib.sha1(str(error_msg).encode()).hexdigest()[0:6],
                       'ERROR: Could not get gradient table from xml sidecar',
-                      script='xnat/check_gradient_tables.py',
+                      script='sibispy/check_gradient_tables.py',
                       sidecar=str(xml_sidecar),
                       error_xml_path_list=str(error_xml_path_list),
                       error_msg=str(error_msg),
