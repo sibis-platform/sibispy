@@ -250,7 +250,7 @@ class SubjectData:
     demographics: dict = None
     nifti: dict = None
     diffusion: Dict[str, DiffusionMeta] = None
-    non_imaging: dict = None
+    measurements: dict = None
 
 def get_stack_value(stack_key: str):
 
@@ -394,7 +394,7 @@ class NDARFileVariant():
         return False
 
     @classmethod
-    def is_non_image_type(clazz, file_type: str) -> bool:
+    def is_measurements_type(clazz, file_type: str) -> bool:
         if file_type in [NDARNonImageType.asr01,]:
             return True
         return False
@@ -403,7 +403,7 @@ class NDARFileVariant():
     def get_version_header(claszz, file_type: str):
         if NDARFileVariant.is_image_type(file_type):
             return NDARFileVariant.headers['image']
-        elif NDARFileVariant.is_non_image_type(file_type):
+        elif NDARFileVariant.is_measurements_type(file_type):
             return NDARFileVariant.headers[file_type]
         else:
             return NDARFileVariant.headers['subject']
@@ -603,7 +603,7 @@ def handle_image_field(image_type: str, field_spec: dict, subject: SubjectData):
     
     return field_value
 
-def get_add_non_imaging_metadata(args):
+def get_add_measurements_metadata(args):
     """Get the additional subject data that comes from summaries file (mncanda, asr)"""
     #NOTE: for now only going to store asr data
     summaries_path = mappings.set_ncanda_visit_dir(args, 'additional')
@@ -624,7 +624,7 @@ def get_add_non_imaging_metadata(args):
             
     return summaries_dfs
 
-def get_non_imaging_metadata(args):
+def get_measurements_metadata(args):
     """Store all of the csv files under the redcap release as a dictionary of dataframes"""
     meta = {}
     # get the path to all of the redcap csv files
@@ -638,7 +638,7 @@ def get_non_imaging_metadata(args):
         meta[key] = val
 
     # add the specific subject values from additional summary files (mncanda, asr)
-    add_meta = get_add_non_imaging_metadata(args)
+    add_meta = get_add_measurements_metadata(args)
     
     # add additional meta data
     meta.update(add_meta)
@@ -664,7 +664,7 @@ def recode_missing(value, field_spec):
 
     return EmptyString
 
-def get_non_image_source_val(ndar_csv_meta, field_spec, subject: SubjectData):
+def get_measurements_source_val(ndar_csv_meta, field_spec, subject: SubjectData):
     mapping_file = Path(str(ndar_csv_meta.data_dictionary).replace("definitions", "mappings"))
     if not mapping_file.exists():
         logger.error(f'Cannot find the mapping file for {ndar_csv_meta.image_type}. Tried {mapping_file}')
@@ -676,7 +676,7 @@ def get_non_image_source_val(ndar_csv_meta, field_spec, subject: SubjectData):
     map_row = mapping_df.loc[mapping_df['NDA_ElementName'] == ndar_element_name]
 
     csv_source_name = map_row.get('ncanda_csv').iloc[0]
-    csv_source_df = subject.non_imaging.get(csv_source_name)
+    csv_source_df = subject.measurements.get(csv_source_name)
     ncanda_element_name = map_row.get('ncanda_variable').iloc[0]
 
     # if mapping exists, then pull the value
@@ -688,8 +688,8 @@ def get_non_image_source_val(ndar_csv_meta, field_spec, subject: SubjectData):
 
     raise KeyError
 
-def handle_non_image_field(ndar_csv_meta, field_spec, subject: SubjectData):
-    """Using the mappings file convert our non-imaging data to ndar expected file format"""
+def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
+    """Using the mappings file convert our measurements data to ndar expected file format"""
     field = field_spec[DefinitionHeader.ElementName]
     try:
         field_value = NON_IMAGING_MAP[field]
@@ -704,7 +704,7 @@ def handle_non_image_field(ndar_csv_meta, field_spec, subject: SubjectData):
     except KeyError:
         # variable is not in map dictionary, see if it has corresponding ndar csv value
         try:
-            field_value = get_non_image_source_val(ndar_csv_meta, field_spec, subject)
+            field_value = get_measurements_source_val(ndar_csv_meta, field_spec, subject)
             field_value = conform_field_specs_datatype(field_value, field_spec, subject)
 
         except KeyError:
@@ -747,7 +747,7 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
     Create ndar files with the given metadata
     """
     if ndar_csv_meta.image_type:
-        if ndar_csv_meta.image_type not in subject_data.nifti.keys() and not NDARFileVariant.is_non_image_type(ndar_csv_meta.image_type):
+        if ndar_csv_meta.image_type not in subject_data.nifti.keys() and not NDARFileVariant.is_measurements_type(ndar_csv_meta.image_type):
             logger.info(f"Skipping {ndar_csv_meta.image_type}")
             return 
     
@@ -764,8 +764,8 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
             for field_spec in csv_reader:
                 if NDARFileVariant.is_image_type(ndar_csv_meta.image_type):
                     val = handle_image_field(ndar_csv_meta.image_type, field_spec, subject_data)
-                elif NDARFileVariant.is_non_image_type(ndar_csv_meta.image_type):
-                    val = handle_non_image_field(ndar_csv_meta, field_spec, subject_data)
+                elif NDARFileVariant.is_measurements_type(ndar_csv_meta.image_type):
+                    val = handle_measurements_field(ndar_csv_meta, field_spec, subject_data)
                 else:
                     val = handle_field(field_spec, subject_data)
                 header_row.append(field_spec[DefinitionHeader.ElementName])
@@ -890,17 +890,17 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
                 ns.visit_demographics = ns.scan_dir / gen_cfg['visit_demographics']
                 if not ns.visit_demographics.exists():
                     raise ConfigError(f"The `visit_demographics`, {gen_cfg['visit_demographics']}, does not exist in {ns.scan_dir}")
-                # set non_imaging data dict path to None
-                ns.non_imaging_definitions = None
+                # set measurements data dict path to None
+                ns.measurements_definitions = None
             else:
                 # ncanda scan dir and demographics endpoint
                 cfg_paths = cfg['ndar']['create_csv'][ns.source]
                 ns.scan_dir = Path(cfg_paths['visit_dir'])
                 ns.visit_demographics = ns.scan_dir
 
-                ns.non_imaging_definitions = Path(gen_cfg['definition_dir']) / 'non-imaging'
-                if not ns.non_imaging_definitions.exists():
-                    raise ConfigError(f"The non-imaging definitions dir is missing from {ns.datadict_dir}")
+                ns.measurements_definitions = Path(gen_cfg['definition_dir']) / 'measurements'
+                if not ns.measurements_definitions.exists():
+                    raise ConfigError(f"The measurements definitions dir is missing from {ns.datadict_dir}")
 
             if  ns.ndar_dir is None:
                 ns.ndar_dir = Path(gen_cfg['output_dir'])
@@ -982,7 +982,7 @@ def main(input_args: List[str] = None):
     
     subject_definitions_csv = args.subject_definition
     image_definitions_csv = args.image_definition
-    non_imaging_definitions = args.non_imaging_definitions
+    measurements_definitions = args.measurements_definitions
 
     files_to_generate = mappings.files_to_generate
     ndar_csv_meta_files = []
@@ -996,23 +996,23 @@ def main(input_args: List[str] = None):
             definition = image_definitions_csv
             meta = TargetCSVMeta(ndar_dir / file_type / "image03.csv", definition, file_type)
         else:
-            non_imaging_file_type = file_name.split('/', 1)[1]
-            non_imaging_type = non_imaging_file_type.split('.')[0]
-            definition = non_imaging_definitions / str(non_imaging_type + "_definitions.csv")
-            meta = TargetCSVMeta(ndar_dir / file_type / non_imaging_file_type, definition, non_imaging_type)
+            measurements_file_type = file_name.split('/', 1)[1]
+            measurements_type = measurements_file_type.split('.')[0]
+            definition = measurements_definitions / str(measurements_type + "_definitions.csv")
+            meta = TargetCSVMeta(ndar_dir / file_type / measurements_file_type, definition, measurements_type)
 
         ndar_csv_meta_files.append(meta)
 
     dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args)
     dti_metadata = get_dicom_diffusion_metadata(args)
-    non_imaging_metadata = get_non_imaging_metadata(args)
+    measurements_metadata = get_measurements_metadata(args)
 
     # Get user demographic data which is needed for all ndar csv files
     demo_dict = get_demo_dict(args)
     logger.debug('demo_dict: %s\n' % (demo_dict))
 
-    subj_data = SubjectData(dicom_metadata, demo_dict, nifti_metadata, dti_metadata, non_imaging_metadata)
+    subj_data = SubjectData(dicom_metadata, demo_dict, nifti_metadata, dti_metadata, measurements_metadata)
 
     # Create each CSV file
     for some_ndar_meta in ndar_csv_meta_files:
