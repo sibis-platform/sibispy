@@ -375,6 +375,19 @@ ncanda_upload_to_ndar() {
         echo "SKIPPING restingstate creation, could not find ${restingstate_dir}"
     fi
 
+	#
+    # Measurements data
+    #
+	measurements_in_dir="$ndar_csv_temp_dir"/measurements
+	if [ -d "${measurements_in_dir}" ]; then
+		measurements_files=`ls ${measurements_in_dir}`
+		measurements_out_dir="$BASE_DIR"/measurements
+		echo "INFO:Copying \"$measurements_files\" to \"$measurements_out_dir\""
+		rsync -v -m -r -og --copy-links --include="*.csv" --exclude="*" $measurements_in_dir/ $measurements_out_dir
+	else
+		echo "SKIPPING measurements creation, could not find ${measurements_in_dir}"
+	fi
+
 }
 
 "$@"
