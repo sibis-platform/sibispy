@@ -365,12 +365,16 @@ ncanda_upload_to_ndar() {
 
 	    echo "{\"files\": [" > $TYPE_DIR/${JSON}
 	    for FILE in $IMG_DIR/*.nii.gz; do
-		FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
-		FILESIZE=`wc -c $FILE | awk '{print $1}'`
-		md5=($(md5sum $FILE))
-		FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
-		echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
+			FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
+			FILESIZE=`wc -c $FILE | awk '{print $1}'`
+			md5=($(md5sum $FILE))
+			FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+			echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
 	    done
+		# remove the comma of the last line and establish correct end of json file
+		sed -i '$ s/.$/]}/' $TYPE_DIR/${JSON}
+		# JSON_LINE=""
+		# echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
     else
         echo "SKIPPING restingstate creation, could not find ${restingstate_dir}"
     fi
