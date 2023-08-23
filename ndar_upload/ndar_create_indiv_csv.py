@@ -369,6 +369,7 @@ class NDARImageType:
 @dataclass(frozen=True)
 class NDARNonImageType:
     asr01 = "asr01"
+    grooved_peg02 = "grooved_peg02"
 
 @dataclass
 class TargetCSVMeta():
@@ -385,6 +386,7 @@ class NDARFileVariant():
         'image': ['image', '03'],
         'subject': ['ndar_subject', '01'],
         'asr01': ['asr', '01'],
+        'grooved_peg02': ['grooved_peg', '02'],
     }
 
     @classmethod
@@ -395,7 +397,7 @@ class NDARFileVariant():
 
     @classmethod
     def is_measurements_type(clazz, file_type: str) -> bool:
-        if file_type in [NDARNonImageType.asr01,]:
+        if file_type in [NDARNonImageType.asr01, NDARNonImageType.grooved_peg02]:
             return True
         return False
 
@@ -511,7 +513,9 @@ def conform_field_specs_datatype(field_value, field_spec:dict, subject:SubjectDa
 
     if datatype == "Float":
         try:
-            if str(field):
+            if field_value == "":
+                field_value = ""
+            elif str(field):
                 field_value = float(re.sub(r'[^0-9\.]+', '', field_value))
             
         except:
