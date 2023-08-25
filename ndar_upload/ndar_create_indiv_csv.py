@@ -243,7 +243,6 @@ def get_dicom_structural_metadata(args):
 
     return dicom_metadata
 
-#TODO: update
 @dataclass
 class SubjectData:
     dicom: dict = None
@@ -370,6 +369,13 @@ class NDARImageType:
 class NDARNonImageType:
     asr01 = "asr01"
     grooved_peg02 = "grooved_peg02"
+    tipi01 = "tipi01"
+    uclals01 = "uclals01"
+    wrat401 = "wrat401"
+    upps01 = "upps01"
+    fgatb01 = "fgatb01"
+    macses01 = "macses01"
+    sre01 = "sre01"
 
 @dataclass
 class TargetCSVMeta():
@@ -387,6 +393,13 @@ class NDARFileVariant():
         'subject': ['ndar_subject', '01'],
         'asr01': ['asr', '01'],
         'grooved_peg02': ['grooved_peg', '02'],
+        'tipi01': ['tipi', '01'],
+        'uclals01': ['uclals', '01'],
+        'wrat401': ['wrat4', '01'],
+        'upps01': ['upps', '01'],
+        'fgatb01': ['fgatb', '01'],
+        'macses01': ['macses', '01'],
+        'sre01': ['sre', '01'],
     }
 
     @classmethod
@@ -397,7 +410,7 @@ class NDARFileVariant():
 
     @classmethod
     def is_measurements_type(clazz, file_type: str) -> bool:
-        if file_type in [NDARNonImageType.asr01, NDARNonImageType.grooved_peg02]:
+        if file_type in mappings.measurements_file_list:
             return True
         return False
 
@@ -649,24 +662,52 @@ def get_measurements_metadata(args):
 
     return meta
 
-
-NON_IMAGING_MAP = {
-    "subjectkey": "get_subjectkey(subject)",
-    "src_subject_id": 'lambda subject, *_: subject.demographics["subject"]',
-    "interview_date": 'lambda subject, *_: mappings.convert_ncanda_interview_date(str(subject.demographics["visit_date"]))',
-    "interview_age":  'lambda subject, *_: (int(float(subject.demographics["visit_age"])) * 12)',
-    "sex": 'lambda subject, *_: subject.demographics["sex"]',
-}
-
-def recode_missing(value, field_spec):
+def recode_missing(field_spec):
     """Some variable types have specific codes for missing values, replace as needed"""
+    miss_list = ['lr_rawscore', 'wr_rawscore', 'wr_totalrawscore', 'wr_standardscore']
     # format for asr missingness value == '88=Missing'
     if field_spec['ElementName'].startswith('asr'):
         miss_value_idx = field_spec['Notes'].find('Missing') - 3
         miss_value = field_spec['Notes'][miss_value_idx:(miss_value_idx+2)]
         return miss_value
+    elif field_spec['ElementName'] in miss_list:
+        miss_value = int(field_spec['ValueRange'].split(';')[-1])
+        return miss_value
 
     return EmptyString
+
+def test_reverse(map_row):
+    """
+    If ndar scores values as reversed, reverse our values to match
+    Example of reversed:
+    NCANDA Range value: [1:7], 1=Disagree strongly; 2=Disagree moderately; etc.
+    NDAR Range value: [1:7], 7=Disagree strongly; 6=Disagree moderately; etc.
+    """
+    reverse_str = "reverse scored"
+    notes_str = map_row['Notes'].values[0]
+    if isinstance(notes_str, str) and reverse_str in notes_str.lower():
+        return True
+    return False
+
+def reverse_val(value, field_spec, map_row):
+    """Reverse value to match ndar value range meaning (assuming range is same, just reversed meaning)"""
+    try:
+        # convert ranges to possible value arrays
+        ndar_range_str = field_spec['ValueRange'].split(';')[0] # ex. '1::7'
+        ndar_range_ends = list(map(int, re.findall(r'\d+', ndar_range_str)))
+        ndar_range = list(range(ndar_range_ends[0], ndar_range_ends[1]+1))
+        ndar_range.reverse()
+
+        ncanda_range_str = map_row['ncanda_value_range'].values[0]
+        ncanda_range = list(map(int, re.findall(r'\d+', ncanda_range_str)))
+        
+        # get the inverse position of the value
+        ncanda_idx = ncanda_range.index(value)
+        new_value = ndar_range[ncanda_idx]
+        return new_value
+    except KeyError:
+        logger.warning(f"Failed to reverse value of {field_spec['ElementName']}")
+        return value
 
 def get_measurements_source_val(ndar_csv_meta, field_spec, subject: SubjectData):
     mapping_file = Path(str(ndar_csv_meta.data_dictionary).replace("definitions", "mappings"))
@@ -679,15 +720,28 @@ def get_measurements_source_val(ndar_csv_meta, field_spec, subject: SubjectData)
     ndar_element_name = field_spec.get('ElementName')
     map_row = mapping_df.loc[mapping_df['NDA_ElementName'] == ndar_element_name]
 
-    csv_source_name = map_row.get('ncanda_csv').iloc[0]
-    csv_source_df = subject.measurements.get(csv_source_name)
-    ncanda_element_name = map_row.get('ncanda_variable').iloc[0]
+    try:
+        csv_source_name = map_row.get('ncanda_csv').iloc[0]
+        csv_source_df = subject.measurements.get(csv_source_name)
+        ncanda_element_name = map_row.get('ncanda_variable').iloc[0]
 
-    # if mapping exists, then pull the value
-    if not pd.isna([ncanda_element_name, csv_source_df, csv_source_name]).any():
-        value = csv_source_df[ncanda_element_name].iloc[0]
-        if pd.isna(value):
-            value = recode_missing(value, field_spec)
+        # if mapping exists, then pull the value
+        if not pd.isna([ncanda_element_name, csv_source_df, csv_source_name]).any():
+            value = csv_source_df[ncanda_element_name].iloc[0]
+            # check if there is a specific value to indicate missingness
+            if pd.isna(value):
+                value = recode_missing(field_spec)
+            # check if there needs to be a reversal of value based on ndar definitions
+            elif value != '' and test_reverse(map_row):
+                value = reverse_val(value, field_spec, map_row)
+            return str(value)
+    except IndexError:
+        # if trying to get elements from results give index error, then mapping doesn't exist.
+        raise KeyError
+
+    # if map doesn't exist but value is required, fill in w/ missing value
+    if field_spec['Required'] == 'Required':
+        value = recode_missing(field_spec)
         return str(value)
 
     raise KeyError
@@ -696,7 +750,7 @@ def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     """Using the mappings file convert our measurements data to ndar expected file format"""
     field = field_spec[DefinitionHeader.ElementName]
     try:
-        field_value = NON_IMAGING_MAP[field]
+        field_value = mappings.MEASUREMENTS_MAP[field]
 
         if field_value.startswith('lambda'):
             func = eval(field_value)
