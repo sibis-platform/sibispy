@@ -662,6 +662,13 @@ def get_measurements_metadata(args):
 
     return meta
 
+def get_empty_string():
+    """
+    Returns empty string. Allows for forcing immediate population of empty string
+    in a field via the ncanda mappings
+    """
+    return EmptyString
+
 def recode_missing(field_spec):
     """Some variable types have specific codes for missing values, replace as needed"""
     miss_list = ['lr_rawscore', 'wr_rawscore', 'wr_totalrawscore', 'wr_standardscore']
