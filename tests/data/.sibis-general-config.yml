@@ -36,3 +36,54 @@ github:
 #   user:
 #   password: 
 
+ndar:
+   ncanda:
+      staging_directory: fill_here
+      # staging_directory: /fs/neurosci01/ncanda/releases/public/followup_*y/ndar
+      data_directory: fill_here
+      # data_directory: /fs/neurosci01/ncanda/releases/public/upload2ndar
+      cases_directory: /fs/neurosci01/ncanda/releases/internal
+      data_dict_directory: /fs/ncanda-share/datadict/ndar
+      mappings_dir: /fs/ncanda-share/operations/ndar_upload
+      collection_id: 4513
+      files_to_validate:
+        - ndar_subject01.csv
+        - t1/image03.csv
+        - t2/image03.csv
+        - dti30b400/image03.csv
+        - dti60b1000/image03.csv
+        - dti6b500pepolar/image03.csv
+        - rs-fMRI/image03.csv
+        - measurements/asr01.csv
+        - measurements/grooved_peg02.csv
+        - measurements/tipi01.csv
+        - measurements/uclals01.csv
+        - measurements/wrat401.csv
+        - measurements/upps01.csv
+        - measurements/fgatb01.csv
+        - measurements/macses01.csv
+        - measurements/sre01.csv
+      files_to_upload:
+        - ndar_subject01.csv
+        - image03.csv
+        - asr01.csv
+        - grooved_peg02.csv
+        - tipi01.csv
+        - uclals01.csv
+        - wrat401.csv
+        - upps01.csv
+        - fgatb01.csv
+        - macses01.csv
+        - sre01.csv
+
+   create_csv:
+      ncanda:
+        visit_dir: /fs/neurosci01/ncanda/releases/internal
+        output_dir: /tmp/ncanda-ndarupload
+        definition_dir: /fs/ncanda-share/datadict/ndar
+        mappings_dir: /fs/ncanda-share/operations/ndar_upload
+         
+        visit_demographics: measures/demographics.csv
+        subject_definition: ndar_subject01_definitions.csv
+        image_definition: image03_definitions.csv
+        mappings: ncanda_mappings.py
