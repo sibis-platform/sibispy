@@ -262,8 +262,12 @@ class check_dti_gradients(object):
         """
         Returns the scanner for a site 
         """
-        return  self.__sibis_defs.get('site_scanner').get(site) 
+        return  self.__sibis_defs.get('site_scanner').get(site)
 
+
+    def get_phaseEncodeDirectionSign(self,xml_file) :
+        xml_sidecar = self.__read_xml_sidecar(xml_file)
+        return xml_sidecar.mr.phaseEncodeDirectionSign
 
     def check_diffusion(self,session_label,eid,xml_file_list,manufacturer,scanner_model,scan_id,sequence_label):
         if len(xml_file_list) == 0 : 
@@ -345,52 +349,35 @@ class check_dti_gradients(object):
             errorFlag = True
 
         # Check phase encoding
-        xml_file = open(xml_file_list[0], 'r')
-        try:        
-            for line in xml_file:
-                match = re.match('.*<>(.+)'
-                                 '</phaseEncodeDirectionSign>.*',line)
+        if manufacturer == "SIEMENS" :
+            sequence_map = self.__sibis_defs.get('sequence')
+            if not sequence_label in iter(sequence_map.keys()):
+                slog.info(session_label, 
+                          "Check for sequence " +  sequence_label  + " not defined !", 
+                          eid = eid,                   
+                          scan = scan_id)
+                return False
 
-                # KP: only Siemens scans include the directional sign tag
-                if match :
-                    sequence_map = self.__sibis_defs.get('sequence')
-                    if not sequence_label in iter(sequence_map.keys()):
-                        slog.info(session_label, 
-                                  "Check for sequence " +  sequence_label  + " not defined !", 
-                                  eid = eid,                   
-                                  scan = scan_id)
-                        errorFlag = True
-                        break
-
-                    sequence_sign = sequence_map.get(sequence_label)
-                    pe_sign = match.group(1).upper()
-                    if pe_sign != sequence_sign:
-                            slog.info(session_label, 
-                                      sequence_label + " has wrong PE sign.",
-                                      actual_sign=str(pe_sign),
-                                      expect_sign=str(sequence_sign),
-                                      eid = eid,
-                                      scan = scan_id)
-                            errorFlag = True
-
-        # Only siemens scans include the tag 
-        #if not matchedFlag : 
-        #    slog.info(session_label, 
-        #              "tag 'phaseEncodeDirectionSign' missing in dicom hearder",
-        #              xml_file = xml_file_list[0],
-        #              )
-        #    errorFlag = True
-
+            sequence_sign = sequence_map.get(sequence_label)
+            
+            try:
+                pe_sign=self.get_phaseEncodeDirectionSign(xml_file_list[0])
+                if pe_sign != sequence_sign:
+                    slog.info(session_label, 
+                              sequence_label + " has wrong PE sign.",
+                              actual_sign=str(pe_sign),
+                              expect_sign=str(sequence_sign),
+                              eid = eid,
+                              scan = scan_id)
+                    return False
  
-        except AttributeError as error:
+            except AttributeError as error:
                 slog.info(session_label, "Error: parsing XML files failed.",
                           xml_file=xml_file_list[0],
                           error=str(error),
                           eid = eid,
                           scan = scan_id)
                 errorFlag = True
-        finally:
-            xml_file.close()
 
         return not errorFlag
 
