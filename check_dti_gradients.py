@@ -96,16 +96,23 @@ class check_dti_gradients(object):
         lxml.objectify
         """
         abs_path = os.path.abspath(filepath)
-        with open(abs_path, 'rb') as fi:
-            lines = fi.readlines()
-            lines.insert(1, '<root>')
-            lines.append('</root>')
-        string = r''.join(ln.decode('utf-8') if isinstance(ln, bytes) else ln for ln in lines)
-        strip_ge = string.replace(r'dicom:GE:', '')
-        strip_dicom = strip_ge.replace(r'dicom:', '')
-        result = objectify.fromstring(strip_dicom.encode('utf-8'))
-        return result
+        try:
+            # running dcm2image with --strict-xml 
+            tree = objectify.parse(open(abs_path, 'rb'))
+            result = tree.getroot()
+        except:
+            # old version - running dcm2image without --strict-xml 
+            with open(abs_path, 'rb') as fi:
+                lines = fi.readlines()
+                lines.insert(1, '<root>')
+                lines.append('</root>')
+            string = r''.join(ln.decode('utf-8') if isinstance(ln, bytes) else ln for ln in lines)
+            strip_ge = string.replace(r'dicom:GE:', '')
+            strip_dicom = strip_ge.replace(r'dicom:', '')
+            result = objectify.fromstring(strip_dicom.encode('utf-8'))
 
+        return result
+    
 
     def __get_array(self,array_string):
         """
@@ -166,7 +173,7 @@ class check_dti_gradients(object):
         if error_xml_path_list != [] :
             slog.info(session_label + "-" + hashlib.sha1(str(error_msg).encode()).hexdigest()[0:6],
                       'ERROR: Could not get gradient table from xml sidecar',
-                      script='xnat/check_gradient_tables.py',
+                      script='sibispy/check_gradient_tables.py',
                       sidecar=str(xml_sidecar),
                       error_xml_path_list=str(error_xml_path_list),
                       error_msg=str(error_msg),
@@ -255,8 +262,12 @@ class check_dti_gradients(object):
         """
         Returns the scanner for a site 
         """
-        return  self.__sibis_defs.get('site_scanner').get(site) 
+        return  self.__sibis_defs.get('site_scanner').get(site)
 
+
+    def get_phaseEncodeDirectionSign(self,xml_file) :
+        xml_sidecar = self.__read_xml_sidecar(xml_file)
+        return xml_sidecar.mr.phaseEncodeDirectionSign
 
     def check_diffusion(self,session_label,eid,xml_file_list,manufacturer,scanner_model,scan_id,sequence_label):
         if len(xml_file_list) == 0 : 
@@ -338,52 +349,35 @@ class check_dti_gradients(object):
             errorFlag = True
 
         # Check phase encoding
-        xml_file = open(xml_file_list[0], 'r')
-        try:        
-            for line in xml_file:
-                match = re.match('.*<>(.+)'
-                                 '</phaseEncodeDirectionSign>.*',line)
+        if manufacturer == "SIEMENS" :
+            sequence_map = self.__sibis_defs.get('sequence')
+            if not sequence_label in iter(sequence_map.keys()):
+                slog.info(session_label, 
+                          "Check for sequence " +  sequence_label  + " not defined !", 
+                          eid = eid,                   
+                          scan = scan_id)
+                return False
 
-                # KP: only Siemens scans include the directional sign tag
-                if match :
-                    sequence_map = self.__sibis_defs.get('sequence')
-                    if not sequence_label in iter(sequence_map.keys()):
-                        slog.info(session_label, 
-                                  "Check for sequence " +  sequence_label  + " not defined !", 
-                                  eid = eid,                   
-                                  scan = scan_id)
-                        errorFlag = True
-                        break
-
-                    sequence_sign = sequence_map.get(sequence_label)
-                    pe_sign = match.group(1).upper()
-                    if pe_sign != sequence_sign:
-                            slog.info(session_label, 
-                                      sequence_label + " has wrong PE sign.",
-                                      actual_sign=str(pe_sign),
-                                      expect_sign=str(sequence_sign),
-                                      eid = eid,
-                                      scan = scan_id)
-                            errorFlag = True
-
-        # Only siemens scans include the tag 
-        #if not matchedFlag : 
-        #    slog.info(session_label, 
-        #              "tag 'phaseEncodeDirectionSign' missing in dicom hearder",
-        #              xml_file = xml_file_list[0],
-        #              )
-        #    errorFlag = True
-
+            sequence_sign = sequence_map.get(sequence_label)
+            
+            try:
+                pe_sign=self.get_phaseEncodeDirectionSign(xml_file_list[0])
+                if pe_sign != sequence_sign:
+                    slog.info(session_label, 
+                              sequence_label + " has wrong PE sign.",
+                              actual_sign=str(pe_sign),
+                              expect_sign=str(sequence_sign),
+                              eid = eid,
+                              scan = scan_id)
+                    return False
  
-        except AttributeError as error:
+            except AttributeError as error:
                 slog.info(session_label, "Error: parsing XML files failed.",
                           xml_file=xml_file_list[0],
                           error=str(error),
                           eid = eid,
                           scan = scan_id)
                 errorFlag = True
-        finally:
-            xml_file.close()
 
         return not errorFlag
 

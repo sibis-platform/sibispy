@@ -9,6 +9,7 @@ import shutil
 import os.path
 import pandas
 import hashlib
+import glob
 
 date_format_ymd = '%Y-%m-%d'
 
@@ -71,13 +72,29 @@ def dicom2bxh(dicom_path, bhx_file) :
 def htmldoc(args) :
     return call_shell_program("htmldoc " + args)
 
+# args needs to be defined up to whre dicom path is defined 
+def subset_dcm2image(dcmArgs, dcmPath, dcmNumFiles, verbose = False) :
+    temp_dir = tempfile.mkdtemp()
+    dcmFileList=sorted(glob.glob(dcmPath +"/*.dcm"))[:dcmNumFiles]
+    for dcmFile in dcmFileList:
+        shutil.copy2(dcmFile, temp_dir)
+
+    args='%s %s 2>&1' % (dcmArgs,  temp_dir) 
+    result=dcm2image(args, verbose)
+    
+    if temp_dir != "" :
+        shutil.rmtree(temp_dir)
+
+    return result
+ 
 dcm2image_cmd = 'cmtk dcm2image '
 def dcm2image(args, verbose = False) :
     cmd = dcm2image_cmd + args
     if verbose : 
-        print(cmd) 
+        print(cmd)
+
     return call_shell_program(cmd)
- 
+  
 def detect_adni_phantom(args) :
     return call_shell_program('cmtk detect_adni_phantom ' + args)
 
