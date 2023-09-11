@@ -642,8 +642,13 @@ def get_add_measurements_metadata(args):
     return summaries_dfs
 
 def get_measurements_metadata(args):
+    
     """Store all of the csv files under the redcap release as a dictionary of dataframes"""
     meta = {}
+
+    if args.source == 'hivalc':
+        return meta
+
     # get the path to all of the redcap csv files
     redcap_path = mappings.set_ncanda_visit_dir(args, 'redcap')
 
