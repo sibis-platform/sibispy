@@ -52,7 +52,7 @@ def test_full_ncanda_call(create_indiv_script_call, temp_out_dir):
     args = [
         '--ndar_dir', str(temp_out_dir),
         'ncanda',
-        '--subject',  'NCANDA_S00042',
+        '--subject',  'NCANDA_S00169',
         '--release_year', '8',
         '--followup_year', '8'
     ]
