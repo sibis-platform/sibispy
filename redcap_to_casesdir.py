@@ -386,10 +386,13 @@ class redcap_to_casesdir(object):
                 
             # define ndar values
             if pandas.isnull(subject_data['ndar_guid_id']):
-                ndar_guid_id = ""
+                if pandas.isnull(subject_data['ndar_guid_pseudo_id']):
+                    ndar_guid_id = ""
+                else:
+                    ndar_guid_id = subject_data['ndar_guid_pseudo_id']
             else:
                 ndar_guid_id = subject_data['ndar_guid_id']
-
+            
             ndar_consent = re.sub('(.0)|(nan)', '', str(subject_data['ndar_consent']))
             ndar_guid_anomaly = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly']))
             ndar_guid_anomaly_visit = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly_visit']))
