@@ -326,28 +326,45 @@ image_orientation_map = {
     tuple([1, 0, 0, 0, 1,  0]): 'Axial'
 }
 def get_image_orientation(subject: SubjectData, image_type:str):
-    image_orientation_patient = [int(float(x)) for x in get_dicom_value('stack', 'ImageOrientationPatient')(subject, image_type).split('\\')]
+    image_orientation_patient = [round(float(x)) for x in get_dicom_value('stack', 'ImageOrientationPatient')(subject, image_type).split('\\')]
     try:
         iop = image_orientation_map[tuple(image_orientation_patient)]
     except KeyError:
-        if logger.isEnabledFor(logging.WARNING): logger.warning(f'Unknown image_orientation for {repr(image_orientation_patient)}')
-        if image_type == 't1' or image_type == 't2':
-            iop = 'Sagittal'
-        else:
-            iop = 'Axial'
-        if logger.isEnabledFor(logging.WARNING): logger.warning(f'Setting image_orientation to the default of {iop} for {image_type}')
+        logger.error(f'Unknown image_orientation for {repr(image_orientation_patient)}')
+        iop="Unknown"
     return iop
 
 def get_patient_position(subject: SubjectData, image_type: str):
     pp_long = get_stack_value("ImageOrientationPatient")(subject, image_type)
+
     max_len = 50
-    if len(pp_long) > max_len:
+    pp_len=len(pp_long)
+    if  pp_len > max_len:
+        logger.warning("Truncating ImageOrientationPatient so it is less than 51 characters as required by data dictionary!")
         pp_parts = pp_long.split('\\')
-        over_by = len(pp_long) - max_len
-        trunc_by = ceil(over_by / len(pp_parts))
+        if  len(pp_parts) != 6:
+            logger.error("ImageOrientationPatient should define 6 numbers but defined" + str(len(pp_parts)) + "!"  )
+            return pp_long  
+        
+        # values should be 0 or 1 - all others need to be truncated
+        incorrectNum=0
         for idx, part in enumerate(pp_parts):
+            if float(part) != 0  and float(part) != 1  and float(part) != -1  : 
+                incorrectNum+=1
+
+        # over the quota has to be fixed by those that are not defined according to format 
+        over_by = len(pp_long) - max_len 
+        trunc_by = ceil(over_by / incorrectNum)
+
+        # truncate everything that is not 0 or -1
+        for idx, part in enumerate(pp_parts):
+            if float(part) == 0  or float(part) == 1  or float(part) == -1  :
+                continue
+            
             pp_parts[idx] = part[:-trunc_by]
+        
         pp_long = '\\'.join(pp_parts)
+
     return pp_long
 
 @dataclass(frozen=True)
