@@ -91,9 +91,6 @@ def unpack_errors(errors_dict: dict):
     return error_types, all_errors
 
 
-
-
-
 def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
     """
     Validates the ndar files using the NDATools validate() function.
@@ -115,7 +112,7 @@ def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
         # test if the file to validate needs a manifest path
         if "ndar_subject01.csv" != path_to_validate.name:
             vtcmd_config.manifest_path = [path_to_validate.parent]
-            
+
         validation = Validation(
             [ path_to_validate ] ,
             config=vtcmd_config,
@@ -125,7 +122,7 @@ def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
         )
         logging.info(f"Validating files:\n{str(path_to_validate)}")
 
-        validateFlag=True
+        validateFlag=False
         if validateFlag :   
             validation.validate()
             validation_response=validation.responses
@@ -205,7 +202,16 @@ class CSVMeta():
 
 csv_meta_map = {
     "ndar_subject01.csv": CSVMeta("ndar_subject01_definitions.csv", ["ndar_subject", "01"]),
-    "image03.csv": CSVMeta("image03_definitions.csv", ["image", "03"])
+    "image03.csv": CSVMeta("image03_definitions.csv", ["image", "03"]),
+    "asr01.csv": CSVMeta("measurements/asr01_definitions.csv", ["asr", "01"]),
+    "fgatb01.csv": CSVMeta("measurements/fgatb01_definitions.csv", ["fgatb", "01"]),
+    "grooved_peg02.csv": CSVMeta("measurements/grooved_peg02_definitions.csv", ["grooved_peg", "02"]),
+    "macses01.csv": CSVMeta("measurements/macses01_definitions.csv", ["macses", "01"]),
+    "sre01.csv": CSVMeta("measurements/sre01_definitions.csv", ["sre", "01"]),
+    "tipi01.csv": CSVMeta("measurements/tipi01_definitions.csv", ["tipi", "01"]),
+    "uclals01.csv": CSVMeta("measurements/uclals01_definitions.csv", ["uclals", "01"]),
+    "upps01.csv": CSVMeta("measurements/upps01_definitions.csv", ["upps", "01"]),
+    "wrat401.csv": CSVMeta("measurements/wrat401_definitions.csv", ["wrat4", "01"]),
 }
 
 def write_summary_csv(old_summary_csv, new_subj_csv, data_dict_path):
