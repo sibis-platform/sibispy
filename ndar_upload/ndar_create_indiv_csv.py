@@ -331,7 +331,11 @@ def get_image_orientation(subject: SubjectData, image_type:str):
         iop = image_orientation_map[tuple(image_orientation_patient)]
     except KeyError:
         if logger.isEnabledFor(logging.WARNING): logger.warning(f'Unknown image_orientation for {repr(image_orientation_patient)}')
-        iop = 'Unknown'
+        if image_type == 't1' or image_type == 't2':
+            iop = 'Sagittal'
+        else:
+            iop = 'Axial'
+        if logger.isEnabledFor(logging.WARNING): logger.warning(f'Setting image_orientation to the default of {iop} for {image_type}')
     return iop
 
 def get_patient_position(subject: SubjectData, image_type: str):
