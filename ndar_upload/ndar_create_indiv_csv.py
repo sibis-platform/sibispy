@@ -948,8 +948,8 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     )
     ncanda_parser.add_argument(
         "--followup_year",
-        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in case)",
-        type=str, required=True,
+        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in cases), default is release year",
+        type=str, required=False,
     )
 
     ns =  p.parse_args(input_args)
@@ -961,6 +961,10 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
         if new_level < 0:
             new_level = 0
         logging.getLogger().setLevel(new_level)
+
+    # set followup year default if not specified
+    if ns.followup_year is None:
+        ns.followup_year = ns.release_year
 
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
