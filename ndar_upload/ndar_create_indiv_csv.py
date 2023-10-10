@@ -674,7 +674,7 @@ def get_measurements_metadata(args):
     redcap_path = mappings.set_ncanda_visit_dir(args, 'redcap')
 
     # for every file in the redcap directory store its content as a title:dataframe pair
-    files = list(redcap_path.glob('*/*'))
+    files = list(redcap_path.glob('measures/*'))
     for f in files:
         key = f.name.split('.', 1)[0]
         val = pd.read_csv(f)
