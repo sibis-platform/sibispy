@@ -185,6 +185,48 @@ upload_to_ndar() {
             echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
         done
     fi
+
+	#
+    # HIV - ndar_subject01 and Swan files
+    #
+    BASE_DIR=${ndar_dir}/hiv/${subject_and_visit}
+    echo "INFO:Create $BASE_DIR"
+    mkdir -p $BASE_DIR
+    cp $ndar_csv_file $BASE_DIR
+
+	hiv_dir=${complete_dir}/iron/native
+	if [ -d "${hiv_dir}" ]; then
+		TYPE=swan
+	    TYPE_DIR=${BASE_DIR}/$TYPE
+	    mkdir -p ${TYPE_DIR} 
+
+	    JSON=${GUID}-${year_month}-${TYPE}.json
+
+	    # mv image03.csv
+	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
+	    
+	    # copy nii.gz 
+	    REL_IMG_DIR=${GUID}/${year_month}/$TYPE
+	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
+            mkdir -p $IMG_DIR
+		
+	    rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $hiv_dir/ $IMG_DIR
+
+	    echo "{\"files\": [" > $TYPE_DIR/${JSON}
+	    for FILE in $IMG_DIR/*.nii.gz; do
+			FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
+			FILESIZE=`wc -c $FILE | awk '{print $1}'`
+			md5=($(md5sum $FILE))
+			FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+			echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
+	    done
+		# remove the comma of the last line and establish correct end of json file
+		sed -i '$ s/.$/]}/' $TYPE_DIR/${JSON}
+		# JSON_LINE=""
+		# echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
+    else
+        echo "SKIPPING hiv creation, could not find ${hiv_dir}"
+    fi
 }
 
 
