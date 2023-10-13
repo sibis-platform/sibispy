@@ -100,6 +100,15 @@ def find_first_rsfmri_nifti(args, visit_dir: Path):
             nifti_files.append(possible_nifti[0])
     return nifti_files
 
+def find_first_swan_nifti(args, visit_dir: Path):
+    nifti_files = []
+    swan_native = visit_dir / "iron" / "native" 
+    if not swan_native.exists():
+        return nifti_files
+    possible_nifti = sorted(swan_native.rglob("*.nii.gz"))
+    if len(possible_nifti) > 0:
+        nifti_files.append(possible_nifti[0])
+    return nifti_files
 
 def find_structural_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     if args.source == 'ncanda':
@@ -146,7 +155,8 @@ def get_nifti_metadata(args):
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
+    swan_nifti_files = find_first_swan_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files + swan_nifti_files
     for nifti_gz in nifti_files:
         modality = NDARImageType.get_modality(nifti_gz)
         nifti_metadata[modality] = describe_nifti(nifti_gz)
@@ -226,7 +236,8 @@ def get_dicom_structural_metadata(args):
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
+    swan_nifti_files = find_first_swan_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files + swan_nifti_files
     for nifti_gz in nifti_files:
         nifti_xml = find_nifti_xml(nifti_gz)
         if nifti_xml.exists():
@@ -375,6 +386,7 @@ class NDARImageType:
     dti60b1000 = "dti60b1000"
     dti6b500pepolar = "dti6b500pepolar"
     rs_fMRI = "rs-fMRI"
+    swan = "swan"
 
     @classmethod
     def get_modality(self, nii_path:Path) -> str:
@@ -425,7 +437,7 @@ class NDARFileVariant():
 
     @classmethod
     def is_image_type(clazz, file_type: str) -> bool:
-        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar, NDARImageType.rs_fMRI]:
+        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar, NDARImageType.rs_fMRI, NDARImageType.swan]:
             return True
         return False
 
@@ -506,6 +518,7 @@ def get_subjectkey(subject: SubjectData, *_) -> str:
     return field_value
 
 def get_image_description(subject: SubjectData, image_type: str) -> str:
+    #TODO: add image description for swan
     if image_type == NDARImageType.t1:
         field_value =  "SPGR"
     elif image_type == NDARImageType.rs_fMRI:
@@ -523,6 +536,7 @@ SCAN_TYPE_MAP = {
     NDARImageType.dti60b1000: "single-shell DTI",
     NDARImageType.dti6b500pepolar: "single-shell DTI",
     NDARImageType.rs_fMRI: "fMRI",
+    NDARImageType.swan: "swan",
 }
 def get_scan_type(subject: SubjectData, image_type: str) -> str:
     try:
@@ -963,7 +977,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
         logging.getLogger().setLevel(new_level)
 
     # set followup year default if not specified
-    if ns.followup_year is None:
+    if ns.source == 'ncanda' and ns.followup_year is None:
         ns.followup_year = ns.release_year
 
     with ns.config.open("r") as fh:
