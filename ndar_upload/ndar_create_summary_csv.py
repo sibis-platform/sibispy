@@ -538,6 +538,15 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         nargs="+",
     )
 
+    hiv_parser = subparsers.add_parser('hiv')
+    hiv_parser.add_argument(
+        "--visits",
+        help="Space separated list of visits to upload, e.g. LAB_S01669_20220517_6910_05172022.",
+        type=str,
+        nargs="+",
+    )
+
+    # NCANDA Specific Arms
     ncanda_parser = subparsers.add_parser('ncanda')
     ncanda_parser.add_argument(
         '--subject', dest='visits',
