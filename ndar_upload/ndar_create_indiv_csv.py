@@ -314,6 +314,8 @@ def get_aquisition_matrix(subject: SubjectData, image_type: str):
     return matrix
 
 def get_field_of_view_pd(subject: SubjectData, image_type: str):
+    # import pdb; pdb.set_trace()
+    #TODO: add a default null value for this one, baseline test doesn't have the value
     fov_pd = []
     phase_encoding_direction = get_dicom_value('mr', 'phaseEncodeDirection')(subject, image_type)
     col_row_pixel_spacing = get_dicom_value('mr', 'PixelSpacing')(subject, image_type).split('\\')
@@ -793,8 +795,18 @@ def get_measurements_source_val(ndar_csv_meta, field_spec, subject: SubjectData)
 
     raise KeyError
 
+def get_measurement_timept(subject):
+    """Return visit number/name for measurements required fields"""
+    try:
+        timept = int(re.search(r"\d+", subject.demographics["visit"]).group())
+    except AttributeError:
+        # visit is baseline, return 0 to indicate baseline visit
+        timept = 0
+    return timept
+
 def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     """Using the mappings file convert our measurements data to ndar expected file format"""
+    #TODO: ndar_create_csv [WARNING] Exception for timept: 'NoneType' object has no attribute 'group'
     field = field_spec[DefinitionHeader.ElementName]
     try:
         field_value = mappings.MEASUREMENTS_MAP[field]
