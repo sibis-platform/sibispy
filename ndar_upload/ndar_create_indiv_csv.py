@@ -421,7 +421,6 @@ class TargetCSVMeta():
     def __str__(self) -> str:
         return f"output_file: {self.output_file}, data_dictionary: {self.data_dictionary}, image_type: {self.image_type}"
 
-
 class NDARFileVariant(): 
     headers = {
         'image': ['image', '03'],
@@ -458,7 +457,6 @@ class NDARFileVariant():
         else:
             return NDARFileVariant.headers['subject']
 
-
 def get_demo_dict(args) -> dict:
     """
     Convert the demographics.csv file into a dictionary where key=col name, value=value of col
@@ -485,8 +483,6 @@ def get_demo_dict(args) -> dict:
 
         return demo_dict
 
-
-
 def get_race(race: int) -> str:
     # RACE_MAP = sys_values['maps']['race_map']
     RACE_MAP = mappings.race_map
@@ -507,7 +503,6 @@ class DefinitionHeader:
     ValueRange = "ValueRange"
     Notes = "Notes"
     Aliases = "Aliases"
-
 
 def get_subjectkey(subject: SubjectData, *_) -> str:
     """Get ndar guid of the subject"""
@@ -546,7 +541,6 @@ def get_scan_type(subject: SubjectData, image_type: str) -> str:
     except KeyError:
         scan_type = EmptyString
     return scan_type
-
 
 def conform_field_specs_datatype(field_value, field_spec:dict, subject:SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
@@ -834,7 +828,6 @@ def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     
     return field_value
 
-
 def handle_field(field_spec: dict, subject: SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
     SUBJECT_MAP = mappings.subject_map
@@ -857,7 +850,6 @@ def handle_field(field_spec: dict, subject: SubjectData):
     check_field_specs(field_value, field_spec, subject)
     
     return field_value
-
 
 def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
     """
@@ -891,7 +883,6 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
         csvwriter.writerow(header_row)
         csvwriter.writerow(val_row)
 
-
 def is_dir(arg_name: str = "Path", mode: int = os.R_OK | os.W_OK | os.X_OK , create_if_missing: bool =  False):
 
     def is_dir_path(dir_path: str) -> Path:
@@ -911,7 +902,6 @@ def is_dir(arg_name: str = "Path", mode: int = os.R_OK | os.W_OK | os.X_OK , cre
     
     return is_dir_path
 
-
 def is_file(arg_name: str = "Path", mode: int = os.R_OK ):
 
     def is_file_path(file_path: str) -> Path:
@@ -927,7 +917,6 @@ def is_file(arg_name: str = "Path", mode: int = os.R_OK ):
 class ConfigError(Exception):
     msg: str
     
-
 def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
 
@@ -1066,7 +1055,10 @@ def set_output_dir(args):
         ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
     else:
         # /tmp/ncanda-ndarupload/NCANDA_SXXXXX/followup_yr
-        ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
+        if args.followup_year == '0':
+            ndar_dir: Path = args.ndar_dir / args.subject / "baseline"
+        else:
+            ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
 
     return ndar_dir
 
@@ -1085,7 +1077,7 @@ def main(input_args: List[str] = None):
         logging.config.fileConfig(log_config.absolute().as_posix())
 
     args = _parse_args(input_args)
-
+    
     # add mappings files to the system path so it can be imported
     sys.path.append(args.mappings_dir)
 
