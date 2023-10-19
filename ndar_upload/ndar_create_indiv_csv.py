@@ -1063,7 +1063,11 @@ def set_output_dir(args):
     return ndar_dir
 
 def set_dir_paths(args):
-    """Set path to scan dir (input) and ndar dir (output)"""
+    """
+    Set path to scan dir (input) and ndar dir (output)
+    Scan dir ex: /fs/neurosci01/ncanda/releases/internal
+    Ndar dir ex: /tmp/sibispy_ndar/NCANDA_S00735/baseline
+    """
     scan_dir: Path = args.scan_dir
     ndar_dir = set_output_dir(args)
     return scan_dir, ndar_dir
@@ -1081,6 +1085,7 @@ def main(input_args: List[str] = None):
     # add mappings files to the system path so it can be imported
     sys.path.append(args.mappings_dir)
 
+    # set input and output base paths
     scan_dir, ndar_dir = set_dir_paths(args)
     
     # import respective mappings file as a global import
@@ -1093,10 +1098,12 @@ def main(input_args: List[str] = None):
     if not ndar_dir.exists():
         ndar_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
     
+    # Read in all relevant NDAR file definitions
     subject_definitions_csv = args.subject_definition
     image_definitions_csv = args.image_definition
     measurements_definitions = args.measurements_definitions
 
+    # Create full list of files to generate of TargetCSVMeta class
     files_to_generate = mappings.files_to_generate
     ndar_csv_meta_files = []
 
@@ -1116,6 +1123,7 @@ def main(input_args: List[str] = None):
 
         ndar_csv_meta_files.append(meta)
 
+    # Get the imaging and measurements data from source
     dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args)
     dti_metadata = get_dicom_diffusion_metadata(args)
