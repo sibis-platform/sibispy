@@ -231,13 +231,32 @@ upload_to_ndar() {
 
 
 ncanda_upload_to_ndar() {
+
+	#TODO: Have to set desitination dir to src_followup_yer along w/ json file name.
+	# maybe swap the followup year and source follouwp year, I think it would make more sense the other way around
+	# Source all raw imaging data from the latest release
     ndar_csv_temp_dir=$1 
 
-    SUBJECT_ID=`echo $ndar_csv_temp_dir | rev | cut -d'/' -f2 | rev`   
-    followup_yr=`echo $ndar_csv_temp_dir | rev | cut -d'/' -f1 | rev`
+	releases_dir=/fs/neurosci01/ncanda/releases/internal
+	if [ ! -e $releases_dir ]; then
+		echo "ERROR: Couldn't find src dir $releases_dir"
+		exit 1
+	fi
+
+	latest_yr=0
+	for dir in $releases_dir/followup*; do
+		rel_num=` echo ${dir##*/} | rev | cut -c 2`
+		[ "$rel_num" -gt "$latest_yr" ] && latest_yr=$rel_num
+	done
+
+	# ex file path: /fs/neurosci01/ncanda/releases/internal/followup_8y/NCANDA_SNAPS_8Y_STRUCTURAL_V01/cases/NCANDA_S00735/standard/baseline
+    SUBJECT_ID=`echo $ndar_csv_temp_dir | rev | cut -d'/' -f2 | rev`
+	src_followup_yr=`echo $ndar_csv_temp_dir | rev | cut -d'/' -f1 | rev`
+	followup_yr=followup_${latest_yr}y
     snaps_yr=`echo $followup_yr | rev | cut -c 2`
     snaps_dir_base=NCANDA_SNAPS_${snaps_yr}Y_
     arm_dir=standard
+	
 
     ncanda_internal_base=/fs/neurosci01/ncanda/releases/internal
     cases_dir=${2:-${ncanda_internal_base}/${followup_yr}}
@@ -260,7 +279,7 @@ ncanda_upload_to_ndar() {
 	echo "INFO:$ndar_csv_temp_dir:GUID is not defined - setting it to $GUID!"
     fi
     
-    BASE_DIR=${ndar_dir}/${SUBJECT_ID}/${followup_yr}
+    BASE_DIR=${ndar_dir}/${SUBJECT_ID}/${src_followup_yr}
     echo "INFO:Create $BASE_DIR"
     mkdir -p $BASE_DIR
     cp $ndar_csv_file $BASE_DIR
@@ -271,7 +290,7 @@ ncanda_upload_to_ndar() {
     structural_dirs=`ls ${cases_dir} | grep STRUCTURAL`
     # get latest structural dir release
     structural_dir_name=`echo ${structural_dirs} | rev | cut -d ' ' -f1 | rev`
-    structural_dir=${cases_dir}/${structural_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${followup_yr}/structural/native
+    structural_dir=${cases_dir}/${structural_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/structural/native
 
     if [ -d "${structural_dir}" ]; then
 	for TYPE in t1 t2; do
@@ -285,7 +304,7 @@ ncanda_upload_to_ndar() {
 	    TYPE_DIR=${BASE_DIR}/$TYPE
 	    mkdir -p ${TYPE_DIR} 
 
-	    JSON=${GUID}-${followup_yr}-structural-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-structural-${TYPE}.json
 
 	    # mv image03.csv
 	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
@@ -298,7 +317,7 @@ ncanda_upload_to_ndar() {
 
 	    
 	    # copy nii.gz 
-	    REL_IMG_DIR=${GUID}/${followup_yr}/structural
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/structural
 	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
             mkdir -p $IMG_DIR
 	    echo "INFO:Copying ${structural_dir}/$FILE_NAME"  
@@ -322,7 +341,7 @@ ncanda_upload_to_ndar() {
     diffusion_dirs=`ls ${cases_dir} | grep DIFFUSION`
     # get latest diffusion dir release
     diffusion_dir_name=`echo ${diffusion_dirs} | rev | cut -d ' ' -f1 | rev`
-    diffusion_dir=${cases_dir}/${diffusion_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${followup_yr}/diffusion/native
+    diffusion_dir=${cases_dir}/${diffusion_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/diffusion/native
     
     if [ -d "${diffusion_dir}" ]; then
 	for TYPE in dti6b500pepolar dti30b400 dti60b1000; do
@@ -334,13 +353,13 @@ ncanda_upload_to_ndar() {
 	    TYPE_DIR=${BASE_DIR}/$TYPE
 	    mkdir -p ${TYPE_DIR} 
 
-	    JSON=${GUID}-${followup_yr}-diffusion-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-diffusion-${TYPE}.json
 
 	    # mv image03.csv
 	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
 	    
 	    # copy nii.gz 
-	    REL_IMG_DIR=${GUID}/${followup_yr}/diffusion/$TYPE
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/diffusion/$TYPE
 	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
             mkdir -p $IMG_DIR
 	    rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $diffusion_dir/$TYPE/ $IMG_DIR
@@ -386,20 +405,20 @@ ncanda_upload_to_ndar() {
 	# get latest restingstate dir release
     restingstate_dir_name=`echo ${restingstate_dirs} | rev | cut -d ' ' -f1 | rev`
 	# only pull nifti's from rs-fMRI directory of native
-    restingstate_dir=${cases_dir}/${restingstate_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${followup_yr}/restingstate/native/rs-fMRI
+    restingstate_dir=${cases_dir}/${restingstate_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/restingstate/native/rs-fMRI
 	if [ -d "${restingstate_dir}" ]; then
 
 		TYPE=rs-fMRI
 	    TYPE_DIR=${BASE_DIR}/$TYPE
 	    mkdir -p ${TYPE_DIR} 
 
-	    JSON=${GUID}-${followup_yr}-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-${TYPE}.json
 
 	    # mv image03.csv
 	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
 	    
 	    # copy nii.gz 
-	    REL_IMG_DIR=${GUID}/${followup_yr}/$TYPE
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/$TYPE
 	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
             mkdir -p $IMG_DIR
 		
