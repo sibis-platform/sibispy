@@ -122,7 +122,7 @@ def ndar_validate(path_to_visits, visits, files_to_validate, vtcmd_config):
         )
         logging.info(f"Validating files:\n{str(path_to_validate)}")
 
-        validateFlag=False
+        validateFlag=True
         if validateFlag :   
             validation.validate()
             validation_response=validation.responses
