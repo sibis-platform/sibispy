@@ -100,6 +100,15 @@ def find_first_rsfmri_nifti(args, visit_dir: Path):
             nifti_files.append(possible_nifti[0])
     return nifti_files
 
+def find_first_swan_nifti(args, visit_dir: Path):
+    nifti_files = []
+    swan_native = visit_dir / "iron" / "native" 
+    if not swan_native.exists():
+        return nifti_files
+    possible_nifti = sorted(swan_native.rglob("*.nii.gz"))
+    if len(possible_nifti) > 0:
+        nifti_files.append(possible_nifti[0])
+    return nifti_files
 
 def find_structural_nifti(args, visit_dir: Path) -> Generator[Path, None, None]:
     if args.source == 'ncanda':
@@ -146,7 +155,8 @@ def get_nifti_metadata(args):
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
+    swan_nifti_files = find_first_swan_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files + swan_nifti_files
     for nifti_gz in nifti_files:
         modality = NDARImageType.get_modality(nifti_gz)
         nifti_metadata[modality] = describe_nifti(nifti_gz)
@@ -226,7 +236,8 @@ def get_dicom_structural_metadata(args):
     structural_nifti_files = find_structural_nifti(args, visit_dir)
     diffusion_nifti_files = find_first_diffusion_nifti(args, visit_dir)
     rsfmri_nifti_files = find_first_rsfmri_nifti(args, visit_dir)
-    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files
+    swan_nifti_files = find_first_swan_nifti(args, visit_dir)
+    nifti_files = structural_nifti_files + diffusion_nifti_files + rsfmri_nifti_files + swan_nifti_files
     for nifti_gz in nifti_files:
         nifti_xml = find_nifti_xml(nifti_gz)
         if nifti_xml.exists():
@@ -303,6 +314,8 @@ def get_aquisition_matrix(subject: SubjectData, image_type: str):
     return matrix
 
 def get_field_of_view_pd(subject: SubjectData, image_type: str):
+    # import pdb; pdb.set_trace()
+    #TODO: add a default null value for this one, baseline test doesn't have the value
     fov_pd = []
     phase_encoding_direction = get_dicom_value('mr', 'phaseEncodeDirection')(subject, image_type)
     col_row_pixel_spacing = get_dicom_value('mr', 'PixelSpacing')(subject, image_type).split('\\')
@@ -375,6 +388,7 @@ class NDARImageType:
     dti60b1000 = "dti60b1000"
     dti6b500pepolar = "dti6b500pepolar"
     rs_fMRI = "rs-fMRI"
+    swan = "swan"
 
     @classmethod
     def get_modality(self, nii_path:Path) -> str:
@@ -407,7 +421,6 @@ class TargetCSVMeta():
     def __str__(self) -> str:
         return f"output_file: {self.output_file}, data_dictionary: {self.data_dictionary}, image_type: {self.image_type}"
 
-
 class NDARFileVariant(): 
     headers = {
         'image': ['image', '03'],
@@ -425,7 +438,7 @@ class NDARFileVariant():
 
     @classmethod
     def is_image_type(clazz, file_type: str) -> bool:
-        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar, NDARImageType.rs_fMRI]:
+        if file_type in [NDARImageType.t1, NDARImageType.t2, NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar, NDARImageType.rs_fMRI, NDARImageType.swan]:
             return True
         return False
 
@@ -443,7 +456,6 @@ class NDARFileVariant():
             return NDARFileVariant.headers[file_type]
         else:
             return NDARFileVariant.headers['subject']
-
 
 def get_demo_dict(args) -> dict:
     """
@@ -471,8 +483,6 @@ def get_demo_dict(args) -> dict:
 
         return demo_dict
 
-
-
 def get_race(race: int) -> str:
     # RACE_MAP = sys_values['maps']['race_map']
     RACE_MAP = mappings.race_map
@@ -494,7 +504,6 @@ class DefinitionHeader:
     Notes = "Notes"
     Aliases = "Aliases"
 
-
 def get_subjectkey(subject: SubjectData, *_) -> str:
     """Get ndar guid of the subject"""
     if "demo_ndar_guid" in subject.demographics and len(subject.demographics["demo_ndar_guid"].strip()):
@@ -506,6 +515,7 @@ def get_subjectkey(subject: SubjectData, *_) -> str:
     return field_value
 
 def get_image_description(subject: SubjectData, image_type: str) -> str:
+    #TODO: add image description for swan
     if image_type == NDARImageType.t1:
         field_value =  "SPGR"
     elif image_type == NDARImageType.rs_fMRI:
@@ -523,6 +533,7 @@ SCAN_TYPE_MAP = {
     NDARImageType.dti60b1000: "single-shell DTI",
     NDARImageType.dti6b500pepolar: "single-shell DTI",
     NDARImageType.rs_fMRI: "fMRI",
+    NDARImageType.swan: "swan",
 }
 def get_scan_type(subject: SubjectData, image_type: str) -> str:
     try:
@@ -530,7 +541,6 @@ def get_scan_type(subject: SubjectData, image_type: str) -> str:
     except KeyError:
         scan_type = EmptyString
     return scan_type
-
 
 def conform_field_specs_datatype(field_value, field_spec:dict, subject:SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
@@ -674,7 +684,7 @@ def get_measurements_metadata(args):
     redcap_path = mappings.set_ncanda_visit_dir(args, 'redcap')
 
     # for every file in the redcap directory store its content as a title:dataframe pair
-    files = list(redcap_path.glob('*/*'))
+    files = list(redcap_path.glob('measures/*'))
     for f in files:
         key = f.name.split('.', 1)[0]
         val = pd.read_csv(f)
@@ -779,8 +789,18 @@ def get_measurements_source_val(ndar_csv_meta, field_spec, subject: SubjectData)
 
     raise KeyError
 
+def get_measurement_timept(subject):
+    """Return visit number/name for measurements required fields"""
+    try:
+        timept = int(re.search(r"\d+", subject.demographics["visit"]).group())
+    except AttributeError:
+        # visit is baseline, return 0 to indicate baseline visit
+        timept = 0
+    return timept
+
 def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     """Using the mappings file convert our measurements data to ndar expected file format"""
+    #TODO: ndar_create_csv [WARNING] Exception for timept: 'NoneType' object has no attribute 'group'
     field = field_spec[DefinitionHeader.ElementName]
     try:
         field_value = mappings.MEASUREMENTS_MAP[field]
@@ -808,7 +828,6 @@ def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     
     return field_value
 
-
 def handle_field(field_spec: dict, subject: SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
     SUBJECT_MAP = mappings.subject_map
@@ -831,7 +850,6 @@ def handle_field(field_spec: dict, subject: SubjectData):
     check_field_specs(field_value, field_spec, subject)
     
     return field_value
-
 
 def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
     """
@@ -865,7 +883,6 @@ def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
         csvwriter.writerow(header_row)
         csvwriter.writerow(val_row)
 
-
 def is_dir(arg_name: str = "Path", mode: int = os.R_OK | os.W_OK | os.X_OK , create_if_missing: bool =  False):
 
     def is_dir_path(dir_path: str) -> Path:
@@ -885,7 +902,6 @@ def is_dir(arg_name: str = "Path", mode: int = os.R_OK | os.W_OK | os.X_OK , cre
     
     return is_dir_path
 
-
 def is_file(arg_name: str = "Path", mode: int = os.R_OK ):
 
     def is_file_path(file_path: str) -> Path:
@@ -901,7 +917,6 @@ def is_file(arg_name: str = "Path", mode: int = os.R_OK ):
 class ConfigError(Exception):
     msg: str
     
-
 def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
 
@@ -948,8 +963,8 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     )
     ncanda_parser.add_argument(
         "--followup_year",
-        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in case)",
-        type=str, required=True,
+        help="Followup year (digit only, ex: 8) of the data in release (parent dir of desired measures/imaging dirs in cases), default is release year",
+        type=str, required=False,
     )
 
     ns =  p.parse_args(input_args)
@@ -961,6 +976,10 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
         if new_level < 0:
             new_level = 0
         logging.getLogger().setLevel(new_level)
+
+    # set followup year default if not specified
+    if ns.source == 'ncanda' and ns.followup_year is None:
+        ns.followup_year = ns.release_year
 
     with ns.config.open("r") as fh:
         cfg = yaml.safe_load(fh)
@@ -1036,12 +1055,19 @@ def set_output_dir(args):
         ndar_dir: Path = args.ndar_dir / f"{args.subject}_{args.visit}" # /tmp/ndarupload/LAB_S01669_20220517_6909_05172022
     else:
         # /tmp/ncanda-ndarupload/NCANDA_SXXXXX/followup_yr
-        ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
+        if args.followup_year == '0':
+            ndar_dir: Path = args.ndar_dir / args.subject / "baseline"
+        else:
+            ndar_dir: Path = args.ndar_dir / args.subject / f"followup_{args.followup_year}y"
 
     return ndar_dir
 
 def set_dir_paths(args):
-    """Set path to scan dir (input) and ndar dir (output)"""
+    """
+    Set path to scan dir (input) and ndar dir (output)
+    Scan dir ex: /fs/neurosci01/ncanda/releases/internal
+    Ndar dir ex: /tmp/sibispy_ndar/NCANDA_S00735/baseline
+    """
     scan_dir: Path = args.scan_dir
     ndar_dir = set_output_dir(args)
     return scan_dir, ndar_dir
@@ -1055,10 +1081,11 @@ def main(input_args: List[str] = None):
         logging.config.fileConfig(log_config.absolute().as_posix())
 
     args = _parse_args(input_args)
-
+    
     # add mappings files to the system path so it can be imported
     sys.path.append(args.mappings_dir)
 
+    # set input and output base paths
     scan_dir, ndar_dir = set_dir_paths(args)
     
     # import respective mappings file as a global import
@@ -1071,10 +1098,12 @@ def main(input_args: List[str] = None):
     if not ndar_dir.exists():
         ndar_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
     
+    # Read in all relevant NDAR file definitions
     subject_definitions_csv = args.subject_definition
     image_definitions_csv = args.image_definition
     measurements_definitions = args.measurements_definitions
 
+    # Create full list of files to generate of TargetCSVMeta class
     files_to_generate = mappings.files_to_generate
     ndar_csv_meta_files = []
 
@@ -1094,6 +1123,7 @@ def main(input_args: List[str] = None):
 
         ndar_csv_meta_files.append(meta)
 
+    # Get the imaging and measurements data from source
     dicom_metadata = get_dicom_structural_metadata(args)
     nifti_metadata = get_nifti_metadata(args)
     dti_metadata = get_dicom_diffusion_metadata(args)
