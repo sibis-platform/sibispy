@@ -232,8 +232,6 @@ upload_to_ndar() {
 
 ncanda_upload_to_ndar() {
 
-	#TODO: Have to set desitination dir to src_followup_yer along w/ json file name.
-	# maybe swap the followup year and source follouwp year, I think it would make more sense the other way around
 	# Source all raw imaging data from the latest release
     ndar_csv_temp_dir=$1 
 
