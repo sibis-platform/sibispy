@@ -285,171 +285,171 @@ ncanda_upload_to_ndar() {
     #
     # t1/t2
     #
-    # structural_dirs=`ls ${cases_dir} | grep STRUCTURAL`
-    # # get latest structural dir release
-    # structural_dir_name=`echo ${structural_dirs} | rev | cut -d ' ' -f1 | rev`
-    # structural_dir=${cases_dir}/${structural_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/structural/native
+    structural_dirs=`ls ${cases_dir} | grep STRUCTURAL`
+    # get latest structural dir release
+    structural_dir_name=`echo ${structural_dirs} | rev | cut -d ' ' -f1 | rev`
+    structural_dir=${cases_dir}/${structural_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/structural/native
 
-    # if [ -d "${structural_dir}" ]; then
-	# for TYPE in t1 t2; do
-    #         FILE_NAME=${TYPE}.nii.gz 	
- 	#     if [ ! -e ${structural_dir}/$FILE_NAME ]; then 
-	# 	echo "ERROR:${structural_dir}/$FILE_NAME missing - removing all structural imaging files!" 
-	# 	[ -e ${BASE_DIR}/t1 ] && rm -rf ${BASE_DIR}/t1
-	# 	exit 1
-	#     fi 
+    if [ -d "${structural_dir}" ]; then
+	for TYPE in t1 t2; do
+            FILE_NAME=${TYPE}.nii.gz 	
+ 	    if [ ! -e ${structural_dir}/$FILE_NAME ]; then 
+		echo "ERROR:${structural_dir}/$FILE_NAME missing - removing all structural imaging files!" 
+		[ -e ${BASE_DIR}/t1 ] && rm -rf ${BASE_DIR}/t1
+		exit 1
+	    fi 
 
-	#     TYPE_DIR=${BASE_DIR}/$TYPE
-	#     mkdir -p ${TYPE_DIR} 
+	    TYPE_DIR=${BASE_DIR}/$TYPE
+	    mkdir -p ${TYPE_DIR} 
 
-	#     JSON=${GUID}-${src_followup_yr}-structural-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-structural-${TYPE}.json
 
-	#     # mv image03.csv
-	#     makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
-	#     if [ ! -e ${TYPE_DIR}/image03.csv ]; then 
-	# 	echo "ERROR:${TYPE_DIR}/image03.csv was not created - removing all structural imaging files!" 
-	# 	rm -rf ${BASE_DIR}/t1
-	# 	[ -e ${BASE_DIR}/t2 ] && rm -rf ${BASE_DIR}/t1
-	# 	exit 1
-	#     fi 
+	    # mv image03.csv
+	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
+	    if [ ! -e ${TYPE_DIR}/image03.csv ]; then 
+		echo "ERROR:${TYPE_DIR}/image03.csv was not created - removing all structural imaging files!" 
+		rm -rf ${BASE_DIR}/t1
+		[ -e ${BASE_DIR}/t2 ] && rm -rf ${BASE_DIR}/t1
+		exit 1
+	    fi 
 
 	    
-	#     # copy nii.gz 
-	#     REL_IMG_DIR=${GUID}/${src_followup_yr}/structural
-	#     IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
-    #         mkdir -p $IMG_DIR
-	#     echo "INFO:Copying ${structural_dir}/$FILE_NAME"  
-    #         rsync -m -r -og --copy-links --include="*/" --include="${FILE_NAME}" --exclude="*" ${structural_dir}/ $IMG_DIR
+	    # copy nii.gz 
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/structural
+	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
+            mkdir -p $IMG_DIR
+	    echo "INFO:Copying ${structural_dir}/$FILE_NAME"  
+            rsync -m -r -og --copy-links --include="*/" --include="${FILE_NAME}" --exclude="*" ${structural_dir}/ $IMG_DIR
 
-	#     FILE=${IMG_DIR}/${FILE_NAME}
-    #         FILESIZE=`wc -c $FILE | awk '{print $1}'`
-    #         md5=($(md5sum $FILE))
+	    FILE=${IMG_DIR}/${FILE_NAME}
+            FILESIZE=`wc -c $FILE | awk '{print $1}'`
+            md5=($(md5sum $FILE))
 
-    #         FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
-    #         DATA="{\"files\": [{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}]}"
-    #         echo $DATA | tee $TYPE_DIR/${JSON}
-    #     done
-    # else
-    #     echo "SKIPPING t1 t2 creation, could not find ${structural_dir}"
-    # fi
+            FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+            DATA="{\"files\": [{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}]}"
+            echo $DATA | tee $TYPE_DIR/${JSON}
+        done
+    else
+        echo "SKIPPING t1 t2 creation, could not find ${structural_dir}"
+    fi
 
-    # #
-    # # DTI
-    # #
-    # diffusion_dirs=`ls ${cases_dir} | grep DIFFUSION`
-    # # get latest diffusion dir release
-    # diffusion_dir_name=`echo ${diffusion_dirs} | rev | cut -d ' ' -f1 | rev`
-    # diffusion_dir=${cases_dir}/${diffusion_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/diffusion/native
+    #
+    # DTI
+    #
+    diffusion_dirs=`ls ${cases_dir} | grep DIFFUSION`
+    # get latest diffusion dir release
+    diffusion_dir_name=`echo ${diffusion_dirs} | rev | cut -d ' ' -f1 | rev`
+    diffusion_dir=${cases_dir}/${diffusion_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/diffusion/native
     
-    # if [ -d "${diffusion_dir}" ]; then
-	# for TYPE in dti6b500pepolar dti30b400 dti60b1000; do
-	#     if [ ! -e $diffusion_dir/$TYPE ]; then 
-	# 	echo "Warning:$diffusion_dir is missing $TYPE!"
-	# 	continue 
-	#     fi 
+    if [ -d "${diffusion_dir}" ]; then
+	for TYPE in dti6b500pepolar dti30b400 dti60b1000; do
+	    if [ ! -e $diffusion_dir/$TYPE ]; then 
+		echo "Warning:$diffusion_dir is missing $TYPE!"
+		continue 
+	    fi 
 
-	#     TYPE_DIR=${BASE_DIR}/$TYPE
-	#     mkdir -p ${TYPE_DIR} 
+	    TYPE_DIR=${BASE_DIR}/$TYPE
+	    mkdir -p ${TYPE_DIR} 
 
-	#     JSON=${GUID}-${src_followup_yr}-diffusion-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-diffusion-${TYPE}.json
 
-	#     # mv image03.csv
-	#     makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
+	    # mv image03.csv
+	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
 	    
-	#     # copy nii.gz 
-	#     REL_IMG_DIR=${GUID}/${src_followup_yr}/diffusion/$TYPE
-	#     IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
-    #         mkdir -p $IMG_DIR
-	#     rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $diffusion_dir/$TYPE/ $IMG_DIR
+	    # copy nii.gz 
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/diffusion/$TYPE
+	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
+            mkdir -p $IMG_DIR
+	    rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $diffusion_dir/$TYPE/ $IMG_DIR
 
-	#     echo "{\"files\": [" > $TYPE_DIR/${JSON}
-	#     for FILE in $IMG_DIR/*.nii.gz; do
-	# 	FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
-	# 	FILESIZE=`wc -c $FILE | awk '{print $1}'`
-	# 	md5=($(md5sum $FILE))
-	# 	FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
-	# 	echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
-	#     done
+	    echo "{\"files\": [" > $TYPE_DIR/${JSON}
+	    for FILE in $IMG_DIR/*.nii.gz; do
+		FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
+		FILESIZE=`wc -c $FILE | awk '{print $1}'`
+		md5=($(md5sum $FILE))
+		FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+		echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
+	    done
 
-	#     # Bvalue and bvec 
-	#     JSON_LINE=""
-	#     for FILE in bval bvec; do
-	# 		if [ "$JSON_LINE" != "" ]; then 
-	# 			echo "${JSON_LINE}," >> $TYPE_DIR/${JSON}
-	# 		fi
+	    # Bvalue and bvec 
+	    JSON_LINE=""
+	    for FILE in bval bvec; do
+			if [ "$JSON_LINE" != "" ]; then 
+				echo "${JSON_LINE}," >> $TYPE_DIR/${JSON}
+			fi
 		
-	# 		absFILE=${ndar_csv_temp_dir}/$TYPE/$FILE 
-	# 		if [ ! -e $absFILE ]; then 
-	# 			echo "ERROR:$absFILE missing!"
-	# 			exit 1
-	# 		fi
-	# 		cp $absFILE $IMG_DIR/$FILE
+			absFILE=${ndar_csv_temp_dir}/$TYPE/$FILE 
+			if [ ! -e $absFILE ]; then 
+				echo "ERROR:$absFILE missing!"
+				exit 1
+			fi
+			cp $absFILE $IMG_DIR/$FILE
 
-	# 		FILESIZE=`wc -c $IMG_DIR/$FILE | awk '{print $1}'`
-	# 		md5=($(md5sum $IMG_DIR/$FILE))
-	# 		FILEPATH=${REL_IMG_DIR}/${FILE}
-	# 		JSON_LINE="{\"path\": \"$FILEPATH\", \"name\": \"$FILE\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}"
-	#     done
-    #         echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
-    #     done
-    # else
-    #     echo "SKIPPING dti creation, could not find ${diffusion_dir}"
-    # fi
+			FILESIZE=`wc -c $IMG_DIR/$FILE | awk '{print $1}'`
+			md5=($(md5sum $IMG_DIR/$FILE))
+			FILEPATH=${REL_IMG_DIR}/${FILE}
+			JSON_LINE="{\"path\": \"$FILEPATH\", \"name\": \"$FILE\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}"
+	    done
+            echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
+        done
+    else
+        echo "SKIPPING dti creation, could not find ${diffusion_dir}"
+    fi
 
-	# #
-    # # Resting State fMRI
-    # #
-	# restingstate_dirs=`ls ${cases_dir} | grep RESTINGSTATE`
-	# # get latest restingstate dir release
-    # restingstate_dir_name=`echo ${restingstate_dirs} | rev | cut -d ' ' -f1 | rev`
-	# # only pull nifti's from rs-fMRI directory of native
-    # restingstate_dir=${cases_dir}/${restingstate_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/restingstate/native/rs-fMRI
-	# if [ -d "${restingstate_dir}" ]; then
+	#
+    # Resting State fMRI
+    #
+	restingstate_dirs=`ls ${cases_dir} | grep RESTINGSTATE`
+	# get latest restingstate dir release
+    restingstate_dir_name=`echo ${restingstate_dirs} | rev | cut -d ' ' -f1 | rev`
+	# only pull nifti's from rs-fMRI directory of native
+    restingstate_dir=${cases_dir}/${restingstate_dir_name}/cases/${SUBJECT_ID}/${arm_dir}/${src_followup_yr}/restingstate/native/rs-fMRI
+	if [ -d "${restingstate_dir}" ]; then
 
-	# 	TYPE=rs-fMRI
-	#     TYPE_DIR=${BASE_DIR}/$TYPE
-	#     mkdir -p ${TYPE_DIR} 
+		TYPE=rs-fMRI
+	    TYPE_DIR=${BASE_DIR}/$TYPE
+	    mkdir -p ${TYPE_DIR} 
 
-	#     JSON=${GUID}-${src_followup_yr}-${TYPE}.json
+	    JSON=${GUID}-${src_followup_yr}-${TYPE}.json
 
-	#     # mv image03.csv
-	#     makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
+	    # mv image03.csv
+	    makeImage03 ${ndar_csv_temp_dir}/$TYPE/image03.csv $JSON ${TYPE_DIR}/image03.csv
 	    
-	#     # copy nii.gz 
-	#     REL_IMG_DIR=${GUID}/${src_followup_yr}/$TYPE
-	#     IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
-    #         mkdir -p $IMG_DIR
+	    # copy nii.gz 
+	    REL_IMG_DIR=${GUID}/${src_followup_yr}/$TYPE
+	    IMG_DIR=${TYPE_DIR}/${REL_IMG_DIR}
+            mkdir -p $IMG_DIR
 		
-	#     rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $restingstate_dir/ $IMG_DIR
+	    rsync -v -m -r -og --copy-links --include="*nii.gz" --exclude="*" $restingstate_dir/ $IMG_DIR
 
-	#     echo "{\"files\": [" > $TYPE_DIR/${JSON}
-	#     for FILE in $IMG_DIR/*.nii.gz; do
-	# 		FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
-	# 		FILESIZE=`wc -c $FILE | awk '{print $1}'`
-	# 		md5=($(md5sum $FILE))
-	# 		FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
-	# 		echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
-	#     done
-	# 	# remove the comma of the last line and establish correct end of json file
-	# 	sed -i '$ s/.$/]}/' $TYPE_DIR/${JSON}
-	# 	# JSON_LINE=""
-	# 	# echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
-    # else
-    #     echo "SKIPPING restingstate creation, could not find ${restingstate_dir}"
-    # fi
+	    echo "{\"files\": [" > $TYPE_DIR/${JSON}
+	    for FILE in $IMG_DIR/*.nii.gz; do
+			FILE_NAME=`echo $FILE | rev | cut -d'/' -f1 | rev` 
+			FILESIZE=`wc -c $FILE | awk '{print $1}'`
+			md5=($(md5sum $FILE))
+			FILEPATH=${REL_IMG_DIR}/${FILE_NAME}
+			echo "{\"path\": \"$FILEPATH\", \"name\": \"$FILE_NAME\", \"size\": \"$FILESIZE\", \"md5sum\": \"$md5\"}," >> $TYPE_DIR/${JSON}
+	    done
+		# remove the comma of the last line and establish correct end of json file
+		sed -i '$ s/.$/]}/' $TYPE_DIR/${JSON}
+		# JSON_LINE=""
+		# echo "${JSON_LINE}]}" >> $TYPE_DIR/${JSON}
+    else
+        echo "SKIPPING restingstate creation, could not find ${restingstate_dir}"
+    fi
 
-	# #
-    # # Measurements data
-    # #
-	# measurements_in_dir="$ndar_csv_temp_dir"/measurements
-	# if [ -d "${measurements_in_dir}" ]; then
-	# 	measurements_files=`ls ${measurements_in_dir}`
-	# 	measurements_out_dir="$BASE_DIR"/measurements
-	# 	echo "INFO:Copying \"$measurements_files\" to \"$measurements_out_dir\""
-	# 	rsync -v -m -r -og --copy-links --include="*.csv" --exclude="*" $measurements_in_dir/ $measurements_out_dir
-	# else
-	# 	echo "SKIPPING measurements creation, could not find ${measurements_in_dir}"
-	# fi
+	#
+    # Measurements data
+    #
+	measurements_in_dir="$ndar_csv_temp_dir"/measurements
+	if [ -d "${measurements_in_dir}" ]; then
+		measurements_files=`ls ${measurements_in_dir}`
+		measurements_out_dir="$BASE_DIR"/measurements
+		echo "INFO:Copying \"$measurements_files\" to \"$measurements_out_dir\""
+		rsync -v -m -r -og --copy-links --include="*.csv" --exclude="*" $measurements_in_dir/ $measurements_out_dir
+	else
+		echo "SKIPPING measurements creation, could not find ${measurements_in_dir}"
+	fi
 
 }
 
