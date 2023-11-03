@@ -49,7 +49,10 @@ def check_consent(args, mappings, included_visits, path_to_visits, consent_path,
             with error_path.open("a") as fh:
                 fh.write("{consent_path},Problem locating consent in demographics.csv\n")
 
-            move_visits(path_to_visits, [visit_path], validation_errors_path)
+            if args.do_not_remove:
+                copy_visits(path_to_visits, [visit_path], validation_errors_path)
+            else:
+                move_visits(path_to_visits, [visit_path], validation_errors_path)
         else:
             consent_given = mappings.process_consent(
                 visit_path, staging_path, consent
@@ -435,6 +438,12 @@ def move_visits(
         shutil.move(str(visit_path), str(destination_path))
         logging.info(f"Moving {visit_path} to {destination_path}")
 
+def copy_visits(path_to_visits, visits, destination_path):
+    for visit in visits:
+        visit_path = path_to_visits / visit
+        logging.info(f"Copying {visit_path} to {destination_path}")
+        shutil.copytree(str(visit_path), str(destination_path / visit.name), dirs_exist_ok=True)
+        logging.info("Copying complete.")
 
 def delete_visits(path_to_visits: pathlib.Path, visits: list):
     for visit in visits:
@@ -687,7 +696,10 @@ def doMain():
 
             # then move any visit with an invalid file to validation_errors_path
             invalid_visits = list(validation_errors_df["visit"].unique())
-            move_visits(path_to_visits, invalid_visits, validation_errors_path)
+            if args.do_not_remove:
+                copy_visits(path_to_visits, invalid_visits, validation_errors_path)
+            else:
+                move_visits(path_to_visits, invalid_visits, validation_errors_path)
 
             # Delete the directories for all other visits (these are now empty
             # of everything but the directory structure skeleton and possibly the
