@@ -34,12 +34,16 @@ from NDATools.clientscripts import vtcmd
 
 def check_consent(args, mappings, included_visits, path_to_visits, consent_path, staging_path):
     consented_visits = []
+    if args.do_not_remove:
+        do_not_rm_flag = True
+    else:
+        do_not_rm_flag = False
     
     for visit in included_visits:
         logging.info(f"Checking consent for visit {visit}")
         visit_path = mappings.get_visit_path(args, path_to_visits, visit)
         consent = mappings.get_consent(
-            visit_path, consent_path
+            visit_path, consent_path,
         )  # Retrieve consent from consent_dir
         if consent is None:
             ...
@@ -49,13 +53,13 @@ def check_consent(args, mappings, included_visits, path_to_visits, consent_path,
             with error_path.open("a") as fh:
                 fh.write("{consent_path},Problem locating consent in demographics.csv\n")
 
-            if args.do_not_remove:
+            if do_not_rm_flag:
                 copy_visits(path_to_visits, [visit_path], validation_errors_path)
             else:
                 move_visits(path_to_visits, [visit_path], validation_errors_path)
         else:
             consent_given = mappings.process_consent(
-                visit_path, staging_path, consent
+                visit_path, staging_path, consent, do_not_rm_flag
             )  # Move visit to correct place in staging if consent not given
             if consent_given:
                 # If consent given, add to list of visits to validate
