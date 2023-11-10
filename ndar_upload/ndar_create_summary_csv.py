@@ -59,12 +59,14 @@ def check_consent(args, mappings, included_visits, path_to_visits, consent_path,
                 move_visits(path_to_visits, [visit_path], validation_errors_path)
         else:
             consent_given = mappings.process_consent(
-                visit_path, staging_path, consent, do_not_rm_flag
+                visit_path, staging_path, consent, do_not_rm_flag, False
             )  # Move visit to correct place in staging if consent not given
             if consent_given:
                 # If consent given, add to list of visits to validate
                 consented_visits.append(visit)
-                
+    # initiate mass move/copy of non-consented visits
+    mappings.process_consent(None, None, None, do_not_rm_flag, True)
+    
     return consented_visits
 
 
@@ -316,7 +318,6 @@ def move_validated_files(validation_results_df, staging_path, path_to_visits, da
                 f"Summaries file does not exist already, creating one by moving {valid_file_path} to {summaries_file_path}"
             )
             # rsync the files from the valid file path to the summaries file path
-            #TODO: add check for if summaries file path exists or not, if not then create it
             if args.do_not_remove:
                 subprocess.call(["rsync", "-a", str(valid_file_path), str(summaries_file_path)])
             else:
