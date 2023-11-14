@@ -71,7 +71,24 @@ def add_subject_param(parser: argparse.ArgumentParser,
                         # metavar="STUDY_ID"
                         required=required,
                         action="store")
+    
+def add_site_param(parser: argparse.ArgumentParser,
+                      dest="site",
+                      required: bool = False,
+                      choices: List[str] = None) -> None:
+    """
+    Add parameter for site ID entry.
+    """
+    nargs = '+' if required else '*'
 
+    parser.add_argument("--site",
+                        help="Site IDs that the script should affect (ucsd, sri, etc.)",
+                        nargs=nargs,
+                        dest=dest,
+                        choices=choices,
+                        # metavar="STUDY_ID"
+                        required=required,
+                        action="store")
 
 def add_form_param(parser: argparse.ArgumentParser,
                    dest='forms',

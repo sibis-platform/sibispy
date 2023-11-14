@@ -39,6 +39,7 @@ def main(args=None):
 
     subject_list = args.subject_id
     if subject_list is None:
+        #TODO: Add site specific args
         subject_list = [None]
     else:
         print("INFO: kp: I do not think it works if subjects are defined")
@@ -108,6 +109,7 @@ if __name__ == "__main__":
     cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
                        short_switch='-f')
     cli.add_subject_param(parser, dest="subject_id")
+    cli.add_site_param(parser, dest="site")
     cli.add_standard_params(parser)  # -v, -p, -t
 
     parser.add_argument("-o", "--outfile", dest="outfile",
