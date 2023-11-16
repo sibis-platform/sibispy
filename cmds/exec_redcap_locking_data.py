@@ -8,6 +8,42 @@ from sibispy import cli
 from sibispy import sibislogger as slog
 from sibispy import redcap_locking_data 
 
+from sqlalchemy import create_engine, MetaData, Table, select
+
+def get_site_subjs_from_sql(session, engine, site):
+    """
+    Using the mysql/maria db connection, pull all records based on
+    given site.
+
+    select * from redcap.redcap_data where project_id = 20 and field_name = '__GROUPID__';
+    """
+
+    # Create a connection and execute a query
+    with engine.connect() as connection:
+        # Build and execute the query to select all values from the table
+        query = """
+            SELECT * FROM 
+                redcap_data as t1
+            INNER JOIN
+                redcap_data_access_groups as t2
+            ON
+                t1.field_name = "__GROUPID__" and t1.value = t2.group_id
+            WHERE 
+                t1.project_id = 20;
+        """
+        result = connection.execute(query)
+
+        # Fetch all rows from the result set
+        rows = result.fetchall()
+
+        #TODO: change this to a df comprehension.
+        # Process the rows
+        for row in rows:
+            print(row)
+
+
+    return subject_list
+
 def main(args=None):
     if not args:
         return 
@@ -40,7 +76,10 @@ def main(args=None):
     subject_list = args.subject_id
     if subject_list is None:
         #TODO: Add site specific args
-        subject_list = [None]
+        if args.site:
+            subject_list = get_site_subjs_from_sql(session, engine, args.site)
+        else:
+            subject_list = [None]
     else:
         print("INFO: kp: I do not think it works if subjects are defined")
 
@@ -109,6 +148,7 @@ if __name__ == "__main__":
     cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
                        short_switch='-f')
     cli.add_subject_param(parser, dest="subject_id")
+    # TODO: can add handling of multiple sites in the cli prompt
     cli.add_site_param(parser, dest="site")
     cli.add_standard_params(parser)  # -v, -p, -t
 
