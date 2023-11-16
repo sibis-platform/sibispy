@@ -7,16 +7,16 @@ import sibispy
 from sibispy import cli
 from sibispy import sibislogger as slog
 from sibispy import redcap_locking_data 
+import pandas as pd
 
 from sqlalchemy import create_engine, MetaData, Table, select
 
 def get_site_subjs_from_sql(session, engine, site):
     """
-    Using the mysql/maria db connection, pull all records based on
-    given site.
-
-    select * from redcap.redcap_data where project_id = 20 and field_name = '__GROUPID__';
+    Using the maria db connection to redcap, pull all records based on
+    given site to get a list of subject for given data access group.
     """
+    site = site[0].upper()
 
     # Create a connection and execute a query
     with engine.connect() as connection:
@@ -34,13 +34,16 @@ def get_site_subjs_from_sql(session, engine, site):
         result = connection.execute(query)
 
         # Fetch all rows from the result set
-        rows = result.fetchall()
+        results = result.fetchall()
 
-        #TODO: change this to a df comprehension.
-        # Process the rows
-        for row in rows:
-            print(row)
+    df = pd.DataFrame(results, columns=['project_id', 'event_id', 'record', 'field_name', 'value', 'instance', 'group_id', 'project_id2', 'site'])
+    # drop unneeded columns and duplicates
+    df = df[['record', 'site']].drop_duplicates()
+    # store only the site from argument
+    df = df[df['site'].str.upper() == site].reset_index()
 
+    # convert to a list of subjects
+    subject_list = list(df['record'])
 
     return subject_list
 
