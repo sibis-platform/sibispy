@@ -19,31 +19,27 @@ def get_site_subjs_from_sql(session, engine, site):
     site = site[0].upper()
 
     # Create a connection and execute a query
-    with engine.connect() as connection:
-        # Build and execute the query to select all values from the table
-        query = """
-            SELECT * FROM 
-                redcap_data as t1
-            INNER JOIN
-                redcap_data_access_groups as t2
-            ON
-                t1.field_name = "__GROUPID__" and t1.value = t2.group_id
-            WHERE 
-                t1.project_id = 20;
-        """
-        result = connection.execute(query)
+  
+    query = """
+        SELECT * FROM 
+            redcap_data as t1
+        INNER JOIN
+            redcap_data_access_groups as t2
+        ON
+            t1.field_name = "__GROUPID__" and t1.value = t2.group_id
+        WHERE 
+            t1.project_id = 20;
+    """
+    df = pd.read_sql_query(query, engine.connect())
 
-        # Fetch all rows from the result set
-        results = result.fetchall()
-
-    df = pd.DataFrame(results, columns=['project_id', 'event_id', 'record', 'field_name', 'value', 'instance', 'group_id', 'project_id2', 'site'])
     # drop unneeded columns and duplicates
-    df = df[['record', 'site']].drop_duplicates()
-    # store only the site from argument
-    df = df[df['site'].str.upper() == site].reset_index()
+    df = df[['record', 'group_name']].drop_duplicates()
+    # store only the group_name from argument
+    df = df[df['group_name'].str.upper() == site].reset_index()
 
     # convert to a list of subjects
     subject_list = list(df['record'])
+    print(f"Selected all records under data access group: {site}")
 
     return subject_list
 
@@ -78,7 +74,6 @@ def main(args=None):
 
     subject_list = args.subject_id
     if subject_list is None:
-        #TODO: Add site specific args
         if args.site:
             subject_list = get_site_subjs_from_sql(session, engine, args.site)
         else:
