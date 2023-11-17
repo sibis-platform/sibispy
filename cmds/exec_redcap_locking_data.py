@@ -94,7 +94,7 @@ def main(args=None):
                     locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, form, outfile=args.outfile, subject_id=sid)
                     slog.takeTimer1("script_time", "{'records': " + str(locked_record_num) + "}")
                     if args.verbose:
-                        print("The {0} form has been locked".format(form))
+                        print("The {0} form has been locked for {1}".format(form, sid))
                         print("Record of locked files: {0}".format(args.outfile))
 
         elif args.unlock:
@@ -109,7 +109,7 @@ def main(args=None):
                         else:
                             print("Warning: Nothing to unlock! Form '{0}' might not exist".format(form))
                     elif args.verbose:
-                        print("The {0} form has been unlocked".format(form))
+                        print("The {0} form has been unlocked for {1}".format(form, sid))
 
         elif args.report:
             if not args.subject_id:
@@ -146,7 +146,6 @@ if __name__ == "__main__":
     cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
                        short_switch='-f')
     cli.add_subject_param(parser, dest="subject_id")
-    # TODO: can add handling of multiple sites in the cli prompt
     cli.add_site_param(parser, dest="site")
     cli.add_standard_params(parser)  # -v, -p, -t
 
