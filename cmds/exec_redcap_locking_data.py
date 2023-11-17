@@ -9,8 +9,6 @@ from sibispy import sibislogger as slog
 from sibispy import redcap_locking_data 
 import pandas as pd
 
-from sqlalchemy import create_engine, MetaData, Table, select
-
 def get_site_subjs_from_sql(session, engine, site):
     """
     Using the maria db connection to redcap, pull all records based on
