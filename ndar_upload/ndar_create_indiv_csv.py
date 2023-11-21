@@ -359,22 +359,29 @@ def get_patient_position(subject: SubjectData, image_type: str):
             logger.error("ImageOrientationPatient should define 6 numbers but defined" + str(len(pp_parts)) + "!"  )
             return pp_long  
         
-        # values should be 0 or 1 - all others need to be truncated
-        incorrectNum=0
+        # first check if int and float of each value is the same
         for idx, part in enumerate(pp_parts):
-            if float(part) != 0  and float(part) != 1  and float(part) != -1  : 
-                incorrectNum+=1
+            if int(float(part)) == float(part):
+                pp_parts[idx] = str(int(float(part)))
 
-        # over the quota has to be fixed by those that are not defined according to format 
-        over_by = len(pp_long) - max_len 
-        trunc_by = ceil(over_by / incorrectNum)
+        new_len = sum(len(part) for part in pp_parts)
+        if new_len > max_len:
+            # values should be 0 or 1 - all others need to be truncated
+            incorrectNum=0
+            for idx, part in enumerate(pp_parts):
+                if float(part) != 0  and float(part) != 1  and float(part) != -1  : 
+                    incorrectNum+=1
 
-        # truncate everything that is not 0 or -1
-        for idx, part in enumerate(pp_parts):
-            if float(part) == 0  or float(part) == 1  or float(part) == -1  :
-                continue
-            
-            pp_parts[idx] = part[:-trunc_by]
+            # over the quota has to be fixed by those that are not defined according to format 
+            over_by = len(pp_long) - max_len 
+            trunc_by = ceil(over_by / incorrectNum)
+
+            # truncate everything that is not 0 or -1
+            for idx, part in enumerate(pp_parts):
+                if float(part) == 0  or float(part) == 1  or float(part) == -1  :
+                    continue
+                
+                pp_parts[idx] = part[:-trunc_by]
         
         pp_long = '\\'.join(pp_parts)
 
