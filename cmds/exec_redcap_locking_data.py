@@ -7,6 +7,39 @@ import sibispy
 from sibispy import cli
 from sibispy import sibislogger as slog
 from sibispy import redcap_locking_data 
+import pandas as pd
+
+def get_site_subjs_from_sql(session, engine, site):
+    """
+    Using the maria db connection to redcap, pull all records based on
+    given site to get a list of subject for given data access group.
+    """
+    site = site[0].upper()
+
+    # Create a connection and execute a query
+  
+    query = """
+        SELECT * FROM 
+            redcap_data as t1
+        INNER JOIN
+            redcap_data_access_groups as t2
+        ON
+            t1.field_name = "__GROUPID__" and t1.value = t2.group_id
+        WHERE 
+            t1.project_id = 20;
+    """
+    df = pd.read_sql_query(query, engine.connect())
+
+    # drop unneeded columns and duplicates
+    df = df[['record', 'group_name']].drop_duplicates()
+    # store only the group_name from argument
+    df = df[df['group_name'].str.upper() == site].reset_index()
+
+    # convert to a list of subjects
+    subject_list = list(df['record'])
+    print(f"Selected all records under data access group: {site}")
+
+    return subject_list
 
 def main(args=None):
     if not args:
@@ -39,7 +72,10 @@ def main(args=None):
 
     subject_list = args.subject_id
     if subject_list is None:
-        subject_list = [None]
+        if args.site:
+            subject_list = get_site_subjs_from_sql(session, engine, args.site)
+        else:
+            subject_list = [None]
     else:
         print("INFO: kp: I do not think it works if subjects are defined")
 
@@ -56,7 +92,7 @@ def main(args=None):
                     locked_record_num = red_lock.lock_form(args.project, args.arm, event_desc, form, outfile=args.outfile, subject_id=sid)
                     slog.takeTimer1("script_time", "{'records': " + str(locked_record_num) + "}")
                     if args.verbose:
-                        print("The {0} form has been locked".format(form))
+                        print("The {0} form has been locked for {1}".format(form, sid))
                         print("Record of locked files: {0}".format(args.outfile))
 
         elif args.unlock:
@@ -71,7 +107,7 @@ def main(args=None):
                         else:
                             print("Warning: Nothing to unlock! Form '{0}' might not exist".format(form))
                     elif args.verbose:
-                        print("The {0} form has been unlocked".format(form))
+                        print("The {0} form has been unlocked for {1}".format(form, sid))
 
         elif args.report:
             if not args.subject_id:
@@ -108,6 +144,7 @@ if __name__ == "__main__":
     cli.add_form_param(parser, dest='form', raise_missing=False, required=True,
                        short_switch='-f')
     cli.add_subject_param(parser, dest="subject_id")
+    cli.add_site_param(parser, dest="site")
     cli.add_standard_params(parser)  # -v, -p, -t
 
     parser.add_argument("-o", "--outfile", dest="outfile",
