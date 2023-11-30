@@ -444,10 +444,29 @@ class redcap_to_casesdir(object):
             for (key, value) in demographics:
                 series.at[key] = value
 
+            # write/update export_measures_log
+            self.update_export_log(measures_dir)
 
             return sutils.safe_dataframe_to_csv(pandas.DataFrame(series).T,
                                                     target_path,
                                                     verbose=verbose)
+
+    def update_export_log(self, measures_dir):
+        """
+        Update the export_measures.log file with the current datetime whenever
+        a demographics form is updated for a subject.
+        """
+        # create the export_meaures.log file if it doesn't exit
+        measures_path = Path(measures_dir)
+        log_path = measures_path / "export_measures.log"
+        try:
+            with open(log_path, 'w') as file:
+                current_datetime = str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                file.write(f"{current_datetime}\n")
+        except IOError:
+            print(f"Warning: Unable to write log file {log_path}")
+
+        return
 
     def export_subject_form(self, export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose = False):
         # Remove the complete field from the list of forms
