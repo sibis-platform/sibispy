@@ -112,12 +112,11 @@ def parse_args():
 def main():
     #TODO: 
     # - add verbose printing of progress stages
-    # - add posting to github if enabled, otherwise print to terminal
 
     # take in the path to cases dir
     args = parse_args()
 
-    slog.init_log(args.verbose, args.post_to_github,'check_updated_cases', 'check_updated', None)
+    slog.init_log(args.verbose, args.post_to_github,'check_updated_cases', 'check_updated_cases', None)
 
     base_path = args.dir_base
     log_file = 'export_measures.log'
@@ -135,8 +134,14 @@ def main():
     err_df = create_err_df(missing_logs, outdated_visits)
 
     # post error df to github or print to log
-    if ags.post_to_github:
-        pass
-    
+    curr_date = str(datetime.now().date())
+    for idx, row in err_df.iterrows():
+        header = "Checking " + str(row['File Path'])
+        error = row['Status']
+        slog.info(header,
+            error,
+            info="Consult with scan logs in Redcap to verify that scan instance exists. If not \
+                present in Redcap, remove scan.")
+
 if __name__ == "__main__":
     main()
