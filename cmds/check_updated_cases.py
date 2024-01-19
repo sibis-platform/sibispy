@@ -35,11 +35,14 @@ def is_within_update_window(num_days, file_data):
     diff = datetime.now() - file_date
     return diff.days <= num_days
 
-def check_update_history(visit_dirs, num_days, log_file):
+def check_update_history(args, visit_dirs, num_days, log_file):
     """
     Return list of export_measures log files that haven't been 
     updated within the window of number of days (from args)
     """
+    if args.verbose:
+        print(f"Checking that all logs present have been updated within {num_days} days.")
+
     out_of_update_window = []
     for visit in visit_dirs:
         log = visit / log_file
@@ -49,13 +52,16 @@ def check_update_history(visit_dirs, num_days, log_file):
                 out_of_update_window.append(log)
     return out_of_update_window
 
-def get_missing_log_dirs(visit_dirs, log_file):
+def get_missing_log_dirs(args, visit_dirs, log_file):
     """
     Given all visit dirs, pop out visits missing log files and return
     as seperate list, along with updated visit dir list.
     """
     visits_with_log = []
     visits_without_log = []
+
+    if args.verbose:
+        print("Finding all instances of missing log files.")
 
     for visit in visit_dirs:
         if not (visit / log_file).is_file():
@@ -80,7 +86,7 @@ def set_path_pattern(base_path: str) -> pathlib.Path:
         print(f"ERROR: Couldn't find cases w/ base: {base_path}")
         sys.exit(1)
 
-def get_visit_dirs(base_path):
+def get_visit_dirs(args, base_path):
     """
     Given base path to cases directory, return list of all visit dirs that 
     could potentially contain export_measures.log files
@@ -88,6 +94,9 @@ def get_visit_dirs(base_path):
     # get pattern to log file based on cases base
     pattern = set_path_pattern(base_path)
     base_path = pathlib.Path(base_path)
+
+    if args.verbose:
+        print(f"Searching for all visits in {base_path}")
 
     visits = base_path.glob(pattern)
     visits = [visit for visit in visits if visit.is_dir()]
@@ -122,26 +131,30 @@ def main():
     log_file = 'export_measures.log'
 
     # get all visit dirs in base_path
-    visit_dirs = get_visit_dirs(base_path)
+    visit_dirs = get_visit_dirs(args, base_path)
 
     # First store all directories that don't have an export measures.log file
-    visit_dirs, missing_logs = get_missing_log_dirs(visit_dirs, log_file)
+    visit_dirs, missing_logs = get_missing_log_dirs(args, visit_dirs, log_file)
 
     # then for all dirs that do have it, check the date it was last updated
-    outdated_visits = check_update_history(visit_dirs, args.time_window, log_file)
+    outdated_visits = check_update_history(args, visit_dirs, args.time_window, log_file)
 
     # create error dataframe that lists visits missing logs and those that are outdated
     err_df = create_err_df(missing_logs, outdated_visits)
 
-    # post error df to github or print to log
-    curr_date = str(datetime.now().date())
-    for idx, row in err_df.iterrows():
-        header = "Checking " + str(row['File Path'])
-        error = row['Status']
-        slog.info(header,
-            error,
-            info="Consult with scan logs in Redcap to verify that scan instance exists. If not \
-                present in Redcap, remove scan.")
+    if not err_df.empty:
+        if args.verbose:
+            print(f"Found {len(err_df)} instances of missing/outdated logs. Posting:")
+
+        # post error df to github or print to log
+        curr_date = str(datetime.now().date())
+        for idx, row in err_df.iterrows():
+            header = "Checking " + str(row['File Path']).replace(base_path +'/', '')
+            error = row['Status']
+            slog.info(header,
+                error,
+                info="Consult with scan logs in Redcap to verify that scan instance exists. If not \
+                    present in Redcap, remove scan.")
 
 if __name__ == "__main__":
     main()
