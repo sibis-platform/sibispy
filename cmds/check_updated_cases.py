@@ -119,9 +119,6 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    #TODO: 
-    # - add verbose printing of progress stages
-
     # take in the path to cases dir
     args = parse_args()
 
