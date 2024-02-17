@@ -10,9 +10,11 @@ import sys
 import pandas as pd
 import argparse
 import glob
+import re
 from datetime import datetime
 
 import sibispy
+from sibispy import utils as sutils
 from sibispy import sibislogger as slog
 
 def create_err_df(missing_logs, outdated_visits):
@@ -35,7 +37,7 @@ def is_within_update_window(num_days, file_data):
     diff = datetime.now() - file_date
     return diff.days <= num_days
 
-def check_update_history(args, visit_dirs, num_days, log_file):
+def check_update_history(args, visit_dirs, num_days, log_file, excluded_subjects, excluded_visits):
     """
     Return list of export_measures log files that haven't been 
     updated within the window of number of days (from args)
@@ -49,10 +51,41 @@ def check_update_history(args, visit_dirs, num_days, log_file):
         with log.open() as file:
             file_data = file.read()
             if not is_within_update_window(num_days, file_data):
-                out_of_update_window.append(log)
+                if not is_excluded(args, visit, excluded_subjects, excluded_visits):
+                    out_of_update_window.append(log)
     return out_of_update_window
 
-def get_missing_log_dirs(args, visit_dirs, log_file):
+def is_excluded(args, visit, excluded_subjects, excluded_visits):
+    """Returns true if the given visit or subject is excluded"""
+    if args.dir_base == '/fs/ncanda-share/cases':
+        match = re.search(r'NCANDA_S\d+', str(visit))
+        if match:
+            ncanda_s_number = match.group(0)
+        pid_res = sutils.ncanda_id_lookup(ncanda_s_number)
+        if pid_res:
+            pid = pid_res.rstrip('\n')
+        else:
+            print(f"Couldn't get pid for visit: {visit}")
+            return False
+        is_excluded_subject = any(item['study_id'] == pid for item in excluded_subjects)
+        excluded_visit = [item for item in excluded_visits if item['study_id'] == pid]
+        if is_excluded_subject:
+            return True
+        elif excluded_visit:# check that the visit is not ignored first
+            # determine if current visit is the one to be ignored
+            for ev in excluded_visit:
+                redcap_event = ev['redcap_event_name']
+                year_digit_match = re.search(r'(\d+)[y]', redcap_event)
+                if year_digit_match:
+                    year_digit = year_digit_match.group(1)
+                    curr_visit_year = ''.join(re.findall(r'\d', visit.parent.name))
+                    if curr_visit_year == year_digit:
+                        return True
+        return False
+    # TODO: implement hivalc check
+    return False
+
+def get_missing_log_dirs(args, visit_dirs, log_file, excluded_subjects, excluded_visits):
     """
     Given all visit dirs, pop out visits missing log files and return
     as seperate list, along with updated visit dir list.
@@ -65,11 +98,25 @@ def get_missing_log_dirs(args, visit_dirs, log_file):
 
     for visit in visit_dirs:
         if not (visit / log_file).is_file():
-            visits_without_log.append(visit)
+            # check if visit is from excluded subject
+            if not is_excluded(args, visit, excluded_subjects, excluded_visits):
+                visits_without_log.append(visit)
         else:
             visits_with_log.append(visit)
             
     return visits_with_log, visits_without_log
+
+def get_excluded(records):
+    """Drop visits where the visit or subject is marked as excluded"""
+    excluded_subjects = []
+    excluded_visits = []
+    for record in records:
+        if record['exclude'] not in ['', '0']:
+            excluded_subjects.append(record)
+        elif record['visit_ignore___yes'] == '1':
+            excluded_visits.append(record)
+
+    return excluded_subjects, excluded_visits
 
 def set_path_pattern(base_path: str) -> pathlib.Path:
     """Set path to log file depending on whether lab or ncanda data"""
@@ -124,17 +171,31 @@ def main():
 
     slog.init_log(args.verbose, args.post_to_github,'check_updated_cases', 'check_updated_cases', None)
 
+    session = sibispy.Session()
+    if not session.configure():
+        if args.verbose:
+            print("Error: session configure file was not found")
+        sys.exit(1)
+
+    data_entry = session.connect_server('data_entry')
+    records = data_entry.export_records(fields=['study_id', 'exclude', 'visit_ignore', 'mri_xnat_sid'])
+
+    excluded = [record for record in records if record['exclude'] == '1' or record['visit_ignore___yes'] == '1']
+
     base_path = args.dir_base
     log_file = 'export_measures.log'
 
     # get all visit dirs in base_path
     visit_dirs = get_visit_dirs(args, base_path)
 
+    # drop visit dirs for excluded subjects / visits
+    excluded_subjects, excluded_visits = get_excluded(records)
+
     # First store all directories that don't have an export measures.log file
-    visit_dirs, missing_logs = get_missing_log_dirs(args, visit_dirs, log_file)
+    visit_dirs, missing_logs = get_missing_log_dirs(args, visit_dirs, log_file, excluded_subjects, excluded_visits)
 
     # then for all dirs that do have it, check the date it was last updated
-    outdated_visits = check_update_history(args, visit_dirs, args.time_window, log_file)
+    outdated_visits = check_update_history(args, visit_dirs, args.time_window, log_file, excluded_subjects, excluded_visits)
 
     # create error dataframe that lists visits missing logs and those that are outdated
     err_df = create_err_df(missing_logs, outdated_visits)

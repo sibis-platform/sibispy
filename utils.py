@@ -2,6 +2,7 @@ from __future__ import print_function
 # General Util functions
 from builtins import str
 from sibispy import sibislogger as slog
+import sibispy
 import subprocess
 import re
 import tempfile
@@ -221,3 +222,47 @@ def objwalk(obj, path=(), memo=None):
             memo.remove(id(obj))
     else:
         yield path, obj
+
+
+def ncanda_id_lookup(base_id, print_keys=False):
+    """
+    Given an NCANDA ID, convert between site ids and case ids.
+    Returns as a string and only accepts one id at a time.
+    """
+    session = sibispy.Session()
+    session.configure()
+
+    ifc = session.connect_server('xnat', True)
+    if not ifc:
+        print("Error: could not connect to xnat server!") 
+        sys.exit()
+
+    # check if given ncanda s number:
+    match = re.search(r'NCANDA_S\d+', base_id)
+    if match:
+        search_field = 'xnat:subjectData/SUBJECT_ID'
+        result_idx = 2
+    else:
+        search_field = 'xnat:subjectData/SUBJECT_LABEL'
+        result_idx = 0
+
+    fields_per_subject = ['xnat:subjectData/SUBJECT_ID',
+                          'xnat:subjectData/PROJECT',
+                          'xnat:subjectData/SUBJECT_LABEL']
+    output = ""
+    pattern = (search_field, 'LIKE', '%' + base_id + '%')
+    subjects = list(ifc.search('xnat:subjectData',
+                            fields_per_subject).where([pattern]).items())
+    if print_keys:
+        if len(subjects) > 0:
+            fmt = '{0},{1}'
+            res = [fmt.format(base_id,
+                                record[result_idx]) for record in subjects]
+            output += '\n'.join(res)
+        else:
+            output += ''.join(base_id + ',\n')
+    else:
+        res = ['{0}\n'.format(record[result_idx]) for record in subjects]
+        output += ''.join(res)
+    return output
+
