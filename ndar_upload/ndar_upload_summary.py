@@ -272,9 +272,9 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         "--sibis_general_config",
         help="Path of sibis-general-config.yml **in the current context**. Relevant if this is "
         "run in a container and the cases directory is mounted to a different "
-        "location. Defaults to ~/.sibis/.sibis-general-config.yml.",
+        "location. Defaults to /fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml.",
         type=is_file,
-        default="~/.sibis/.sibis-general-config.yml",
+        default="~/fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml",
     )
     # config_args.add_argument(
     #     "--project",

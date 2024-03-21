@@ -56,7 +56,7 @@ class config_file_parser(object):
             if env:
                 self.__config_file = env
             else:
-                self.__config_file = os.path.join(os.path.expanduser('~'), '.sibis-general-config.yml')
+                self.__config_file = os.path.join(*'/fs/storage/share/operations/secrets/.sibis/'.split('/'), '.sibis-general-config.yml')
 
         try:
             with open(self.__config_file, 'r') as fi:

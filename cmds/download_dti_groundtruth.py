@@ -18,7 +18,7 @@ from sibispy import check_dti_gradients as chk
 
 if sys.argv.__len__() < 3 :
     print("run with two arugments <sibis-config-file> <scp log in>")
-    print("./download_dti_groundtruth ~/.sibis-general-config.yml blub@blubber.com") 
+    print("./download_dti_groundtruth /fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml blub@blubber.com")
     sys.exit(1)
     
 config_file = sys.argv[1]

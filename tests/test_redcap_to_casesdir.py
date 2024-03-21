@@ -85,7 +85,7 @@ def test_save_form_to_file(name_of_form):
 # do not run via pytest but simply the command directly 
 #
 specific_subject=None
-config_file = os.path.join(os.path.expanduser("~"),'.sibis-general-config.yml')
+config_file = os.path.join(*'/fs/storage/share/operations/secrets/.sibis/'.split('/'), '.sibis-general-config.yml')
 if sys.argv.__len__() > 1 :
     config_file = sys.argv[1]
     # execute for a specific subject, e.g. B-00000-M-6

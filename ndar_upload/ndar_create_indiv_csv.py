@@ -931,7 +931,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     config_args = p.add_argument_group('Config', 'Config args regardless of source (enter first before source)')
     config_args.add_argument(
         '--config', help="SIBIS General Configuration file",
-        type=is_file("config", os.X_OK), default="~/.sibis-general-config.yml"
+        type=is_file("config", os.X_OK), default="/fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml"
     )
     config_args.add_argument(
         '--sys_config', help="SIBIS System Configuration file",

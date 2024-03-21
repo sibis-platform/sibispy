@@ -5,7 +5,8 @@ import os, yaml
 
 def pytest_addoption(parser):
     sibis = parser.getgroup('sibis', description='SIBIS specific test options', after='usage')
-    sibis.addoption("--config-file", action="store", default=os.path.expanduser("~/.sibis-general-config.yml"),
+    sibis.addoption("--general-config-file", dest="config_file", action="store",
+                    default=os.path.join(*"/fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml".split('/')),
                     help="Path to SIBIS General Configuration File")
     sibis.addoption("--cluster-job", action="store_true", default=False, help="Running as cluster job")
     sibis.addoption("--enable-special", nargs="*", choices=['sample_session', 'default_general_config'])
