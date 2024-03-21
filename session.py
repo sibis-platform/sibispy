@@ -1003,19 +1003,19 @@ class Session(object):
     def get_event_descrip_from_redcap_event_name(self, redcap_event_name: str):
         if redcap_event_name == "submission_4_inper_arm_6":
             return "Submission 4 In-person"
-        visit_regex = "(recovery_baseline)|(recovery_daily_\d*)|(recovery_weekly_\d)|(recovery_final)|(baseline_night_\d)|(\d*y_visit_night_\d)|(\d*y_visit)|(baseline_visit)|(\d*month_followup)|(submission_\d)"
+        visit_regex = r"(recovery_baseline)|(recovery_daily_\d*)|(recovery_weekly_\d)|(recovery_final)|(baseline_night_\d)|(\d*y_visit_night_\d)|(\d*y_visit)|(baseline_visit)|(\d*month_followup)|(submission_\d)"
         visit_match = re.match(visit_regex, redcap_event_name)
         if visit_match is None:
             raise ValueError(f"No matching visit for {redcap_event_name}")
         visit = visit_match.group()
 
-        month_match = re.match("(\d*)month_followup", visit)
+        month_match = re.match(r"(\d*)month_followup", visit)
         if month_match:
             visit = month_match.group(1)  # '66month_followup' -> '66'
             event_descrip = visit + "-month follow-up"  # -> "66-month follow-up'
             return event_descrip
 
-        yearly_standard_match = re.match("(\d*y)_visit$", visit)
+        yearly_standard_match = re.match(r"(\d*y)_visit$", visit)
         if yearly_standard_match:
             year = yearly_standard_match.group(1)  # '7y_visit' -> '7y'
             event_descrip = year + " visit"  # -> '7y visit'
@@ -1044,7 +1044,7 @@ class Session(object):
         # subject_id: e.g. B-00002-F-2
         # name_of_form: e.g. stroop
         # To replace formatted args, do formattable_address % (subject_id, form_name)
-        arm_match = re.search("arm_(\d*)", redcap_event_name)
+        arm_match = re.search(r"arm_(\d*)", redcap_event_name)
         if arm_match is None:
             raise ValueError(f"No arm for {redcap_event_name}")
         arm_num = int(arm_match.group(1))
