@@ -447,7 +447,10 @@ def copy_visits(path_to_visits, visits, destination_path):
     for visit in visits:
         visit_path = path_to_visits / visit
         logging.info(f"Copying {visit_path} to {destination_path}")
-        shutil.copytree(str(visit_path), str(destination_path / visit.name), dirs_exist_ok=True)
+        if isinstance(visit, str):
+            shutil.copytree(str(visit_path), str(destination_path / visit), dirs_exist_ok=True)
+        else:
+            shutil.copytree(str(visit_path), str(destination_path / visit.name), dirs_exist_ok=True)
         logging.info("Copying complete.")
 
 def delete_visits(path_to_visits: pathlib.Path, visits: list):
