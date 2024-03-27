@@ -538,7 +538,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
     )
 
     # HIVALC Specific Args
-    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
+    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, hiv, ncanda]')
     mci_cb_parser = subparsers.add_parser('mci_cb')
     mci_cb_parser.add_argument(
         "--visits",

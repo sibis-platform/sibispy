@@ -334,9 +334,10 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         help='Timeout in seconds until the program errors out with an error. Default=300s'
     )
 
-    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
+    subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, hiv, ncanda]')
     mci_cb_parser = subparsers.add_parser('mci_cb')
     cns_deficit_parser = subparsers.add_parser('cns_deficit')
+    hiv_parser = subparsers.add_parser('hiv')
     
     # specific ncanda parser for followup year of values to be uploaded
     ncanda_parser = subparsers.add_parser('ncanda')
