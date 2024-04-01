@@ -19,7 +19,7 @@ from sibispy import redcap_locking_data
 if sys.argv.__len__() > 1 : 
     config_file = sys.argv[1]
 else :
-    config_file = os.path.join(*'/fs/storage/share/operations/secrets/.sibis/'.split('/'), '.sibis-general-config.yml')
+    config_file = os.path.join('/', *'/fs/storage/share/operations/secrets/.sibis/'.split('/'), '.sibis-general-config.yml')
 
 slog.init_log(False, False,'test_redcap_locking_data', 'test_redcap_locking_data',None)
 

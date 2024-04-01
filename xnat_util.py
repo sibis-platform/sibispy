@@ -220,7 +220,7 @@ class XNATSessionElementUtil(object):
 
 
 
-default_config = os.path.join(*"/fs/storage/share/operations/secrets/.sibis/".split('/'), ".sibis-general-config.yml")
+default_config = os.path.join('/', *'/fs/storage/share/operations/secrets/.sibis/'.split('/'), '.sibis-general-config.yml')
 
 def get_xnat_util(config=default_config):
   util = None
