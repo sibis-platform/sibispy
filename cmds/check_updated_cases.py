@@ -3,6 +3,10 @@
 """
 Given a path to a cases directory, will search for all instances
 of the export measures log file and check which ones haven't been updating.
+
+This script is assumed to be ran post full export_measures run.
+If export_measures hasn't been run within the last 7 days, override the 
+default expected time window via the -t, --time_window argument.
 """
 
 import os
