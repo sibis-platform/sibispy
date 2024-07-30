@@ -11,11 +11,12 @@ alterations required.
 
 This script is to be executed after the summary_csv creation step has been ran.
 
-Example function call:
+Example function call: ./ndar_update_cumul_files.py -v --project mci_cb
 """
 
 import os
 import sys
+import csv
 import yaml
 import pathlib
 import argparse
@@ -23,7 +24,7 @@ import pandas as pd
 from pandas.errors import EmptyDataError
 from typing import List, Dict
 
-def update_curr_data(to_be_uploaded_dir: pathlib.Path, past_data: Dict):
+def update_curr_data(args, to_upload_dir: pathlib.Path, past_data: Dict):
     """
     Given location of current data to be uploaded and the dictionary of all past
     subject data organized via form key, check each form for any that are missing
@@ -31,12 +32,24 @@ def update_curr_data(to_be_uploaded_dir: pathlib.Path, past_data: Dict):
     If a subject is found as missing from current upload, it will be appended to the
     summary file set to be uploaded.
     """
-    # TODO:
 
+    for form in past_data.keys():
+        # get list of past subjects to be added to current upload
+        past_df = past_data[form]
+        prev_uploaded_subjects = past_df['subjectkey'].to_list()
+        to_upload_file = to_upload_dir / form
+        to_upload_df = pd.read_csv(to_upload_file, skiprows=1)
+        to_upload_subjects = to_upload_df['subjectkey'].to_list()
+        subjects_to_add = [s for s in prev_uploaded_subjects if s not in to_upload_subjects]
 
-    return updated_data
+        # Append past data to current file to be uploaded
+        prev_subjects_data = past_df[past_df['subjectkey'].isin(subjects_to_add)]
+        prev_subjects_data.to_csv(to_upload_file, mode='a', header=False, index=False, quoting=csv.QUOTE_NONNUMERIC, date_format='%m/%d/%Y')
 
-def get_past_data(non_imaging_files: List, prev_upload_dir: pathlib.Path, full_history: bool) -> Dict:
+        if args.verbose:
+            print(f"INFO: Finished updating {form}, added {len(subjects_to_add)} past subjects data")
+
+def get_past_data(args, non_imaging_files: List, prev_upload_dir: pathlib.Path) -> Dict:
     """
     Given a list of non-imaging files, the path to the previous uploaded dir, and the exent of
     past upload history to include, return a dictionary of past data.
@@ -45,38 +58,42 @@ def get_past_data(non_imaging_files: List, prev_upload_dir: pathlib.Path, full_h
     """
     past_data = {}
 
-    for file_type in non_imaging_files:
-        if full_history:
-            dfs = []
-            # if all past upload history needed, collect data from all previous upload directories
-            for child_directory in prev_upload_dir.iterdir():
-                if child_directory.is_dir():
-                    file_path = child_directory / file_type.name
-                    if file_path.exists():
-                        try:
-                            df = pd.read_csv(file_path, skiprows=1)
-                        except EmptyDataError:
-                            # if file is empty, skip
-                            continue
+    if args.verbose:
+        print("INFO: Searching full previous upload history")
 
-                        df.set_index(['subjectkey', 'interview_date'], inplace=True)
-                        dfs.append(df)
-                        
-            # Concatenate all DataFrames into a single DataFrame
-            if dfs:
-                combined_df = pd.concat(dfs)
-                past_data[file_type.name] = combined_df
-            else:
-                raise FileNotFoundError("No files found.")
+    for file_type in non_imaging_files:
+        dfs = []
+        # if all past upload history needed, collect data from all previous upload directories
+        for child_directory in prev_upload_dir.iterdir():
+            if child_directory.is_dir():
+                file_path = child_directory / file_type.name
+                if file_path.exists():
+                    try:
+                        df = pd.read_csv(file_path, skiprows=1)
+                    except EmptyDataError:
+                        # if file is empty, skip
+                        continue
+
+                    df.set_index(['subjectkey', 'interview_date'], inplace=True)
+                    dfs.append(df)
+                    
+        # Concatenate all DataFrames into a single DataFrame
+        if dfs:
+            combined_df = pd.concat(dfs)
+            past_data[file_type.name] = combined_df
         else:
-            # only get most recently uploaded dir data
-            # TODO: Not sure if the approach of only getting most recent dir is useful or not...
-            continue
+            raise FileNotFoundError("No files found.")
+
+    if args.verbose:
+        print("INFO: Selecting most recent data for all subjects in window.")
 
     # for each dataframe, make sure there is only the most recently uploaded data per subject
     for file_name, df in past_data.items():
-        # Reset index to make 'subjectkey' and 'interview_date' columns
+        # Reset index to make 'subjectkey' and 'interview_date' columns and put date to 3rd col
         df_reset = df.reset_index()
+        cols = df_reset.columns.tolist()
+        cols.insert(2, cols.pop(cols.index('interview_date')))
+        df_reset = df_reset[cols]
 
         # Convert 'interview_date' to datetime
         df_reset['interview_date'] = pd.to_datetime(df_reset['interview_date'], format='%m/%d/%Y')
@@ -89,16 +106,19 @@ def get_past_data(non_imaging_files: List, prev_upload_dir: pathlib.Path, full_h
     return past_data
 
 
-def get_relevant_files(files_to_validate) -> List:
+def get_relevant_files(args, files_to_validate) -> List:
     """
     Given all files to validate for the project (list of paths), return list of non-imaging files that 
     should be cumulative.
     """
     non_imaging_files = [f for f in files_to_validate if "image03.csv" not in f.name]
+    if args.verbose:
+        print(f"INFO: Non-imaging files to update: {non_imaging_files}")
+
     return non_imaging_files
 
 
-def get_summ_dirs(staging_path: pathlib.Path) -> tuple:
+def get_summ_dirs(args, staging_path: pathlib.Path) -> tuple:
     """
     Given staging path from the sibis-general-config file,
     determine and return the locations of both the previously uploaded summary file
@@ -110,6 +130,9 @@ def get_summ_dirs(staging_path: pathlib.Path) -> tuple:
     if not prev_upload_dir.is_dir() or not to_be_uploaded_dir.is_dir():
         print(f"ERROR: Uploaded dir ({prev_upload_dir}) or summary dir ({to_be_uploaded_dir}) doesn't exist, exiting.")
         sys.exit(1)
+
+    if args.verbose:
+        print(f"INFO: Set uploaded path: {prev_upload_dir} and current summaries path: {to_be_uploaded_dir}")
 
     return to_be_uploaded_dir, prev_upload_dir
 
@@ -135,15 +158,16 @@ def _parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-v", "--verbose",
+        help="Verbose output of script progress",
+        required=False, action="store_true"
+    )
+
+    parser.add_argument(
         "--project", help="Enter project name of summary files to be updated (cns_deficit, mci_cb, etc.)",
         required=True, type=str 
     )
 
-    parser.add_argument(
-        "-f", "--full_history", 
-        help="Check all previosuly uploaded files for subject data. Useful for initial cumulation.",
-        required=False, action="store_true"
-    )
     args = parser.parse_args()
     return args
 
@@ -171,18 +195,16 @@ def main():
     staging_path, data_path, consent_path, files_to_validate, data_dict_path = mappings.get_paths_from_config(args, project_config)
 
     # For the given project, get the current and previous data dirs
-    to_be_uploaded_dir, prev_upload_dir = get_summ_dirs(staging_path)
+    to_be_uploaded_dir, prev_upload_dir = get_summ_dirs(args, staging_path)
     
     # Get list of relevant non_imaging files to check
-    non_imaging_files = get_relevant_files(files_to_validate)
+    non_imaging_files = get_relevant_files(args, files_to_validate)
 
     # Gather relevant past uploaded data for each non-imaging file type
-    past_data = get_past_data(non_imaging_files, prev_upload_dir, args.full_history)
+    past_data = get_past_data(args, non_imaging_files, prev_upload_dir)
 
     # Compare and update current data to be uploaded
-    updated_data = update_curr_data(to_be_uploaded_dir, past_data)
-
-
+    update_curr_data(args, to_be_uploaded_dir, past_data)
 
 if __name__ == "__main__":
     main()
