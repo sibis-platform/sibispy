@@ -1,5 +1,28 @@
 #!/bin/bash
 
+POSITIONAL=()
+MARKERS=""
+AND=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --no)
+      MARKERS+="${AND}not $2"
+      AND=" and "
+      shift
+      shift
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${POSITIONAL[@]}"
+
+if [ ! -z "$MARKERS" ]; then
+  MARKERS="-m \"$MARKERS\""
+fi
+echo $MARKERS
 SRC_DIR=`dirname "$0"`
 TEST_DIR=`cd $SRC_DIR; echo $PWD | rev | cut -d'/' -f2- | rev`/tests
 
@@ -15,7 +38,7 @@ for TEST in ${MODERN_TESTS[@]}; do
   echo "========================="
   echo "==== $CMD" 
   echo "========================="
-  $CMD | tee -a $logFile
+  eval "$CMD" | tee -a $logFile
 done 
 
 echo " " 

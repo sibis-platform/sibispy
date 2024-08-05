@@ -61,6 +61,7 @@ def test_sibis_email(email_adr):
 #
 # Test subclass 
 #
+@pytest.mark.xnat
 def test_sibis_email_subclass(session):
     xnat_util = session.connect_server('xnat')
     xmail = sibis_email.xnat_email(session)

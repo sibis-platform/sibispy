@@ -956,6 +956,10 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
        '--visit', help="The Visit ID, usually <visit>_<scan_id>",
         type=str, required=True,
     )
+    hivalc_parser.add_argument(
+        '--arm', help='Arm location of scan',
+        type=str, required=True,
+    )
 
     # NCANDA Specific args
     ncanda_parser = subparsers.add_parser('ncanda', help='Ncanda CSV Creation')
@@ -996,6 +1000,7 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
             if ns.source == 'hivalc':
                 fmt_env = {
                     "subject": ns.subject,
+                    "arm": ns.arm,
                     "visit": ns.visit
                 }
                 fmt_env.update(gen_cfg)

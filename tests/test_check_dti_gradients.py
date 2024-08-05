@@ -35,6 +35,7 @@ def slog():
     return slog
 
 
+@pytest.mark.xnat
 def test_check_dti_gradients(session, slog):
 
     check = chk.check_dti_gradients()

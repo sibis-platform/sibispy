@@ -34,14 +34,14 @@ makeImage03 () {
 # 3: upload dir (optional)
 upload_to_ndar() {
     ndar_csv_temp_dir=$1 
+    arm_dir=$2
     SUBJECT_VISIT=`echo $ndar_csv_temp_dir | rev | cut -d'/' -f1 | rev`
     subject_dir=`echo $SUBJECT_VISIT | cut -d'_' -f1-2`
-    arm_dir=standard
     visit_dir=`echo $SUBJECT_VISIT | cut -d'_' -f3-`
     year_month=${visit_dir:0:6}
 
-    cases_dir=${2:-/fs/cases}
-    ndar_dir=${3:-/fs/upload2ndar}
+    cases_dir=${3:-/fs/cases}
+    ndar_dir=${4:-/fs/upload2ndar}
 
     complete_dir=$cases_dir/$subject_dir/$arm_dir/$visit_dir  
     if [ ! -e $complete_dir/redcap ]; then 

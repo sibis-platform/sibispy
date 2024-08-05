@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-This script retrieves the sibis-general-config from either the passed location or ~/.sibis/.sibis-general-config if no location is passed. From this, it extracts three locations:
+This script retrieves the sibis-general-config from either the passed location or /fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml if no location is passed. From this, it extracts three locations:
 - staging_path, containing folders for the visits to be moved based on their validation and consent status
 - consent_path, where consent is found
 - data_path, where the actual visits reside

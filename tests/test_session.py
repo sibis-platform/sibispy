@@ -110,11 +110,13 @@ def test_config_sys_parser(session):
 
 
 @pytest.mark.parametrize("api_type", ["svn_laptop"])
+@pytest.mark.svn_laptop
 def test_connect_server(session, api_type):
     connection = session.connect_server(api_type)
     assert connection != None, "Expected to have a connection"
 
 
+@pytest.mark.xnat
 def test_session_xnat_export_general(session, slog):
     project = "xnat"
     server = session.connect_server(project, True)
@@ -138,7 +140,7 @@ def test_session_xnat_export_general(session, slog):
     for (session_id, session_subject_id, projects, date, scanner) in xnat_sessions_list:
         xnat_sessions_dict[session_id] = (date, scanner, projects)
 
-
+@pytest.mark.svn_laptop
 def test_session_api_svn_laptop(session, config):
     laptop_cfg = config["svn_laptop"]
     if laptop_cfg == None:
@@ -169,6 +171,7 @@ def test_session_api_svn_laptop(session, config):
     assert connected_client == client, "Clients should be the same object"
 
 
+@pytest.mark.svn_laptop
 def test_session_connect_server_info(session):
     connected_client = session.connect_server("svn_laptop")
     svn_info = connected_client.info()
@@ -178,6 +181,7 @@ def test_session_connect_server_info(session):
     ), "SVN Working directories should match."
 
 
+@pytest.mark.xnat
 def test_session_xnat_non_empty_query(slog, config_file, session):
     project = "xnat"
     server = session.connect_server(project, True)
@@ -219,7 +223,7 @@ def test_session_xnat_non_empty_query(slog, config_file, session):
         searchResult != None
     ), "Error: session.xnat_export_general: Test returned empty record"
 
-
+@pytest.mark.xnat
 def test_session_xnat_get_experiment(slog, config_file, session, config_test_data):
     project = "xnat"
     server = session.connect_server(project, True)
@@ -272,7 +276,7 @@ def test_session_xnat_get_experiment(slog, config_file, session, config_test_dat
             RuntimeWarning("Warning: Skipping XNAT uri test as it is not defined")
         )
 
-
+@pytest.mark.xnat
 def test_session_xnat_stress_test(slog, config_file, session, config_test_data):
     project = "xnat"
     client = session.connect_server(project, True)
@@ -303,7 +307,7 @@ def test_session_xnat_stress_test(slog, config_file, session, config_test_data):
             RuntimeWarning("Warning: Skipping XNAT stress test as it is not defined")
         )
 
-
+@pytest.mark.xnat
 def test_session_xnat_failed_query(slog, config_file, session, config_test_data):
     project = "xnat"
     server = session.connect_server(project, True)
@@ -383,12 +387,14 @@ def test_session_xnat_failed_query(slog, config_file, session, config_test_data)
     assert response[0] != None, "Expected response, got Nothing."
 
 
+@pytest.mark.xnat
 def test_session_xnat_session_address(slog, session):
     experiment_id = "NCANDA_E00000"
     test_link = f"{session.get_xnat_server_address()}/data/experiments/{experiment_id}?format=html"
     assert session.get_xnat_session_address(experiment_id, "html") == test_link
 
 
+@pytest.mark.xnat
 def test_session_xnat_search(slog, config_file, session, config_test_data):
 
     client = session.connect_server("xnat", True)
@@ -408,6 +414,8 @@ def test_session_xnat_search(slog, config_file, session, config_test_data):
     assert subject_project_list != None, "Search result should not be None."
 
 
+@pytest.mark.redcap_db
+@pytest.mark.redcap_data_entry
 def test_session_event_descrip_from_redcap_event_name(slog, session):
     session.connect_server("data_entry", True)
     session.connect_server("redcap_mysql_db", True)
@@ -433,6 +441,7 @@ def test_session_event_descrip_from_redcap_event_name(slog, session):
         ), f"{event_descrip} incorrect event descrip for {redcap_event_name}"
 
 
+@pytest.mark.redcap_data_entry
 def test_session_formattable_redcap_form_address(slog, session):
     session.configure(ordered_config_load_flag=True)
     redcap_project = session.connect_server("data_entry", True)
@@ -475,6 +484,7 @@ def test_session_formattable_redcap_form_address(slog, session):
     assert complete_address == test_link
 
 
+@pytest.mark.redcap_data_entry
 def test_session_formattable_redcap_subject_address(slog, session):
     redcap_project = session.connect_server("data_entry", True)
     assert redcap_project, "Failed to connect to data_entry"
@@ -505,6 +515,7 @@ def penncnp_cleanup(session):
     session.disconnect_penncnp()
 
 
+@pytest.mark.browser_penncnp
 def test_session_browser_penncnp(
     slog, config_file, session, config_test_data, penncnp_cleanup
 ):
@@ -523,6 +534,7 @@ def test_session_browser_penncnp(
         ), "Error: could not export report."
 
 
+@pytest.mark.browser_penncnp
 def test_penncnp_exits(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = "browser_penncnp"
     with session.connect_server(project, True) as server:

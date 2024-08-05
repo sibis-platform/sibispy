@@ -127,8 +127,7 @@ class redcap_compute_summary_scores(object):
         else : 
             record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
 
-         # ensure record_ids are strings
-        # import pdb; pdb.set_trace()
+        # ensure record_ids are strings
         ridx = record_ids.index
         if ridx.get_level_values(0).dtype != np.dtype(np.object):
             record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])

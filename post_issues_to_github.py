@@ -299,7 +299,7 @@ def connect_to_github(config_file=None,verbose=False):
     config_data = cfg_parser.config_file_parser()
     err_msg = config_data.configure(config_file)
     if err_msg:
-        print("Error:post_issues_to_github: Reading config file " + config_file + " (parser tried reading: " + config_data.get_config_file() + ") failed: " + str(err_msg))
+        print("Error:post_issues_to_github: Reading config file " + str(config_file) + " (parser tried reading: " + config_data.get_config_file() + ") failed: " + str(err_msg))
 
         return None
 

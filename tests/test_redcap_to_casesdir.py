@@ -99,7 +99,7 @@ session = sibispy.Session()
 assert(session.configure(config_file=config_file,ordered_config_load_flag = True))
 
 redcap_project = session.connect_server('data_entry', True)
-assert(redcap_project)
+assert redcap_project, "ERROR: No redcap_project for 'data_entry'"
 form_key = session.get_redcap_form_key()
 
 red2cas = r2c.redcap_to_casesdir()
