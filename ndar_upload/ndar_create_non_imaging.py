@@ -144,8 +144,10 @@ def convert_to_nda_format(raw_ndar_values, new_df_col):
             return formatted_vals
         elif target_dtype == 'Int64':
             # Convert to nullable integer
-            return raw_ndar_values.apply(lambda val: safe_int_conv(val)).astype('Int64')
-            # return pd.to_numeric(raw_ndar_values, errors='coerce').astype('Int64')
+            if src_dtype == 'object':
+                return pd.to_numeric(raw_ndar_values, errors='coerce').astype('Int64')
+            else:
+                return raw_ndar_values.apply(lambda val: safe_int_conv(val)).astype('Int64')
         elif target_dtype == 'Float64':
             # Convert to float
             return pd.to_numeric(raw_ndar_values, errors='coerce').astype('float')
@@ -215,7 +217,7 @@ def write_ndar_files(staging_path, target_dfs):
 
 def gen_target_dfs(src_dfs: dict, target_data_specs: dict):
     """
-    Given a dict of source data dataframes (NCANDA format) and a dict of target data
+    Given a dict of source data dataframes (src format) and a dict of target data
     mappings and definitions files (NDAR format), create a df for each target file and 
     convert source data to match target specifications
     """
@@ -240,8 +242,8 @@ def gen_target_dfs(src_dfs: dict, target_data_specs: dict):
         new_df = new_df.astype(column_dtypes)
 
         for col in new_df.columns:
-            if col in mappings.ncanda_to_ndar_map:
-                conversion_func = mappings.ncanda_to_ndar_map.get(col)
+            if col in mappings.src_to_ndar_map:
+                conversion_func = mappings.src_to_ndar_map.get(col)
                 if 'fill_rows' in conversion_func:
                     # we can assume that fill_rows sets datatype correctly
                     converted_vals = eval(conversion_func)
@@ -252,29 +254,29 @@ def gen_target_dfs(src_dfs: dict, target_data_specs: dict):
                 if ndar_file == 'ndar_subject01':
                     continue
 
-                # Check if there is a direct match between ncanda and ndar values
+                # Check if there is a direct match between src and ndar values
                 row = mappings_df[mappings_df['NDA_ElementName'] == col]
                 try:
-                    ncanda_var = row['ncanda_variable'].values[0]
-                    ncanda_csv = row['ncanda_csv'].values[0]
-                    if pd.isna(ncanda_var):
-                        # Leave target variables empty that don't have an NCANDA variable match
+                    src_var = row['src_variable'].values[0]
+                    src_csv = row['src_csv'].values[0]
+                    if pd.isna(src_var):
+                        # Leave target variables empty that don't have an src variable match
                         continue
                     else:
-                        if pd.isna(ncanda_csv):
-                            print(f"WARNING: Found matched NCANDA Var '{ncanda_var}' without a source csv listed in {ndar_file} mappings. Leaving blank.")
+                        if pd.isna(src_csv):
+                            print(f"WARNING: Found matched src Var '{src_var}' without a source csv listed in {ndar_file} mappings. Leaving blank.")
                             continue
                         else:
                             try:
                                 # Copy direct match src vars to target df
-                                target_vals = src_dfs[ncanda_csv][ncanda_var]
+                                target_vals = src_dfs[src_csv][src_var]
                                 # Test if they need to be reverse scored
                                 if test_reverse(row):
                                     target_vals = reverse_vals(target_vals, row, definitions_df)
 
                                 new_df[col] = convert_to_nda_format(target_vals, new_df[col])
                             except KeyError as e:
-                                print(f"ERROR: Failed to get target vals for {ncanda_var} from {ncanda_csv}")
+                                print(f"ERROR: Failed to get target vals for {src_var} from {src_csv}")
                                 continue
 
                 except IndexError as e:
@@ -458,11 +460,11 @@ def main():
         globals()['mappings'] = __import__('hivalc_mappings')
 
     # Set file paths for specific run from config path templates
-    consent_path, staging_path, src_data_path, files_to_validate, data_dict_path = mappings.get_paths_from_config(args, config_data)
+    consent_path, staging_path, src_data_path, files_to_validate, data_dict_path, upload2ndar_path = mappings.get_paths_from_config(args, config_data)
 
     # Get list of all available visits who have consent
-    visit_list = mappings.get_visit_list(consent_path)
-    print(f"INFO: Found {len(visit_list)} visits to include in submission package.")
+    subj_list = mappings.get_subj_list(args, consent_path)
+    print(f"INFO: Found {len(subj_list)} subjects eligible to include in submission package.")
 
     # Pull all subject data from source data summary files
     raw_subj_dfs = {}
@@ -478,7 +480,7 @@ def main():
     raw_subj_dfs = mappings.add_additional_src_data(raw_subj_dfs, src_data_path)
     
     # Filter source data so it only contains data for this run
-    src_dfs = mappings.filter_raw_dfs(args, raw_subj_dfs, visit_list)
+    src_dfs = mappings.filter_raw_dfs(args, raw_subj_dfs, subj_list, src_data_path, staging_path)
 
     # Make sure that every src df has every subject and every visit desired
     src_dfs = fill_src_dfs(src_dfs)

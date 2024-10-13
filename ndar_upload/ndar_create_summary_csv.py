@@ -247,11 +247,11 @@ def main():
     consent_path, staging_path, src_data_path, files_to_validate, data_dict_path, upload2ndar_path = mappings.get_paths_from_config(args, config)
 
     # Get list of all available visits who have consent
-    visit_list = mappings.get_visit_list(consent_path)
-    logging.info(f"INFO: Found {len(visit_list)} visits to include in submission package.")
+    subj_list = mappings.get_subj_list(args, consent_path)
+    logging.info(f"INFO: Found {len(subj_list)} eligible subjects to include in submission package.")
 
     # Filter visit list to visits for this upload
-    filtered_visit_list = mappings.filter_visit_list(args, visit_list, upload2ndar_path)
+    filtered_visit_list = mappings.filter_visit_list(args, subj_list, upload2ndar_path)
     logging.info(f"INFO: Post filtering event count to upload: {len(filtered_visit_list)}")
 
     # Generate list of imaging modalities to include
