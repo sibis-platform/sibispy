@@ -393,11 +393,11 @@ class redcap_to_casesdir(object):
             else:
                 ndar_guid_id = subject_data['ndar_guid_id']
             
-            ndar_consent = re.sub('(.0)|(nan)', '', str(subject_data['ndar_consent']))
-            ndar_guid_anomaly = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly']))
-            ndar_guid_anomaly_visit = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_anomaly_visit']))
-            ndar_guid_aud_dx_followup = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_followup']))
-            ndar_guid_aud_dx_initial = re.sub('(.0)|(nan)', '', str(subject_data['ndar_guid_aud_dx_initial']))
+            ndar_consent = re.sub(r'\.0$|nan', '', str(subject_data['ndar_consent']))
+            ndar_guid_anomaly = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_anomaly']))
+            ndar_guid_anomaly_visit = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_anomaly_visit']))
+            ndar_guid_aud_dx_followup = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_aud_dx_followup']))
+            ndar_guid_aud_dx_initial = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_aud_dx_initial']))
             
             # convert visit date from YYYY-MM-DD to MM/YYYY
             if pandas.isnull(visit_data['visit_date']):
