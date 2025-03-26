@@ -277,7 +277,6 @@ class check_dti_gradients(object):
                       scan = scan_id)
 
             return False
-
         truth_gradient = self._get_ground_truth_gradients_(self.__cases_dir, manufacturer,scanner_model,sequence_label)
         if len(truth_gradient) == 0 :
             slog.info(session_label,
@@ -341,8 +340,8 @@ class check_dti_gradients(object):
             slog.info(session_label,
                       "Errors in gradients of " + sequence_label + " after comparing with ground_truth.",
                       frames=str(errorsFrame),
-                      actualGradients=str(errorsActual),
-                      expectedGradients=str(errorsExpected),
+                      actualGradients=str(errorsActual).replace("),", ")\n"),
+                      expectedGradients=str(errorsExpected).replace("),", ")\n"),
                       sumError=str(errorsAbsDiff),
                       sequence = sequence_label,
                       eid = eid, scan = scan_id)
