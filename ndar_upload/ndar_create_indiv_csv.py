@@ -11,7 +11,6 @@ import re
 from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from typing import Dict, Generator, List, Optional, Sequence
 from pathlib import Path
-from sibispy import config_file_parser as cfg_parser
 
 import csv
 import shutil
@@ -522,13 +521,14 @@ def get_subjectkey(subject: SubjectData, *_) -> str:
     return field_value
 
 def get_image_description(subject: SubjectData, image_type: str) -> str:
-    #TODO: add image description for swan
     if image_type == NDARImageType.t1:
         field_value =  "SPGR"
     elif image_type == NDARImageType.rs_fMRI:
         field_value = "fMRI"
     elif image_type in [NDARImageType.dti30b400, NDARImageType.dti60b1000, NDARImageType.dti6b500pepolar]:
         field_value =  "DTI"
+    elif image_type == NDARImageType.swan:
+        field_value = "SWAN-QSM"
     else:
         field_value =  "FSE"
     return field_value
@@ -540,7 +540,7 @@ SCAN_TYPE_MAP = {
     NDARImageType.dti60b1000: "single-shell DTI",
     NDARImageType.dti6b500pepolar: "single-shell DTI",
     NDARImageType.rs_fMRI: "fMRI",
-    NDARImageType.swan: "swan",
+    NDARImageType.swan: "T2* Weighted Angiography (GE SWAN)",
 }
 def get_scan_type(subject: SubjectData, image_type: str) -> str:
     try:
