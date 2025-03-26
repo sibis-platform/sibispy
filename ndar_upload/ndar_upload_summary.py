@@ -38,6 +38,7 @@ from NDATools.Validation import Validation
 from NDATools.Submission import Submission
 from NDATools.BuildPackage import SubmissionPackage
 from NDATools.clientscripts import vtcmd
+from NDATools.Configuration import ClientConfiguration
 
 def is_file(file_path: str) -> pathlib.Path:
     maybe_file = pathlib.Path(file_path).expanduser()
@@ -408,7 +409,7 @@ def doMain():
     # get base paths from config (summaries and uploaded)
     summaries_path, uploaded_path, files_to_upload = mappings.get_upload_paths_from_config(args, config)
 
-    vtcmd_config = vtcmd.configure(args)
+    vtcmd_config = ClientConfiguration(args)
 
     # validate all files in the summaries directory
     validation_result_df = validate_summary_file(vtcmd_config, summaries_path, files_to_upload)
