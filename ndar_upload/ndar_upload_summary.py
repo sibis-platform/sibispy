@@ -186,17 +186,14 @@ def build_submission_package(validation_result_df, dataset_info, vtcmd_config):
     # store the list of UUID's from the validation result df
     uuids = validation_result_df['id'].tolist()
 
+    vtcmd_config.title = dataset_info['title']
+    vtcmd_config.description = dataset_info['description']
+
     submission_package = SubmissionPackage(
         uuid = uuids,
-        associated_files = None,
         config = vtcmd_config,
-        allow_exit=True,
-        collection = vtcmd_config.collection_id,
-        title = dataset_info['title'],
-        description = dataset_info['description']
     )
 
-    submission_package.set_upload_destination(hide_input=False)
     submission_package.build_package()
 
     logging.info(f"Package built w/ UUID: ${submission_package.submission_package_uuid}")
@@ -228,7 +225,6 @@ def upload_package(submission_package_df, summaries_path, vtcmd_config):
 
     submission = Submission(
         package_id=package_uuid,
-        full_file_path=summaries_path,
         config=vtcmd_config,
         allow_exit=False,
     )
