@@ -98,16 +98,20 @@ def write_summary_csv(old_summary_csv, new_subj_csv, data_dict_path):
     # check if the column needs to be a parsed date before changing to strings
     parse_dates = [d for d, v in data_dict_dtype.items() if v == 'Date']
     
-    # custom date_parser function in order to properly handle null values
-    date_parser = lambda d: pd.to_datetime(d, errors='ignore', format='%m/%d/%y')
-
     # map data dictionary types to actual data types
     for row in data_dict_dtype:
         data_dict_dtype[row] = HEADERTYPE_MAP[data_dict_dtype[row]]
 
     # pass data dictionary to pandas to load values with datatypes, skipping the first line
-    old_summary_df = pd.read_csv(old_summary_csv, skiprows=1, dtype=data_dict_dtype, date_parser=date_parser, parse_dates=parse_dates)
-    new_subject_df = pd.read_csv(new_subj_csv, skiprows=1, dtype=data_dict_dtype, date_parser=date_parser, parse_dates=parse_dates)
+    old_summary_df = pd.read_csv(old_summary_csv, skiprows=1, dtype=data_dict_dtype)
+    new_subject_df = pd.read_csv(new_subj_csv, skiprows=1, dtype=data_dict_dtype)
+
+    # convert the date columns after loading, if they exist
+    for col in parse_dates:
+        if col in old_summary_df.columns:
+            old_summary_df[col] = pd.to_datetime(old_summary_df[col], format='%m/%d/%y', errors='ignore')
+        if col in new_subject_df.columns:
+            new_subject_df[col] = pd.to_datetime(new_subject_df[col], format='%m/%d/%y', errors='ignore')
 
     new_summary_df = pd.concat([old_summary_df, new_subject_df])
 
