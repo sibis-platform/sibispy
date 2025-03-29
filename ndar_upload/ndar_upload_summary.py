@@ -32,6 +32,7 @@ import shutil
 import json
 import datetime
 import sys
+import getpass
 
 import NDATools
 from NDATools.Validation import Validation
@@ -183,20 +184,25 @@ def build_submission_package(validation_result_df, dataset_info, vtcmd_config):
     """
     logging.info("Building submission package.")
 
+    # Prompt for password if not set
+    if not vtcmd_config.password:
+        try:
+            vtcmd_config.password = getpass.getpass("Enter your NDA password: ")
+        except Exception as e:
+            logging.error(f"Error reading password: {e}")
+            raise
+
     # store the list of UUID's from the validation result df
     uuids = validation_result_df['id'].tolist()
 
+    vtcmd_config.title = dataset_info['title']
+    vtcmd_config.description = dataset_info['description']
+
     submission_package = SubmissionPackage(
         uuid = uuids,
-        associated_files = None,
         config = vtcmd_config,
-        allow_exit=True,
-        collection = vtcmd_config.collection_id,
-        title = dataset_info['title'],
-        description = dataset_info['description']
     )
 
-    submission_package.set_upload_destination(hide_input=False)
     submission_package.build_package()
 
     logging.info(f"Package built w/ UUID: ${submission_package.submission_package_uuid}")
@@ -228,7 +234,6 @@ def upload_package(submission_package_df, summaries_path, vtcmd_config):
 
     submission = Submission(
         package_id=package_uuid,
-        full_file_path=summaries_path,
         config=vtcmd_config,
         allow_exit=False,
     )
@@ -277,13 +282,6 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         type=is_file,
         default="/fs/storage/share/operations/secrets/.sibis/.sibis-general-config.yml",
     )
-    # config_args.add_argument(
-    #     "--project",
-    #     help="Project to upload data for.",
-    #     type=str,
-    #     choices=["cns_deficit", "mci_cb", "ncanda"],
-    #     required=True,
-    # )
     config_args.add_argument(
         "-u",
         "--username",
@@ -338,6 +336,7 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
     subparsers = parser.add_subparsers(title='Project', dest='project', help='Define the project [mci_cb, cns_deficit, ncanda]')
     mci_cb_parser = subparsers.add_parser('mci_cb')
     cns_deficit_parser = subparsers.add_parser('cns_deficit')
+    hiv_parser = subparsers.add_parser('hiv')
     
     # specific ncanda parser for followup year of values to be uploaded
     ncanda_parser = subparsers.add_parser('ncanda')
