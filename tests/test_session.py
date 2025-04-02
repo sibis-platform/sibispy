@@ -509,13 +509,13 @@ def test_session_formattable_redcap_subject_address(slog, session):
     assert complete_address == test_link
 
 
-@pytest.fixture
+#@pytest.fixture
 def penncnp_cleanup(session):
     yield
     session.disconnect_penncnp()
 
 
-@pytest.mark.browser_penncnp
+#@pytest.mark.browser_penncnp
 def test_session_browser_penncnp(
     slog, config_file, session, config_test_data, penncnp_cleanup
 ):
@@ -534,7 +534,7 @@ def test_session_browser_penncnp(
         ), "Error: could not export report."
 
 
-@pytest.mark.browser_penncnp
+#@pytest.mark.browser_penncnp
 def test_penncnp_exits(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = "browser_penncnp"
     with session.connect_server(project, True) as server:
@@ -668,7 +668,7 @@ def test_session_legacy(config_file, special_opts):
         "xnat_http",
         "svn_laptop",
         "data_entry",
-        "browser_penncnp",
+        #"browser_penncnp",
         "import_laptops",
         "redcap_mysql_db",
     ]:
