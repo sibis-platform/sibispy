@@ -98,12 +98,20 @@ for instrument in instrument_list:
     if args.verbose:
         print('Scoring instrument', instrument)
 
-    (scored_records, errorFlag) = red_score_update.compute_summary_scores(
-        instrument, subject_list,  event_list, args.update_all, args.verbose, log=slog)
-    if errorFlag:
-        if args.verbose:
-            print("Error occured when scoring", instrument) 
-        continue
+    if 'lifetime' in instrument:
+        (scored_records, errorFlag) = red_score_update.compute_lifetime_summary_scores(
+            instrument, subject_list,  event_list, args.update_all, args.verbose, log=slog)
+        if errorFlag:
+            if args.verbose:
+                print("Error occured when scoring lifetime", instrument) 
+            continue
+    else:
+        (scored_records, errorFlag) = red_score_update.compute_summary_scores(
+            instrument, subject_list,  event_list, args.update_all, args.verbose, log=slog)
+        if errorFlag:
+            if args.verbose:
+                print("Error occured when scoring", instrument) 
+            continue
 
     len_scored_records = len(scored_records)
     if not len_scored_records : 

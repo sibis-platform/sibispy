@@ -109,68 +109,37 @@ class redcap_compute_summary_scores(object):
                 matches.update([field_pattern])
         return matches
 
-    def compute_summary_scores(self, instrument, subject_id=None, event_id=None, update_all=False, verbose=False, log=slog):
-        scored_records = pandas.DataFrame()
-        if instrument not in self.get_list_of_instruments(): 
-            slog.info("compute_scored_records", "ERROR: instrument '" + instrument + "' does not exist!") 
-            return (scored_records,True)
-            
-        # Get fields in the summary project for this instrument
-        instrument_complete = '%s_complete' % instrument
+    def __get_record_ids__(self, instrument_complete, subject_id=None, event_id=None):
+        """Retrieve REDCap record IDs for a given instrument, optionally filtered by subject or event."""
         if subject_id:
             if event_id:
-                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=subject_id,events=event_id,event_name='unique', format='df')
-            else :
-                record_ids = self.__rc_summary.export_records(fields=[instrument_complete], records=subject_id,event_name='unique', format='df')
+                return self.__rc_summary.export_records(
+                    fields=[instrument_complete], records=subject_id, events=event_id, event_name='unique', format='df')
+            return self.__rc_summary.export_records(
+                fields=[instrument_complete], records=subject_id, event_name='unique', format='df')
         elif event_id:
-            record_ids = self.__rc_summary.export_records(fields=[instrument_complete], events=event_id,event_name='unique', format='df')
-        else : 
-            record_ids = self.__rc_summary.export_records(fields=[instrument_complete],event_name='unique', format='df')
+            return self.__rc_summary.export_records(
+                fields=[instrument_complete], events=event_id, event_name='unique', format='df')
+        return self.__rc_summary.export_records(fields=[instrument_complete], event_name='unique', format='df')
 
-        # ensure record_ids are strings
-        ridx = record_ids.index
-        if ridx.get_level_values(0).dtype != np.dtype(np.object):
-            record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
-
-        # Get events for which this instrument is present, and drop all records from other events
-        form_key = self.__session.get_redcap_form_key() 
-        instrument_events_list = self.__form_event_mapping[self.__form_event_mapping[form_key] == scoring.output_form[instrument]]['unique_event_name'].tolist()
-
-        record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
-        if not len(record_ids):
-            if verbose : 
-                print("No records to score") 
-            return (scored_records,False)
-
-        # Unless instructed otherwise, drop all records that already exist
-        if not update_all:
-            try :  
-                records_complete = record_ids[instrument_complete]
-            except Exception as e:
-                slog.info("compute_scored_records-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
-                          "ERROR: %s missing in instrument %s" % (instrument_complete,instrument),
-                          err_msg = str(e))
-                return (scored_records,True)
-
-            record_ids = record_ids[records_complete.map(lambda x: True if str(x) == 'nan' else x < 1)]
-
-        if not len(record_ids):
-            return (scored_records,False)
-
-        if verbose:
-            print(len(record_ids), 'records to score')
-
-        # Now get the imported records referenced by each record in the summary table
+    def __get_import_fields__(self, instrument):
+        """
+        Retrieve all import field names for the specified instrument based on configured patterns.
+        Defined in respective scoring instrument __init__ file.
+        """
         import_fields = []
         for import_instrument in list(scoring.fields_list[instrument].keys()):
-            import_fields += self.__get_matching_fields__(self.__rc_summary.field_names, scoring.fields_list[instrument][import_instrument])
+            import_fields += self.__get_matching_fields__(
+                self.__rc_summary.field_names,
+                scoring.fields_list[instrument][import_instrument]
+            )
+        return import_fields
 
-        # Retrieve data from record in chunks of 50 records
-        # We cannot always get everything in one request (too large), but don't want each record by itself either, for speed.
-        # Have to do this separately for each event, because of the way REDCap separates study ID and event name in the request
+    def __fetch_records__(self, record_ids, import_fields):
+        """Fetch imported record data from REDCap for specified IDs and fields in batches."""
         imported = []
         for event_name in set(record_ids.index.map(lambda key: key[1]).tolist()):
-            records_this_event = record_ids.xs( event_name, level=1).index.tolist()
+            records_this_event = record_ids.xs(event_name, level=1).index.tolist()
             for idx in range(0, len(records_this_event), 50):
                 i = 0
                 while i < 5:
@@ -179,45 +148,107 @@ class redcap_compute_summary_scores(object):
                             self.__rc_summary.export_records(
                                 fields=import_fields,
                                 records=records_this_event[idx:idx + 50],
-                                events=[event_name], 
-                                event_name='unique', 
+                                events=[event_name],
+                                event_name='unique',
                                 format='df'
                             )
                         )
-
                     except urllib3.exceptions.MaxRetryError:
                         i += 1
                         time.sleep(12)
                         continue
-
                     break
-        
-        if False: 
-            print("DEBUGGING:redcap_compute_summary_scores.py:Start ....")
-            (scoresDF,errFlag)  = scoring.compute_scores(
-                instrument, pandas.concat(imported), self.__demographics, log=slog)
-            print(".... end") 
-        else : 
-            try: 
-                (scoresDF, errFlag)  = scoring.compute_scores(
-                    instrument, pandas.concat(imported), self.__demographics, log=slog)
-            except slog.sibisExecutionError as err:
-                err.add(subject_id = subject_id, update_all= update_all)
-                err.slog_post()
-                return (pandas.DataFrame(), False) 
+        return imported
 
+    def __score_records__(self, instrument, imported):
+        """Run the scoring function for the given instrument and imported records."""
+        try:
+            return scoring.compute_scores(
+                instrument, pandas.concat(imported), self.__demographics, log=slog
+            )
+        except slog.sibisExecutionError as err:
+            err.slog_post()
+            return (pandas.DataFrame(), False)
+        except Exception as e:
+            slog.info(f"compute_summary_scores-{instrument}", "ERROR: scoring failed!", err_msg=str(e))
+            return (pandas.DataFrame(), False)
+
+    def compute_summary_scores(self, instrument, subject_id=None, event_id=None, update_all=False, verbose=False, log=slog):
+        """Compute standard summary scores for an instrument across available REDCap records."""
+        scored_records = pandas.DataFrame()
+        if instrument not in self.get_list_of_instruments():
+            slog.info("compute_scored_records", f"ERROR: instrument '{instrument}' does not exist!")
+            return (scored_records, True)
+
+        instrument_complete = f'{instrument}_complete'
+        record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id)
+
+        ridx = record_ids.index
+        if ridx.get_level_values(0).dtype != np.dtype(np.object):
+            record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
+
+        form_key = self.__session.get_redcap_form_key()
+        instrument_events_list = self.__form_event_mapping[
+            self.__form_event_mapping[form_key] == scoring.output_form[instrument]
+        ]['unique_event_name'].tolist()
+
+        record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
+        if not len(record_ids):
+            if verbose:
+                print("No records to score")
+            return (scored_records, False)
+
+        if not update_all:
+            try:
+                records_complete = record_ids[instrument_complete]
+                record_ids = record_ids[records_complete.map(lambda x: True if str(x) == 'nan' else x < 1)]
             except Exception as e:
-                error = "ERROR: scoring failed!"
-                slog.info("compute_summary_scores-" + instrument + "-" + hashlib.sha1(str(e).encode()).hexdigest()[0:6],
-                          error,
-                          err_msg=str(e),
-                          subject_id=subject_id,
-                          update_all=update_all,
-                          pyFile="redcap_summary_scoring/" + instrument + "/__init__.py",
-                          err_obj=e )
-                return (pandas.DataFrame(), False)
+                slog.info("compute_scored_records", f"ERROR: {instrument_complete} missing in {instrument}", err_msg=str(e))
+                return (scored_records, True)
 
-        return (scoresDF, errFlag)
+        if not len(record_ids):
+            return (scored_records, False)
+
+        if verbose:
+            print(len(record_ids), 'records to score')
+
+        import_fields = self.__get_import_fields__(instrument)
+        imported = self.__fetch_records__(record_ids, import_fields)
+        return self.__score_records__(instrument, imported)
+
+    def compute_lifetime_summary_scores(self, instrument, subject_id=None, event_id=None, update_all=False, verbose=False, log=slog):
+        """Compute lifetime summary scores for an instrument across all relevant REDCap events."""
+        scored_records = pandas.DataFrame()
+        if instrument not in self.get_list_of_instruments():
+            slog.info("compute_scored_records", f"ERROR: instrument '{instrument}' does not exist!")
+            return (scored_records, True)
+
+        instrument_name = instrument.replace('_lifetime', '')
+        instrument_complete = f'{instrument_name}_complete'
+        record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id)
+
+        ridx = record_ids.index
+        if ridx.get_level_values(0).dtype != np.dtype(np.object):
+            record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
+
+        form_key = self.__session.get_redcap_form_key()
+        instrument_events_list = self.__form_event_mapping[
+            self.__form_event_mapping[form_key] == scoring.output_form[instrument]
+        ]['unique_event_name'].tolist()
+
+        record_ids = record_ids[record_ids.index.map(lambda x: x[1] in instrument_events_list)]
+        if not len(record_ids):
+            if verbose:
+                print("No records to score")
+            return (scored_records, False)
+
+        # Lifetime scores must always consider all events, so we skip filtering on completion status
+        if verbose:
+            print(len(record_ids), 'records to score (lifetime)')
+
+        import_fields = self.__get_import_fields__(instrument)
+        imported = self.__fetch_records__(record_ids, import_fields)
+        return self.__score_records__(instrument, imported)
 
     def upload_summary_scores_to_redcap(self, instrument, scored_records):
         return self.__session.redcap_import_record(instrument, None, None, None, scored_records)
