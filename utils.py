@@ -199,7 +199,11 @@ def run_rscript( row, script, scores_key = None):
 """
 https://github.com/ActiveState/code/blob/master/recipes/Python/577982_Recursively_walk_Python_objects/recipe-577982.py
 """
-from collections.abc import Mapping, Set, Sequence 
+try:
+    from collections import Mapping, Set, Sequence 
+except:
+    # for python 3.13
+    from collections.abc import Mapping, Set, Sequence 
 
 # dual python 2/3 compatability, inspired by the "six" library
 string_types = (str, str) if str is bytes else (str, bytes)
