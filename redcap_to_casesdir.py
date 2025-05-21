@@ -79,14 +79,14 @@ class redcap_to_casesdir(object):
             contents = [line.strip() for line in file.readlines()]
             file.close()
 
-            export_name = re.sub('\.txt$', '', os.path.basename(f))
-            import_form = re.sub('\n', '', contents[0])
+            export_name = re.sub(r'\.txt$', '', os.path.basename(f))
+            import_form = re.sub(r'\n', '', contents[0])
             self.__import_forms[export_name] = import_form
-            self.__export_forms[export_name] = [re.sub('\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form]
+            self.__export_forms[export_name] = [re.sub(r'\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form]
             self.__export_rename[export_name] = dict()
 
             for field in contents[1:]:
-                match = re.match('^(.+)\[(.+)\]$', field)
+                match = re.match(r'^(.+)\[(.+)\]$', field)
                 if match:
                     self.__export_rename[export_name][match.group(1)] = match.group(2)
 
@@ -294,7 +294,7 @@ class redcap_to_casesdir(object):
 
     # Truncate age to 2 digits for increased identity protection
     def __truncate_age__(self, age_in):
-        matched = re.match('([0-9]*\.[0-9]*)', str(age_in))
+        matched = re.match(r'([0-9]*\.[0-9]*)', str(age_in))
         if matched:
             return round(float(matched.group(1)), 2)
         else:
@@ -555,7 +555,7 @@ class redcap_to_casesdir(object):
         all_fields = np.setdiff1d(all_fields, forbidden_export_fields).tolist()
 
         # Get data
-        all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format='df')
+        all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format_type='df')
 
         # return results
         return (all_records,export_list)

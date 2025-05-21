@@ -51,7 +51,7 @@ def get_status_fields_for_form(redcap_api, form_name):
 
     Returns a dict with 'completeness' and 'missingness' keys.
     """
-    datadict = redcap_api.export_metadata(format='df').reset_index()
+    datadict = redcap_api.export_metadata(format_type='df').reset_index()
     form_datadict = datadict.loc[datadict['form_name'] == form_name, :]
     if form_datadict.empty:
         raise NameError('{}: No such form in selected API!'.format(form_name))

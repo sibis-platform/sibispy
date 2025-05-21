@@ -117,7 +117,7 @@ def _get_forms(api: rc.Project, forms: List, events: List = None) -> List:
     form_dataframes = dict(zip(forms, [None] * len(forms)))
     for form in forms:
         form_complete = '{form}_complete'
-        form_export = api.export_records(format='df',
+        form_export = api.export_records(format_type='df',
                                          fields=[api.def_field, form_complete],
                                          events=events)
         # First, drop rows that don't contain data (which shouldn't be any);
@@ -157,7 +157,7 @@ def main():
     random_value = random.randint(10**6, 10**7)
     targets = (api.export_records(fields=[api.def_field],
                                   events=args.events,
-                                  format='df')
+                                  format_type='df')
                .dropna(axis=1, how='all'))
 
     # FIXME: Doesn't handle repeating forms correctly. To do that, need to:

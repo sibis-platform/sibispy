@@ -1385,7 +1385,7 @@ class Session(object):
             return None
 
         project_id = projects[projects.project_name == project_name].project_id
-        return int(project_id)
+        return int(project_id.iloc[0])
 
     def get_mysql_arm_id(self, arm_name, project_id):
         """
@@ -1399,7 +1399,7 @@ class Session(object):
         arm_id = arms[
             (arms.arm_name == arm_name) & (arms.project_id == project_id)
         ].arm_id
-        return int(arm_id)
+        return int(arm_id.iloc[0])
 
     def get_mysql_arm_id_from_arm_num(self, arm_num, project_id):
         """
@@ -1413,7 +1413,7 @@ class Session(object):
         arm_id = arms[
             (arms.arm_num == arm_num) & (arms.project_id == project_id)
         ].arm_id
-        return int(arm_id)
+        return int(arm_id.iloc[0])
 
     def get_mysql_event_id(self, event_descrip, arm_id):
         """
@@ -1429,7 +1429,7 @@ class Session(object):
         event_id = events[
             (events.descrip == event_descrip) & (events.arm_id == arm_id)
         ].event_id
-        return int(event_id)
+        return int(event_id.iloc[0])
 
     # 'redcap_locking_data'
     def get_mysql_table_records(
