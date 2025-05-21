@@ -34,14 +34,14 @@ assert(session.connect_server('redcap_mysql_db', True))
 red_lock = redcap_locking_data.redcap_locking_data()
 red_lock.configure(session)
 
-event_def = redcap_project.events[0]
+event_def = redcap_project.export_events()[0]
 event_unique = str(event_def['unique_event_name'])
 event_name = str(event_def['event_name'])
 
-form_event_mapping = redcap_project.export_fem( format='df' )
+form_event_mapping = redcap_project.export_instrument_event_mappings( format_type='df' )
 forms = form_event_mapping[form_event_mapping.unique_event_name == event_unique][form_key].tolist()
 
-arm_name = str(redcap_project.arm_names[0])
+arm_name = str(redcap_project.export_arms()[0]['name'])
 
 # Load in test specific settings : 
 (sys_file_parser,err_msg) = session.get_config_test_parser()

@@ -159,7 +159,7 @@ def call_shell_program(cmd):
 
 # Label translation function - LimeSurvey to SRI/old REDCap style
 def limesurvey_label_in_redcap( prefix, ls_label ):
-    return "%s_%s" % (prefix, re.sub( '_$', '', re.sub( r'[_\W]+', '_', re.sub( 'subjid', 'subject_id', ls_label.lower() ) ) ) )
+    return "%s_%s" % (prefix, re.sub( r'_$', '', re.sub( r'[_\W]+', '_', re.sub( r'subjid', 'subject_id', ls_label.lower() ) ) ) )
 
 # Map labels in a list according to a dictionary
 def map_labels_to_dict( labels, ldict ):
@@ -199,7 +199,11 @@ def run_rscript( row, script, scores_key = None):
 """
 https://github.com/ActiveState/code/blob/master/recipes/Python/577982_Recursively_walk_Python_objects/recipe-577982.py
 """
-from collections import Mapping, Set, Sequence 
+try:
+    from collections import Mapping, Set, Sequence 
+except:
+    # for python 3.13
+    from collections.abc import Mapping, Set, Sequence 
 
 # dual python 2/3 compatability, inspired by the "six" library
 string_types = (str, str) if str is bytes else (str, bytes)

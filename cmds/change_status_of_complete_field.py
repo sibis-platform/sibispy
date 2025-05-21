@@ -133,7 +133,7 @@ for form_prefix, form_name in forms.items():
     fields_list = [complete_label]
 
     # Just make sure record exists 
-    complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = fields_list, format='df', records=[args.import_id])
+    complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = fields_list, format_type='df', records=[args.import_id])
 
     if complete_records is None :
         error_id = form_name 
