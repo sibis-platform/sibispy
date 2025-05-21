@@ -180,7 +180,7 @@ class redcap_to_casesdir(object):
         for field_name in self.__export_forms[export_name]:
             try:
                 (field_type, field_validation, field_label, text_val_min,
-                 text_val_max, choices) = self.__metadata_dict[re.sub('___.*', '', field_name)]
+                 text_val_max, choices) = self.__metadata_dict[re.sub(r'___.*', '', field_name)]
                 if (field_type != 'text' and field_type != 'notes') or (field_validation in ['number', 'integer', 'time']):
                     pass
                 else:
@@ -263,7 +263,7 @@ class redcap_to_casesdir(object):
         ddict = pandas.DataFrame(index=variable_list,columns=redcap_datadict_columns)
 
         for name_of_form, var in zip(export_forms_list, variable_list):
-            field_name = re.sub('___.*', '', var)
+            field_name = re.sub(r'___.*', '', var)
             ddict["Variable / Field Name"][var] = field_name
             ddict["Form Name"][var] = name_of_form
 
@@ -342,8 +342,8 @@ class redcap_to_casesdir(object):
             # Latino and race coding arrives here as floating point numbers; make
             # int strings from that (cannot use "int()" because it would fail for
             # missing data
-            hispanic_code = re.sub('(.0)|(nan)', '', str(subject_data['hispanic']))
-            race_code = re.sub('(.0)|(nan)', '', str(subject_data['race']))
+            hispanic_code = re.sub(r'(.0)|(nan)', '', str(subject_data['hispanic']))
+            race_code = re.sub(r'(.0)|(nan)', '', str(subject_data['race']))
 
 
             # scanner manufacturer map
@@ -508,13 +508,13 @@ class redcap_to_casesdir(object):
             output_fields.append(output_field)
 
             # If this is an "age" field, truncate to 2 digits for privacy
-            if re.match('.*_age$', field):
+            if re.match(r'.*_age$', field):
                 record[field] = record[field].apply(self.__truncate_age__)
 
             # If this is a radio or dropdown field
             # (except "FORM_[missing_]why"), add a separate column for the
             # coded label
-            if field in list(self.__code_to_label_dict.keys()) and not re.match('.*_why$', field):
+            if field in list(self.__code_to_label_dict.keys()) and not re.match(r'.*_why$', field):
                 code = str(record[field].iloc[0])
                 label = ''
                 if code in list(self.__code_to_label_dict[field].keys()):
@@ -548,7 +548,7 @@ class redcap_to_casesdir(object):
                 continue
             if (self.__import_forms[export_name] in forms_this_event):
                 if (not select_exports or export_name in select_exports):
-                    all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
+                    all_fields += [re.sub(r'___.*', '', field_name) for field_name in self.__export_forms[export_name]]
                     export_list.append(export_name)
 
         # Remove the fields we are forbidden to export from REDCap

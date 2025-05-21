@@ -87,8 +87,8 @@ def parse_put_error_message(message):
         for line in error.split('\n'):
 
             try:
-                datatype_name = re.findall("\'.*?\'", line)[0].strip('\'')
-                element_name = re.findall("\'.*?\'", line
+                datatype_name = re.findall(r"\'.*?\'", line)[0].strip('\'')
+                element_name = re.findall(r"\'.*?\'", line
                                           )[1].rsplit(':', 1)[1].strip('}\'')
 
                 required_fields.append((datatype_name, element_name))
