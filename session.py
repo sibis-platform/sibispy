@@ -1224,7 +1224,13 @@ class Session(object):
         if time_label:
             slog.startTimer2()
         try:
-            import_response = red_api.import_records(records, overwrite="overwrite")
+            # deal with new redcap api not liking named multi-indexes.
+            if isinstance(records.index, pd.MultiIndex) and None not in records.index.names:
+                imp_records = records.reset_index(drop=False)
+            else:
+                imp_records = records
+
+            import_response = red_api.import_records(imp_records, overwrite="overwrite", import_format="df")
 
         except requests.exceptions.RequestException as e:
             error = "session:redcap_import_record:Failed to import into REDCap"
