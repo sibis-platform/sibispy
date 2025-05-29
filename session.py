@@ -1212,7 +1212,7 @@ class Session(object):
         return import_response
 
     def redcap_import_record(
-        self, error_label, subject_label, event, time_label, records, record_id=None
+        self, error_label, subject_label, event, time_label, records, record_id=None, import_format="df"
     ):
         if len(records) == 0:
             return None
@@ -1230,7 +1230,7 @@ class Session(object):
             else:
                 imp_records = records
 
-            import_response = red_api.import_records(imp_records, overwrite="overwrite", import_format="df")
+            import_response = red_api.import_records(imp_records, overwrite="overwrite", import_format=import_format)
 
         except requests.exceptions.RequestException as e:
             error = "session:redcap_import_record:Failed to import into REDCap"
