@@ -1234,7 +1234,11 @@ class Session(object):
 
         except requests.exceptions.RequestException as e:
             error = "session:redcap_import_record:Failed to import into REDCap"
-            err_list = ast.literal_eval(str(e))["error"].split('","')
+            try:
+                err_list = ast.literal_eval(str(e))["error"].split('","')
+            except:
+                err_list = [str(e)]
+
             error_label += "-" + hashlib.sha1(str(e).encode("utf-8")).hexdigest()[0:6]
 
             if len(records) > 1:

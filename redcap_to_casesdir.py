@@ -264,22 +264,22 @@ class redcap_to_casesdir(object):
 
         for name_of_form, var in zip(export_forms_list, variable_list):
             field_name = re.sub(r'___.*', '', var)
-            ddict["Variable / Field Name"][var] = field_name
-            ddict["Form Name"][var] = name_of_form
+            ddict.loc[var, "Variable / Field Name"] = field_name
+            ddict.loc[var, "Form Name"] = name_of_form
 
             # Check if var is in data dict ('FORM_complete' fields are NOT)
             if field_name in list(self.__metadata_dict.keys()):
-                ddict["Field Type"][var] = self.__metadata_dict[field_name][0]
+                ddict.loc[var, "Field Type"] = self.__metadata_dict[field_name][0]
                 # need to transfer to utf-8 code otherwise can create problems when
                 # writing dictionary to file it just is a text field so it should not matter
                 #  .encode('utf-8')
                 # Not needed in Python 3 anymore 
-                ddict["Field Label"][var] = self.__metadata_dict[field_name][2]
-                ddict["Text Validation Type OR Show Slider Number"][var] = self.__metadata_dict[field_name][1]
-                ddict["Text Validation Min"][var] = self.__metadata_dict[field_name][3]
-                ddict["Text Validation Max"][var] = self.__metadata_dict[field_name][4]
+                ddict.loc[var, "Field Label"] = self.__metadata_dict[field_name][2]
+                ddict.loc[var, "Text Validation Type OR Show Slider Number"] = self.__metadata_dict[field_name][1]
+                ddict.loc[var, "Text Validation Min"] = self.__metadata_dict[field_name][3]
+                ddict.loc[var, "Text Validation Max"] = self.__metadata_dict[field_name][4]
                 #.encode('utf-8')
-                ddict["Choices, Calculations, OR Slider Labels"][var] = self.__metadata_dict[field_name][5]
+                ddict.loc[var, "Choices, Calculations, OR Slider Labels"] = self.__metadata_dict[field_name][5]
 
         # Finally, write the data dictionary to a CSV file
         dicFileName = os.path.join(datadict_dir,datadict_base_file + '_datadict.csv')
