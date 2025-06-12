@@ -1,6 +1,5 @@
 from __future__ import division
 from builtins import str
-from past.utils import old_div
 import os
 import pytest
 import sys
@@ -15,7 +14,7 @@ from .utils import get_session, get_test_config
 import xnat
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def workdir():
   workdir = Workspace()
   yield workdir
@@ -156,7 +155,7 @@ def test_download_upload_file(xnat_util, xnat_test_data, workdir):
     assert resource != None, "Resource should exist"
 
     # Create random data file
-    local_file = old_div(workdir.workspace, test_data['file_name'])
+    local_file = workdir.workspace / test_data['file_name']
     random_data = str(uuid.uuid1())
     with open(local_file, 'w+') as out:
       out.write(random_data)
@@ -170,8 +169,9 @@ def test_download_upload_file(xnat_util, xnat_test_data, workdir):
     assert updated_file != None, "File should exist"
 
     # Download file 
-    download_file = old_div(workdir.workspace, 'downloaded_') + test_data['file_name']
-    updated_file.download(download_file, verbose=False)
+    download_file = workdir.workspace / 'downloaded_' / test_data['file_name']
+    download_file.parent.mkdir(exist_ok=True)
+    updated_file.download(download_file, verbose=True)
     assert download_file.exists(), "File should have downloaded"
 
     # Make sure uploaded and downloaded files are the same
