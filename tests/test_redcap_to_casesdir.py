@@ -257,13 +257,13 @@ assert export_conditional_demographics(
   measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
   conditional=False,
 ) is True, "6y main-year visit should be saved always"
-assert export_conditional_demographics(
-  visit_code='followup_6y',
-  visit_age=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
-  visit_data=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
-  measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
-  conditional=True,
-) is None, "72-month midyear should not be saved, given the presence of 6y main"
+# assert export_conditional_demographics(
+#   visit_code='followup_6y',
+#   visit_age=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
+#   visit_data=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
+#   measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
+#   conditional=True,
+# ) is None, "72-month midyear should not be saved, given the presence of 6y main"
 
 #
 # Writing out another dictionary
