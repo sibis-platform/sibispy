@@ -72,7 +72,7 @@ repo_actions = {
   'D': del_file
 }
 
-@pytest.yield_fixture
+@pytest.fixture
 def svn_workdir(svn_repo):
   workdir = Workspace()
   workdir.run("svn co {}".format(svn_repo.uri))
