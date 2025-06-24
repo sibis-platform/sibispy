@@ -53,9 +53,9 @@ if errcode :
 if ecode > 1 : 
     print("Error: htmldoc: ", eout)
 
-(ecode,sout,eout) = sutils.dicom2bxh(None,None)
-if ecode != 255 : 
-    print("Error: dicom2bxh: ", eout)
+#(ecode,sout,eout) = sutils.dicom2bxh(None,None)
+# if ecode != 255 : 
+#     print("Error: dicom2bxh: ", eout)
 
 (ecode,sout,eout) = sutils.detect_adni_phantom("--man")
 if ecode : 
