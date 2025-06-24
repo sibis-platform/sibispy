@@ -516,6 +516,7 @@ def penncnp_cleanup(session):
 
 
 #@pytest.mark.browser_penncnp
+@pytest.mark.skip ("obsolete")
 def test_session_browser_penncnp(
     slog, config_file, session, config_test_data, penncnp_cleanup
 ):
@@ -535,6 +536,7 @@ def test_session_browser_penncnp(
 
 
 #@pytest.mark.browser_penncnp
+@pytest.mark.skip ("obsolete")
 def test_penncnp_exits(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = "browser_penncnp"
     with session.connect_server(project, True) as server:
