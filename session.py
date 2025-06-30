@@ -1547,7 +1547,9 @@ class Session(object):
             + table_name
             + ".ld_id IN ({0});".format(record_list)
         )
-        execute(sql, self.api["redcap_mysql_db"])
+        with self.api["redcap_mysql_db"].connect() as conn:
+            execute(sql, conn)
+
         return len(record_list)
 
     def add_mysql_table_records(
