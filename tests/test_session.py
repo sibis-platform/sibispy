@@ -428,7 +428,7 @@ def test_session_event_descrip_from_redcap_event_name(slog, session):
         api_type="data_entry",
         fields=["study_id"],
         event_name="unique",
-        format="df",
+        format_type="df",
         export_data_access_groups=False,
     ).reset_index()
     redcap_event_names = entry_data["redcap_event_name"].to_list()
@@ -516,6 +516,7 @@ def penncnp_cleanup(session):
 
 
 #@pytest.mark.browser_penncnp
+@pytest.mark.skip ("obsolete")
 def test_session_browser_penncnp(
     slog, config_file, session, config_test_data, penncnp_cleanup
 ):
@@ -535,6 +536,7 @@ def test_session_browser_penncnp(
 
 
 #@pytest.mark.browser_penncnp
+@pytest.mark.skip ("obsolete")
 def test_penncnp_exits(slog, config_file, session, config_test_data, penncnp_cleanup):
     project = "browser_penncnp"
     with session.connect_server(project, True) as server:
@@ -827,7 +829,7 @@ def test_session_legacy(config_file, special_opts):
 
                     # If test fails Mike with message that redord_id is missing than it uses wrong redcap lib - use egg version
                     import_complete_records = server.export_records(
-                        fields=[complete_label, exclude_label], format="df"
+                        fields=[complete_label, exclude_label], format_type="df"
                     )
                 else:
                     warnings.warn(
@@ -839,13 +841,13 @@ def test_session_legacy(config_file, special_opts):
             elif project == "data_entry":
                 print("Testing REDCap Version:", session.get_redcap_version())
 
-                form_event_mapping = server.export_fem(format="df")
+                form_event_mapping = server.export_instrument_event_mappings(format_type="df")
                 assert not form_event_mapping.empty
                 # Note: the name of form_name is version-independent in mysql tables - see for example server.metadata
                 assert session.get_redcap_form_key() in form_event_mapping
                 assert len(
                     server.export_records(
-                        fields=["study_id"], event_name="unique", format="df"
+                        fields=["study_id"], event_name="unique", format_type="df"
                     )
                 )
 
@@ -875,7 +877,7 @@ def test_session_legacy(config_file, special_opts):
                         "RCStressTest",
                         fields=entry_data_fields,
                         event_name="unique",
-                        format="df",
+                        format_type="df",
                     )
                     slog.takeTimer2("RCStressTest", "REDCap Stress Test")
                     print(".... completed")

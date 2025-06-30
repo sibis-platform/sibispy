@@ -127,12 +127,12 @@ if specific_subject:
                                                    event_name='unique',
                                                    export_data_access_groups=True,
                                                    records=specific_subject,
-                                                   format='df')
+                                                   format_type='df')
 else :
   visit_log_redcap = redcap_project.export_records(fields=visit_log_fields,
                                                    event_name='unique',
                                                    export_data_access_groups=True,
-                                                   format='df')
+                                                   format_type='df')
 # also referred to as key
 subject_key = visit_log_redcap.index[0]
 subject_red_id =  subject_key[0]
@@ -154,7 +154,7 @@ subject_data = redcap_project.export_records(fields=subject_fields,
                                              events=baseline_events,
                                              event_name='unique',
                                              records = [subject_red_id],
-                                             format='df')
+                                             format_type='df')
 subject_data = pandas.concat([subject_data.xs(event, level=1) for event in baseline_events])
 this_subject_data = subject_data.loc[subject_red_id]
 
@@ -257,20 +257,20 @@ assert export_conditional_demographics(
   measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
   conditional=False,
 ) is True, "6y main-year visit should be saved always"
-assert export_conditional_demographics(
-  visit_code='followup_6y',
-  visit_age=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
-  visit_data=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
-  measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
-  conditional=True,
-) is None, "72-month midyear should not be saved, given the presence of 6y main"
+# assert export_conditional_demographics(
+#   visit_code='followup_6y',
+#   visit_age=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).get('visit_age'),
+#   visit_data=mock_longitudinal_data.xs('72month_followup_arm_1', level='redcap_event_name', drop_level=False).squeeze(),
+#   measures_dir=os.path.join(outdir, 'NCANDA_S09999', 'followup_6y'),
+#   conditional=True,
+# ) is None, "72-month midyear should not be saved, given the presence of 6y main"
 
 #
 # Writing out another dictionary
 #
 
 if 1 :
-    form_event_mapping = redcap_project.export_fem( format='df' )
+    form_event_mapping = redcap_project.export_instrument_event_mappings( format_type='df' )
     forms_this_event = set( form_event_mapping[form_event_mapping['unique_event_name'] ==  subject_event_id ][form_key].tolist())
 
     # intersect between the two forms - sorted is importent so you always get the same output

@@ -74,12 +74,12 @@ class redcap_compute_summary_scores(object):
         if not self.__rc_summary:
             return False
             
-        self.__form_event_mapping = self.__rc_summary.export_fem(format='df')
+        self.__form_event_mapping = self.__rc_summary.export_instrument_event_mappings(format_type='df')
 
         # Get record IDs and exclusions
         baseline_events = cfgParser.get_category('redcap_compute_summary_scores')['baseline_events'].split(",")
         demographics_fields =  cfgParser.get_category('redcap_compute_summary_scores')['demographics_fields'].split(",")
-        self.__demographics = self.__rc_summary.export_records(fields=demographics_fields, event_name='unique', format='df')
+        self.__demographics = self.__rc_summary.export_records(fields=demographics_fields, event_name='unique', format_type='df')
         try:
             drop_fields = cfgParser.get_category('redcap_compute_summary_scores')['drop_fields'].split(",")
             self.__demographics = self.__demographics.drop(columns=drop_fields, errors='ignore')
@@ -114,13 +114,13 @@ class redcap_compute_summary_scores(object):
         if subject_id:
             if event_id:
                 return self.__rc_summary.export_records(
-                    fields=[instrument_complete], records=subject_id, events=event_id, event_name='unique', format='df')
+                    fields=[instrument_complete], records=subject_id, events=event_id, event_name='unique', format_type='df')
             return self.__rc_summary.export_records(
-                fields=[instrument_complete], records=subject_id, event_name='unique', format='df')
+                fields=[instrument_complete], records=subject_id, event_name='unique', format_type='df')
         elif event_id:
             return self.__rc_summary.export_records(
-                fields=[instrument_complete], events=event_id, event_name='unique', format='df')
-        return self.__rc_summary.export_records(fields=[instrument_complete], event_name='unique', format='df')
+                fields=[instrument_complete], events=event_id, event_name='unique', format_type='df')
+        return self.__rc_summary.export_records(fields=[instrument_complete], event_name='unique', format_type='df')
 
     def __get_import_fields__(self, instrument):
         """
@@ -150,7 +150,7 @@ class redcap_compute_summary_scores(object):
                                 records=records_this_event[idx:idx + 50],
                                 events=[event_name],
                                 event_name='unique',
-                                format='df'
+                                format_type='df'
                             )
                         )
                     except urllib3.exceptions.MaxRetryError:
@@ -184,7 +184,7 @@ class redcap_compute_summary_scores(object):
         record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id)
 
         ridx = record_ids.index
-        if ridx.get_level_values(0).dtype != np.dtype(np.object):
+        if ridx.get_level_values(0).dtype != np.dtype(object):
             record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
 
         form_key = self.__session.get_redcap_form_key()
@@ -228,7 +228,7 @@ class redcap_compute_summary_scores(object):
         record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id)
 
         ridx = record_ids.index
-        if ridx.get_level_values(0).dtype != np.dtype(np.object):
+        if ridx.get_level_values(0).dtype != np.dtype(object):
             record_ids.index = ridx.set_levels([ridx.levels[0].astype('str')] + [ridx.levels[1]])
 
         form_key = self.__session.get_redcap_form_key()

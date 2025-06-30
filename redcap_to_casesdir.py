@@ -79,14 +79,14 @@ class redcap_to_casesdir(object):
             contents = [line.strip() for line in file.readlines()]
             file.close()
 
-            export_name = re.sub('\.txt$', '', os.path.basename(f))
-            import_form = re.sub('\n', '', contents[0])
+            export_name = re.sub(r'\.txt$', '', os.path.basename(f))
+            import_form = re.sub(r'\n', '', contents[0])
             self.__import_forms[export_name] = import_form
-            self.__export_forms[export_name] = [re.sub('\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form]
+            self.__export_forms[export_name] = [re.sub(r'\[.*\]', '', field) for field in contents[1:]] + ['%s_complete' % import_form]
             self.__export_rename[export_name] = dict()
 
             for field in contents[1:]:
-                match = re.match('^(.+)\[(.+)\]$', field)
+                match = re.match(r'^(.+)\[(.+)\]$', field)
                 if match:
                     self.__export_rename[export_name][match.group(1)] = match.group(2)
 
@@ -180,7 +180,7 @@ class redcap_to_casesdir(object):
         for field_name in self.__export_forms[export_name]:
             try:
                 (field_type, field_validation, field_label, text_val_min,
-                 text_val_max, choices) = self.__metadata_dict[re.sub('___.*', '', field_name)]
+                 text_val_max, choices) = self.__metadata_dict[re.sub(r'___.*', '', field_name)]
                 if (field_type != 'text' and field_type != 'notes') or (field_validation in ['number', 'integer', 'time']):
                     pass
                 else:
@@ -263,23 +263,23 @@ class redcap_to_casesdir(object):
         ddict = pandas.DataFrame(index=variable_list,columns=redcap_datadict_columns)
 
         for name_of_form, var in zip(export_forms_list, variable_list):
-            field_name = re.sub('___.*', '', var)
-            ddict["Variable / Field Name"][var] = field_name
-            ddict["Form Name"][var] = name_of_form
+            field_name = re.sub(r'___.*', '', var)
+            ddict.loc[var, "Variable / Field Name"] = field_name
+            ddict.loc[var, "Form Name"] = name_of_form
 
             # Check if var is in data dict ('FORM_complete' fields are NOT)
             if field_name in list(self.__metadata_dict.keys()):
-                ddict["Field Type"][var] = self.__metadata_dict[field_name][0]
+                ddict.loc[var, "Field Type"] = self.__metadata_dict[field_name][0]
                 # need to transfer to utf-8 code otherwise can create problems when
                 # writing dictionary to file it just is a text field so it should not matter
                 #  .encode('utf-8')
                 # Not needed in Python 3 anymore 
-                ddict["Field Label"][var] = self.__metadata_dict[field_name][2]
-                ddict["Text Validation Type OR Show Slider Number"][var] = self.__metadata_dict[field_name][1]
-                ddict["Text Validation Min"][var] = self.__metadata_dict[field_name][3]
-                ddict["Text Validation Max"][var] = self.__metadata_dict[field_name][4]
+                ddict.loc[var, "Field Label"] = self.__metadata_dict[field_name][2]
+                ddict.loc[var, "Text Validation Type OR Show Slider Number"] = self.__metadata_dict[field_name][1]
+                ddict.loc[var, "Text Validation Min"] = self.__metadata_dict[field_name][3]
+                ddict.loc[var, "Text Validation Max"] = self.__metadata_dict[field_name][4]
                 #.encode('utf-8')
-                ddict["Choices, Calculations, OR Slider Labels"][var] = self.__metadata_dict[field_name][5]
+                ddict.loc[var, "Choices, Calculations, OR Slider Labels"] = self.__metadata_dict[field_name][5]
 
         # Finally, write the data dictionary to a CSV file
         dicFileName = os.path.join(datadict_dir,datadict_base_file + '_datadict.csv')
@@ -294,7 +294,7 @@ class redcap_to_casesdir(object):
 
     # Truncate age to 2 digits for increased identity protection
     def __truncate_age__(self, age_in):
-        matched = re.match('([0-9]*\.[0-9]*)', str(age_in))
+        matched = re.match(r'([0-9]*\.[0-9]*)', str(age_in))
         if matched:
             return round(float(matched.group(1)), 2)
         else:
@@ -342,8 +342,8 @@ class redcap_to_casesdir(object):
             # Latino and race coding arrives here as floating point numbers; make
             # int strings from that (cannot use "int()" because it would fail for
             # missing data
-            hispanic_code = re.sub('(.0)|(nan)', '', str(subject_data['hispanic']))
-            race_code = re.sub('(.0)|(nan)', '', str(subject_data['race']))
+            hispanic_code = re.sub(r'(.0)|(nan)', '', str(subject_data['hispanic']))
+            race_code = re.sub(r'(.0)|(nan)', '', str(subject_data['race']))
 
 
             # scanner manufacturer map
@@ -508,13 +508,13 @@ class redcap_to_casesdir(object):
             output_fields.append(output_field)
 
             # If this is an "age" field, truncate to 2 digits for privacy
-            if re.match('.*_age$', field):
+            if re.match(r'.*_age$', field):
                 record[field] = record[field].apply(self.__truncate_age__)
 
             # If this is a radio or dropdown field
             # (except "FORM_[missing_]why"), add a separate column for the
             # coded label
-            if field in list(self.__code_to_label_dict.keys()) and not re.match('.*_why$', field):
+            if field in list(self.__code_to_label_dict.keys()) and not re.match(r'.*_why$', field):
                 code = str(record[field].iloc[0])
                 label = ''
                 if code in list(self.__code_to_label_dict[field].keys()):
@@ -548,14 +548,14 @@ class redcap_to_casesdir(object):
                 continue
             if (self.__import_forms[export_name] in forms_this_event):
                 if (not select_exports or export_name in select_exports):
-                    all_fields += [re.sub('___.*', '', field_name) for field_name in self.__export_forms[export_name]]
+                    all_fields += [re.sub(r'___.*', '', field_name) for field_name in self.__export_forms[export_name]]
                     export_list.append(export_name)
 
         # Remove the fields we are forbidden to export from REDCap
         all_fields = np.setdiff1d(all_fields, forbidden_export_fields).tolist()
 
         # Get data
-        all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format='df')
+        all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format_type='df')
 
         # return results
         return (all_records,export_list)

@@ -25,10 +25,10 @@ def ensure_path(svn_repo, repo_name, rel_file):
   if len(split_path) == 2:
     parent_path = path / split_path[0]
     if not parent_path.exists():
-      parent_path.makedirs_p()
+      parent_path.mkdir(parents=True, exist_ok=True)
       svn_repo.run("svn add {}".format(split_path[0]), cd=path)
   else:
-    path.makedirs_p()
+    path.mkdir(parents=True, exist_ok=True)
   return path
 
 def del_file(svn_repo, repo_name, rel_file):
@@ -44,7 +44,10 @@ def mod_file(svn_repo, repo_name, rel_file):
   txt_file = path / Path(rel_file)
   file_exists = txt_file.exists()
   msg = "Modified File {} @ {}".format(txt_file, datetime.now())
-  txt_file.write_text(msg+'\n', append=True)
+
+  with txt_file.open('a') as fp:
+      fp.write(msg+'\n')  
+  #txt_file.write_text(msg+'\n', append=True)
 
   if (not file_exists):
     svn_repo.run("svn add {}".format(txt_file), cd=path)
@@ -69,7 +72,7 @@ repo_actions = {
   'D': del_file
 }
 
-@pytest.yield_fixture
+@pytest.fixture
 def svn_workdir(svn_repo):
   workdir = Workspace()
   workdir.run("svn co {}".format(svn_repo.uri))
@@ -114,7 +117,10 @@ def test_sibis_svn_update_conflict(mock_repo):
   assert client, "Client should not be None"
   
   txt_file2 = co_dir / 'file2'
-  txt_file2.write_text(r'local conflict\n', append=True)
+  #txt_file2.write_text(r'local conflict\n', append=True)
+  with txt_file2.open('a') as fp:
+      fp.write(r'local conflict\n')  
+
   changes = client.update(revision=2)
 
   assert changes.revision == 2, "Expected to be a revision 2, got: {}".format(changes.revision)
@@ -129,8 +135,10 @@ def test_sibis_svn_update_merge(mock_repo):
   assert client, "Client should not be None"
   
   txt_file2 = co_dir / 'beta' / 'file6'
-  ext_contents = txt_file2.bytes()
-  txt_file2.write_text(r'local conflict\n'+str(ext_contents))
+  ext_contents = txt_file2.read_bytes()
+  # txt_file2.write_text(r'local conflict\n'+str(ext_contents))
+  with txt_file2.open('a') as fp:
+      fp.write(r'local conflict\n'+str(ext_contents))  
   changes = client.update(revision=10)
 
   assert changes.revision == 10, "Expected to be a revision 10, got: {}".format(changes.revision)

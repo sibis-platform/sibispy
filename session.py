@@ -1212,7 +1212,7 @@ class Session(object):
         return import_response
 
     def redcap_import_record(
-        self, error_label, subject_label, event, time_label, records, record_id=None
+        self, error_label, subject_label, event, time_label, records, record_id=None, import_format="df"
     ):
         if len(records) == 0:
             return None
@@ -1224,11 +1224,21 @@ class Session(object):
         if time_label:
             slog.startTimer2()
         try:
-            import_response = red_api.import_records(records, overwrite="overwrite")
+            # deal with new redcap api not liking named multi-indexes.
+            if isinstance(records.index, pd.MultiIndex) and None not in records.index.names:
+                imp_records = records.reset_index(drop=False)
+            else:
+                imp_records = records
+
+            import_response = red_api.import_records(imp_records, overwrite="overwrite", import_format=import_format)
 
         except requests.exceptions.RequestException as e:
             error = "session:redcap_import_record:Failed to import into REDCap"
-            err_list = ast.literal_eval(str(e))["error"].split('","')
+            try:
+                err_list = ast.literal_eval(str(e))["error"].split('","')
+            except:
+                err_list = [str(e)]
+
             error_label += "-" + hashlib.sha1(str(e).encode("utf-8")).hexdigest()[0:6]
 
             if len(records) > 1:
@@ -1385,7 +1395,7 @@ class Session(object):
             return None
 
         project_id = projects[projects.project_name == project_name].project_id
-        return int(project_id)
+        return int(project_id.iloc[0])
 
     def get_mysql_arm_id(self, arm_name, project_id):
         """
@@ -1399,7 +1409,7 @@ class Session(object):
         arm_id = arms[
             (arms.arm_name == arm_name) & (arms.project_id == project_id)
         ].arm_id
-        return int(arm_id)
+        return int(arm_id.iloc[0])
 
     def get_mysql_arm_id_from_arm_num(self, arm_num, project_id):
         """
@@ -1413,7 +1423,7 @@ class Session(object):
         arm_id = arms[
             (arms.arm_num == arm_num) & (arms.project_id == project_id)
         ].arm_id
-        return int(arm_id)
+        return int(arm_id.iloc[0])
 
     def get_mysql_event_id(self, event_descrip, arm_id):
         """
@@ -1429,7 +1439,7 @@ class Session(object):
         event_id = events[
             (events.descrip == event_descrip) & (events.arm_id == arm_id)
         ].event_id
-        return int(event_id)
+        return int(event_id.iloc[0])
 
     # 'redcap_locking_data'
     def get_mysql_table_records(
@@ -1537,7 +1547,9 @@ class Session(object):
             + table_name
             + ".ld_id IN ({0});".format(record_list)
         )
-        execute(sql, self.api["redcap_mysql_db"])
+        with self.api["redcap_mysql_db"].connect() as conn:
+            execute(sql, conn)
+
         return len(record_list)
 
     def add_mysql_table_records(

@@ -53,9 +53,13 @@ class XNATResourceUtil(object):
     query['overwrite'] =  'true' if overwrite else 'false'
 
     if query['overwrite'] == 'true':
-      response = self.xnat_session.delete(uri)
+      try:
+        response = self.xnat_session.delete(uri)
+      except xnat.exceptions.XNATResponseError as e:
+         if e.status_code != 404:
+            raise e
   
-    self.xnat_session.upload(uri, data, query=query, method='post', **kwargs)
+    self.xnat_session.upload_file(uri, data, query=query, method='post', **kwargs)
     self.files.clearcache()
 
 class XNATExperimentUtil(object):

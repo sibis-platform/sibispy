@@ -168,7 +168,7 @@ class redcap_locking_data(object):
         event_arm = events.merge(arms, how='outer')
         event_arm['redcap_event_name'] = event_arm.apply(
             lambda x: "{}_arm_{}".format(
-                re.sub('-', '', re.sub(r'[ ]', '_', x['descrip']).lower()),
+                re.sub(r'-', '', re.sub(r'[ ]', '_', x['descrip']).lower()),
                 x['arm_num']
             ), axis=1
         )

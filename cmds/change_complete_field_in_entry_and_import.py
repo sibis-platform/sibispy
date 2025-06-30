@@ -156,7 +156,7 @@ if not redcap_project :
 
     sys.exit()
 
-form_event_mapping = redcap_project.export_fem(format='df')
+form_event_mapping = redcap_project.export_instrument_event_mappings(format_type='df')
 fem_form_key = session.get_redcap_form_key()
 #
 # MAIN LOOP
@@ -185,7 +185,7 @@ for form_prefix, form_name in forms.items():
         continue 
 
     fields_list = [complete_label,record_label,'visit_ignore']
-    entry_records = session.redcap_export_records_from_api(time_label= None, api_type = 'data_entry', fields = fields_list, format='df')
+    entry_records = session.redcap_export_records_from_api(time_label= None, api_type = 'data_entry', fields = fields_list, format_type='df')
     if args.study_id : 
         entry_records = entry_records[entry_records.index.map( lambda key: key[0] in  args.study_id) ]
 
@@ -213,7 +213,7 @@ for form_prefix, form_name in forms.items():
         # drop any that do not have import record defined 
         import_records = entry_records_unv_or_comp.dropna(axis=0,subset=[record_label])
         if not import_records.empty : 
-            import_complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = [complete_label], format='df', records=import_records[record_label].tolist())
+            import_complete_records = session.redcap_export_records_from_api(time_label= None, api_type = 'import_laptops', fields = [complete_label], format_type='df', records=import_records[record_label].tolist())
 
             # for all records that the complete label is not 2 turn it into 2 
             upload_id_list = import_complete_records[import_complete_records[complete_label] < 2].index

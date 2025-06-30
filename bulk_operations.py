@@ -35,11 +35,13 @@ def bulk_mark(redcap_api: rc.Project, field_name: Union[List, str],
     if upload_individually:
         outcomes = []
         for idx, _ in upload.iterrows():
-            outcome = redcap_api.import_records(upload.loc[[idx]])
+            single_row = upload.loc[[idx]].reset_index()
+            outcome = redcap_api.import_records(single_row.to_dict(orient='records'))
             outcomes.append(outcome)
     else:
-        outcomes = redcap_api.import_records(upload)
-    
+        upload_records = upload.reset_index().to_dict(orient='records')
+        outcomes = redcap_api.import_records(upload_records)
+
     return outcomes
 
 
@@ -51,7 +53,7 @@ def get_status_fields_for_form(redcap_api, form_name):
 
     Returns a dict with 'completeness' and 'missingness' keys.
     """
-    datadict = redcap_api.export_metadata(format='df').reset_index()
+    datadict = redcap_api.export_metadata(format_type='df').reset_index()
     form_datadict = datadict.loc[datadict['form_name'] == form_name, :]
     if form_datadict.empty:
         raise NameError('{}: No such form in selected API!'.format(form_name))
@@ -79,7 +81,7 @@ def read_targets(redcap_api, from_file):
     targets = pd.read_csv(from_file)
     index_cols = [redcap_api.def_field]
     assert redcap_api.def_field in targets.columns
-    if redcap_api.is_longitudinal():
+    if redcap_api.is_longitudinal:
         assert 'redcap_event_name' in targets.columns
         index_cols.append('redcap_event_name')
 

@@ -29,8 +29,8 @@ session.connect_servers()
 projects = session.api_imaging.select.projects()
 
 # Access the REDCap API
-data_entry = session.api_data_entry.export_records(format='df')
-import_laptops = session.api_import_laptops_.export_records(format='df')
+data_entry = session.api_data_entry.export_records(format_type='df')
+import_laptops = session.api_import_laptops_.export_records(format_type='df')
 ```
 
 ### Related Projects

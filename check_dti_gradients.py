@@ -123,7 +123,7 @@ class check_dti_gradients(object):
         np.array
         """
         l = array_string.text.split(' ')
-        return np.fromiter(l, np.float)
+        return np.fromiter(l, float)
 
 
     def __get_gradient_table(self,parsed_sidecar):
