@@ -292,6 +292,46 @@ class redcap_to_casesdir(object):
             return None
 
 
+    def __ndar_months__(self, dob_ymd: str, ref_ymd: str,
+                        fmt: str = sutils.date_format_ymd):
+        """
+        Age in whole months, per NDAR spec:
+          • DOB floored to 1st of its month.
+          • +1 month if ref-date is ≥ 16 days into its month.
+          • If either date missing → ''  (keeps blanks blank).
+        """
+        if pandas.isnull(dob_ymd) or pandas.isnull(ref_ymd):
+            return ''
+
+        dob = datetime.datetime.strptime(dob_ymd, fmt).replace(day=1)
+        ref = datetime.datetime.strptime(ref_ymd, fmt)
+
+        months = (ref.year - dob.year) * 12 + (ref.month - dob.month)
+        if ref.day >= 16:
+            months += 1
+        return months
+    
+    def __age_to_months__(self, dob, ref_date, fallback_years):
+        """
+        • Try NDAR months (blank → '').
+        • If NDAR returns '' OR 0, fall back to years×12, but
+          blank out 0 as well.
+        • Always return either '' or an *int*.
+        """
+        months = self.__ndar_months__(dob, ref_date)
+        if isinstance(months, int) and months > 0:
+            return months
+
+        # fall back to years ⇒ months
+        if pandas.notnull(fallback_years):
+            m = int(round(float(fallback_years) * 12))
+            return m if m > 0 else ''
+        return ''
+    
+    def __visit_months__(self, row):
+        """Compute NDAR months from dob + visit_date for this DataFrame row."""
+        return self.__ndar_months__(row['dob'], row['visit_date'])
+
     # Truncate age to 2 digits for increased identity protection
     def __truncate_age__(self, age_in):
         matched = re.match(r'([0-9]*\.[0-9]*)', str(age_in))
@@ -393,7 +433,6 @@ class redcap_to_casesdir(object):
             else:
                 ndar_guid_id = subject_data['ndar_guid_id']
             
-            ndar_consent = re.sub(r'\.0$|nan', '', str(subject_data['ndar_consent']))
             ndar_guid_anomaly = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_anomaly']))
             ndar_guid_anomaly_visit = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_anomaly_visit']))
             ndar_guid_aud_dx_followup = re.sub(r'\.0$|nan', '', str(subject_data['ndar_guid_aud_dx_followup']))
@@ -404,6 +443,8 @@ class redcap_to_casesdir(object):
                 visit_date = ""
             else:
                 visit_date = datetime.datetime.strptime(visit_data['visit_date'], "%Y-%m-%d").strftime("%m/%Y")
+
+            visit_months = self.__ndar_months__(subject_data['dob'], visit_data['visit_date'])
             
             demographics = [
                 ['subject', subject_code],
@@ -411,10 +452,10 @@ class redcap_to_casesdir(object):
                 ['visit', visit_code],
                 ['site', site],
                 ['sex', subject[8]],
-                ['visit_age', visit_age],
-                ['mri_structural_age', self.__truncate_age__(visit_data['mri_t1_age'])],
-                ['mri_diffusion_age', self.__truncate_age__(visit_data['mri_dti_age'])],
-                ['mri_restingstate_age', self.__truncate_age__(visit_data['mri_rsfmri_age'])],
+                ['visit_age', visit_months],
+                ['mri_structural_age', visit_months],
+                ['mri_diffusion_age', visit_months],
+                ['mri_restingstate_age', visit_months],
                 ['exceeds_bl_drinking',
                  'NY'[int(subject_data['enroll_exception___drinking'])]],
                 ['exceeds_bl_drinking_2',exceeds_criteria_baseline],                
@@ -433,7 +474,6 @@ class redcap_to_casesdir(object):
                 ['scanner_model', scanner_model],
                 ['visit_date', visit_date],
                 ['ndar_guid_id', ndar_guid_id],
-                ['ndar_consent', ndar_consent],
                 ['ndar_guid_anomaly', ndar_guid_anomaly],
                 ['ndar_guid_anomaly_visit', ndar_guid_anomaly_visit],
                 ['ndar_guid_aud_dx_followup', ndar_guid_aud_dx_followup],
@@ -469,72 +509,91 @@ class redcap_to_casesdir(object):
         return
 
     def export_subject_form(self, export_name, subject, subject_code, arm_code, visit_code, all_records, measures_dir,verbose = False):
-        # Remove the complete field from the list of forms
-        complete = '{}_complete'.format(self.__import_forms.get(export_name))
-        fields = [column for column in self.__export_forms.get(export_name)
-                  if column != complete]
+        # ------------------------------------------------------------------
+        # 1.  Build initial record
+        # ------------------------------------------------------------------
+        complete = f"{self.__import_forms[export_name]}_complete"
+        fields   = [f for f in self.__export_forms[export_name] if f != complete]
+        fields   = [f for f in fields if f not in ('subject', 'arm', 'visit')]
+        record   = all_records[fields].reindex(fields, axis=1)
 
-        # Select data for this form - "reindex" is necessary to put
-        # fields in listed order - REDCap returns them lexicographically sorted
-        fields = [i for i in fields if i not in ['subject', 'arm', 'visit']]
-        record = all_records[fields].reindex(fields, axis=1)
-
-        # if I read it correctly then this statement is not possible
         if len(record) > 1:
-            slog.info(subject + "-" + visit_code, "ERROR: muliple records for that visit found for form '" + export_name + "'!" )
+            slog.info(f"{subject}-{visit_code}",
+                    f"ERROR: multiple records for form '{export_name}'!")
+            return None
+        if record.empty:
+            if verbose:
+                slog.info(f"{subject}-{visit_code}",
+                        f"Info: visit data had no '{export_name}' records.")
             return None
 
-        # Nothing to do
-        if not len(record):
-            if verbose :
-                slog.info(subject  + "-" + visit_code, "Info: visit data did not contain records of form '" + export_name + "'!" )
-
-            return None
-
-
-        # First, add the three index columns
+        # add index cols
         record.insert(0, 'subject', subject_code)
-        record.insert(1, 'arm', arm_code)
-        record.insert(2, 'visit', visit_code)
+        record.insert(1, 'arm',     arm_code)
+        record.insert(2, 'visit',   visit_code)
+        record = record.copy()                # avoid fragmentation warning
 
-        field_idx = 0
-        output_fields = []
-        for field in record.columns:
-            # Rename field for output if necessary
-            if field in list(self.__export_rename[export_name].keys()):
-                output_field = self.__export_rename[export_name][field]
-            else:
-                output_field = field
-            output_fields.append(output_field)
+        # ------------------------------------------------------------------
+        # 2.  Age conversion + coded-label collectionzd
+        # ------------------------------------------------------------------
+        label_cols = {}
+        age_cols   = [c for c in record.columns if c.endswith('_age')]
+        record[age_cols] = record[age_cols].astype('object')
 
-            # If this is an "age" field, truncate to 2 digits for privacy
-            if re.match(r'.*_age$', field):
-                record[field] = record[field].apply(self.__truncate_age__)
+        # === compute ONE month count for this visit (uses all_records) ===
+        idx    = all_records.index[0]
+        months = self.__ndar_months__(
+                    all_records.at[idx, 'dob'],
+                    all_records.at[idx, 'visit_date'])
 
-            # If this is a radio or dropdown field
-            # (except "FORM_[missing_]why"), add a separate column for the
-            # coded label
-            if field in list(self.__code_to_label_dict.keys()) and not re.match(r'.*_why$', field):
-                code = str(record[field].iloc[0])
-                label = ''
-                if code in list(self.__code_to_label_dict[field].keys()):
-                    label = self.__code_to_label_dict[field][code]
-                col_name = output_field + '_label'
-                if col_name in record.columns:
-                    slog.info("redcap_to_casesdir.export_subject_form", f"ERROR: duplicate variable '{output_field}' in {export_name}.")
-                    return None
+        for col in record.columns:
+
+            # -------- age columns → same month value for all ------------
+            if col.endswith('_age'):
+                # is there a value in the incoming record?
+                raw_value = record[col].iloc[0]
+                if pandas.isnull(raw_value) or str(raw_value).strip() == '':
+                    # keep it blank
+                    record.iat[0, record.columns.get_loc(col)] = ''
                 else:
-                    field_idx += 1
-                    record.insert(field_idx, col_name, label)
-                    output_fields.append(col_name)
+                    record.iat[0, record.columns.get_loc(col)] = months or ''
 
-            field_idx += 1
+            # -------- coded radio/dropdown → extra <col>_label ----------
+            if (col in self.__code_to_label_dict and not col.endswith('_why')):
+                code  = str(record[col].iloc[0])
+                label = self.__code_to_label_dict[col].get(code, '')
+                label_cols[f"{col}_label"] = label
 
-        # Apply renaming to columns
-        record.columns = output_fields
+        # attach any <col>_label columns we collected
+        if label_cols:
+            record = pandas.concat(
+                [record, pandas.DataFrame(label_cols, index=record.index)],
+                axis=1
+            )
 
-        # Figure out path for CSV file and export this record
-        return sutils.safe_dataframe_to_csv(record,os.path.join(measures_dir, export_name + '.csv'),verbose=verbose)
+        # ------------------------------------------------------------------
+        # 3.  Final type cast for *_age → Int64 (no decimals)
+        # ------------------------------------------------------------------
+        for col in record.columns:
+            if col.endswith('_age'):
+                record[col] = pandas.to_numeric(record[col],
+                                                errors='coerce'
+                                                ).astype('Int64')
+
+        # ------------------------------------------------------------------
+        # 4.  Rename columns *once* after everything is settled
+        # ------------------------------------------------------------------
+        rename_map = {
+            old: self.__export_rename[export_name].get(old, old)
+            for old in record.columns
+        }
+        record.rename(columns=rename_map, inplace=True)
+
+        # ------------------------------------------------------------------
+        # 5.  Export
+        # ------------------------------------------------------------------
+        out_path = os.path.join(measures_dir, f"{export_name}.csv")
+        return sutils.safe_dataframe_to_csv(record, out_path, verbose=verbose)
 
     # First get data for all fields across all forms in this event - this
     # speeds up transfers over getting each form separately
@@ -553,9 +612,21 @@ class redcap_to_casesdir(object):
 
         # Remove the fields we are forbidden to export from REDCap
         all_fields = np.setdiff1d(all_fields, forbidden_export_fields).tolist()
+        
+        # Needed for age recomputation
+        always_needed = ['dob', 'visit_date']
+        all_fields += always_needed
 
         # Get data
         all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format_type='df')
+
+        # Add in baseline date of birth so 
+        baseline_dob = redcap_project.export_records(
+            fields=['dob'], records=[subject],
+            events=['baseline_visit_arm_1'], format_type='df'
+        ).iloc[0]['dob']
+
+        all_records['dob'] = baseline_dob
 
         # return results
         return (all_records,export_list)
