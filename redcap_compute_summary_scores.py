@@ -225,7 +225,8 @@ class redcap_compute_summary_scores(object):
 
         instrument_name = instrument.replace('_lifetime', '')
         instrument_complete = f'{instrument_name}_complete'
-        record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id)
+        # ALWAYS pull every event for the subject (Ignore event_id for the fetch step!)
+        record_ids = self.__get_record_ids__(instrument_complete, subject_id, event_id=None) 
 
         ridx = record_ids.index
         if ridx.get_level_values(0).dtype != np.dtype(object):
@@ -248,7 +249,23 @@ class redcap_compute_summary_scores(object):
 
         import_fields = self.__get_import_fields__(instrument)
         imported = self.__fetch_records__(record_ids, import_fields)
-        return self.__score_records__(instrument, imported)
+        scored_records_full, error_flag = self.__score_records__(instrument, imported)
+
+        if error_flag:
+            return pandas.DataFrame(), True
+
+        # Limit the rows we’ll upload
+        if event_id is not None:
+            # Accept str, list, tuple, set, numpy array, Series …
+            rows_to_push = scored_records_full[
+                scored_records_full.index
+                    .get_level_values('redcap_event_name')
+                    .isin(np.atleast_1d(event_id))
+            ]
+        else:
+            rows_to_push = scored_records_full
+
+        return rows_to_push, False
 
     def upload_summary_scores_to_redcap(self, instrument, scored_records):
         return self.__session.redcap_import_record(instrument, None, None, None, scored_records)
