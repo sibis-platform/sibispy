@@ -66,16 +66,23 @@ class check_dti_gradients(object):
         # Load in all ground truth gradients
         sequence_map  = self.__sibis_defs.get('sequence')
         errorFlag = False
+
         for SCANNER in gt_path_dict.keys():
             scanner_dict = dict()
             scanner_map = gt_path_dict.get(SCANNER)
             for MODEL in scanner_map.keys():
                 model_dict = dict()
                 model_map = scanner_map.get(MODEL)
-                for SEQUENCE in sequence_map.keys(): 
+                for SEQUENCE in sequence_map.keys():
+                    # do not yet have a scan for that setup
+                    # if  SEQUENCE in model_map[]
+                    if  SEQUENCE not in model_map.keys() :
+                        continue 
+                     
                     model_dict[SEQUENCE] = self.__load_ground_truth_gradients(model_map[SEQUENCE])
-                    if not len(model_dict[SEQUENCE]) : 
-                       errorFlag = True 
+                    if not len(model_dict[SEQUENCE]) :
+                        slog.info("check_dti_gradients:configure","Error:no ground truth gradients for " + SCANNER + ", " +  MODEL + ", " +  SEQUENCE )
+                        errorFlag = True
 
                 scanner_dict[MODEL] = model_dict
                 
@@ -193,14 +200,17 @@ class check_dti_gradients(object):
             return []
         
         gt_scanner_map = self.__gt_gradients_dict[scanner_u]
+
+        scanner_model_key="default"
         scanner_model_u = scanner_model.split('_',1)[0].upper()
         if  scanner_model_u in iter(gt_scanner_map.keys()):
-            gt_model_map =  gt_scanner_map.get(scanner_model_u)
-        else : 
-            gt_model_map = gt_scanner_map.get('default')
+            scanner_model_key=scanner_model_u
+           
+        gt_model_map =  gt_scanner_map.get(scanner_model_key)
+
 
         if not sequence_label in iter(gt_model_map.keys()):
-            slog.info(session_label,'ERROR: _get_ground_truth_gradients_: No ground truth defined for ' + sequence_label + '!')
+            slog.info(session_label,"ERROR: _get_ground_truth_gradients_: No ground truth defined for " + "Scanner:" + scanner_u + " Model:" +scanner_model_key + " Scan:" + sequence_label + "! Check if the sequence is skipped accoeding to the configuration file!" )
             return []
 
         return gt_model_map[sequence_label]
@@ -224,7 +234,10 @@ class check_dti_gradients(object):
                 model_subject =  model_map.get('subject')
                 model_subject_dir = os.path.join(self.__cases_dir, model_subject) 
                 model_dict = dict()
-                for SEQUENCE in sequence_map.keys(): 
+                for SEQUENCE in sequence_map.keys():
+                    if model_map.get('skip') and SEQUENCE in model_map.get('skip') :
+                        continue
+                    
                     model_dict[SEQUENCE] = self.get_dti_stack_path(SEQUENCE,model_subject_dir, arm='standard', event=model_event)
 
                 scanner_dict[MODEL] = model_dict
@@ -254,6 +267,11 @@ class check_dti_gradients(object):
             path = os.path.join(path, event)
         else:
             path = os.path.join(path, '*')
+        
+        if (sequence_label == "dti96b3000") :
+            return os.path.join(path, '32ch-diffusion/native',sequence_label,'*.xml')
+        if "dti6b3000" in  sequence_label  :
+            return os.path.join(path, '32ch-diffusion/native/dti6b3000','*.xml')
 
         return os.path.join(path, 'diffusion/native',sequence_label,'*.xml')
 
@@ -277,17 +295,26 @@ class check_dti_gradients(object):
                       scan = scan_id)
 
             return False
+        
         truth_gradient = self._get_ground_truth_gradients_(self.__cases_dir, manufacturer,scanner_model,sequence_label)
+        
         if len(truth_gradient) == 0 :
             slog.info(session_label,
                       'ERROR: check_diffusion: Failed to check ' + sequence_label + " due to missing ground truth!", 
                       manufacturer = manufacturer,
-                      model = scanner_model,
+                      model =  scanner_model,
                       sequence = sequence_label,
                       eid = eid,
                       scan = scan_id)
             return False
 
+        # Siemens acuires in two seperate files while GE in one file 
+        if "dti6b3000" in sequence_label and manufacturer == "SIEMENS" :
+            if "pe1-dti6b3000" == sequence_label :
+                 truth_gradient=[truth_gradient[0]]
+            else :
+                 truth_gradient=[truth_gradient[1]]
+               
         xml_file_list.sort()
 
         errorsFrame = list()
