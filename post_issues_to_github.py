@@ -29,6 +29,7 @@ import github
 from github.GithubException import UnknownObjectException, GithubException
 
 from sibispy import config_file_parser as cfg_parser
+import sibispy.session
 
 #def format_error_message(errmsg,issue): 
 #    sha = hashlib.sha1(errmsg + issue).hexdigest()[0:6]
@@ -171,19 +172,34 @@ def is_open_issue(repo, subject, label=None, verbose=None):
 
     return None
 
-def generate_body(issue):
+def generate_body(issue, max_len=None):
     """Generate Markdown for body of issue.
 
     Args:
         issue (dict): Keys for title and others.
+        max_len (None|int): Maximum body length, default: None 
 
     Returns:
-        str: Markdown text.
+        if max_len == None:
+            str: Markdown text.
+        else:
+            ( str, str ): Markdown text.
+            
     """
     markdown = "### {}\n".format(issue.pop('title'))
     for k, v in issue.items():
         markdown += "- {}: {}\n".format(k, v)
-    return markdown
+
+    if max_len and len(markdown) > max_len:
+        truncated_markdown = '## See Error Log for Full Message!\n'
+        postfix = '\n...TRUNCATED...\n'
+        len_left = max_len - len(truncated_markdown) - len(postfix)
+        truncated_markdown = markdown[:len_left] + postfix
+        return truncated_markdown, markdown
+    elif max_len is not None:
+        return markdown, None
+    else:
+        return markdown
 
 
 def get_valid_title(title):
@@ -236,7 +252,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             error_msg = issue_dict.get('error')
             experiment_site_id = issue_dict.get('experiment_site_id')
             subject = "{}, {}".format(experiment_site_id, error_msg)
-            body = generate_body(issue_dict)
+            body, attachment = generate_body(issue_dict, 65535)
         except:
             if verbose:
                 print("Falling back to old issue formatting.")
@@ -246,6 +262,7 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             subject_base = title[0:title.index(' (')]
             subject = subject_base + ": {0}".format(sha1)
             body = issue
+            attachment = None
         try:
             open_issue = is_open_issue(repo, subject, label = label, verbose=verbose)
 
@@ -262,6 +279,9 @@ def create_issues_from_list(repo, title, label, issue_list, verbose=None):
             except Exception as e:
                 print('Error:post_github_issues: Failed to post the following issue on github!' + ' Title: ' + subject + ", Body: " + body + ", Exception: " + str(e))
                 continue
+
+            if attachment is not None:
+                print(f"Warning: error message was too long. Here's the full error for {github_issue.url}:\n{attachment}")
 
             if verbose:
                 print("Created issue... See: {0}".format(github_issue.url))

@@ -6,7 +6,7 @@ def get_session(config_file):
   '''
   Creates a Session from the provided configuration file.
   '''
-  from sibispy import session as sess
+  import sibispy.session as sess
   
   session = sess.Session()
   assert session.configure(config_file), "Configuration File `{}` is missing or not readable.".format(config_file)

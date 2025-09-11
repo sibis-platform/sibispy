@@ -1,8 +1,11 @@
 from __future__ import print_function
 # General Util functions
-from builtins import str
+from builtins import ExceptionGroup, str
+import io
+import traceback
 from sibispy import sibislogger as slog
 import sibispy
+import sibispy.session
 import subprocess
 import re
 import tempfile
@@ -11,6 +14,7 @@ import os.path
 import pandas
 import hashlib
 import glob
+import json
 
 date_format_ymd = '%Y-%m-%d'
 
@@ -270,3 +274,35 @@ def ncanda_id_lookup(base_id, print_keys=False):
         output += ''.join(res)
     return output
 
+        
+
+import time
+import pathlib
+
+def try_redcap_export_records(project, max_tries=3, timeout=30, **kwargs):
+    errors = []
+    for try_num in range(max_tries):
+        try:
+            return project.export_records(**kwargs)
+        except Exception as ex:
+            arg_info = [ f'{k}={str(v)}' for k, v in kwargs.items() ]
+            ex.add_note(f'WARN: <redcap_project>.export_records() failed in try {try_num+1} of {max_tries}')
+            ex.add_note(f'WARN: Called as export_records({', '.join(arg_info)})')
+            exc_str = io.StringIO()
+            traceback.print_exception(ex, file=exc_str)
+            exc_str=exc_str.getvalue()
+            sha = hashlib.sha1(f"{','.join(arg_info)}{exc_str}".encode()).hexdigest()[0:6]
+            if sibispy.session.session_global != None:
+                slog_path = pathlib.Path(sibispy.session.session_global.get_log_dir()) / 'redcap_export_errors.txt'
+                with open(slog_path, 'a') as slog_f:
+                    slog_f.write(f"{time.asctime()}: WARN: Problem calling export_records() from redcap @ try {try_num+1} of {max_tries} [{sha}]\n")
+                    slog_f.write(f"    Called as export_records({', '.join(arg_info)})\n")
+                    slog_f.write(f"{exc_str}\n")
+            errors.append(ex)
+            time.sleep(timeout)
+
+    raise ExceptionGroup(
+        f"Maximum retries exceeded for <redcap_project>.export_records({', '.join(arg_info)})",
+        errors
+    )  
+    

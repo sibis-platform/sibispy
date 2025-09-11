@@ -618,10 +618,16 @@ class redcap_to_casesdir(object):
         all_fields += always_needed
 
         # Get data
-        all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format_type='df')
+        # all_records = redcap_project.export_records(fields=all_fields,records=[subject], events=[event],format_type='df')
+        all_records = sutils.try_redcap_export_records(redcap_project, fields=all_fields,records=[subject], events=[event],format_type='df')
 
         # Add in baseline date of birth so 
-        baseline_dob = redcap_project.export_records(
+        # baseline_dob = redcap_project.export_records(
+        #     fields=['dob'], records=[subject],
+        #     events=['baseline_visit_arm_1'], format_type='df'
+        # ).iloc[0]['dob']
+
+        baseline_dob = sutils.try_redcap_export_records(redcap_project,
             fields=['dob'], records=[subject],
             events=['baseline_visit_arm_1'], format_type='df'
         ).iloc[0]['dob']

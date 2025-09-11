@@ -150,6 +150,7 @@ SIBIS_DIRS = ValueKeyDict(
 # --------------------------------------------
 # CLASS DEFINITION
 
+session_global = None
 
 class Session(object):
     """
@@ -172,6 +173,7 @@ class Session(object):
     """
 
     def __init__(self, opt_api: Mapping = {}):
+        global session_global
         self.__config_usr_data = cfg_parser.config_file_parser()
         self.__config_srv_data = None
         self.api = {
@@ -192,6 +194,8 @@ class Session(object):
 
         self.__active_redcap_project__ = None
         self.__ordered_config_load = False
+        
+        session_global = self
 
     def configure(self, config_file=None, ordered_config_load_flag=False):
         """
