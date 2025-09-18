@@ -835,27 +835,49 @@ def handle_measurements_field(ndar_csv_meta, field_spec, subject: SubjectData):
     
     return field_value
 
+def _call_if_callable(spec, subject):
+    try:
+        return spec(subject) if callable(spec) else spec
+    except Exception as e:
+        logger.warning("Callable map entry raised for subject field: %s", e)
+        return EmptyString
+
 def handle_field(field_spec: dict, subject: SubjectData):
     field = field_spec[DefinitionHeader.ElementName]
-    SUBJECT_MAP = mappings.subject_map
+
+    # Prefer new hivalc-style map if present, else fall back to legacy
+    SUBJECT_MAP = getattr(mappings, "subject_map", None)
+    if SUBJECT_MAP is None:
+        SUBJECT_MAP = getattr(mappings, "src_to_ndar_map", {})
+
     try:
         field_value = SUBJECT_MAP[field]
 
-        if field_value.startswith('lambda'):
-            func = eval(field_value)
-            field_value = func(subject)
-        elif field_value.startswith('get'):
-            field_value = eval(field_value)
+        # NEW: if the entry is a callable or literal, use it directly
+        direct_val = _call_if_callable(field_value, subject)
+        if direct_val is not EmptyString and direct_val is not None:
+            field_value = direct_val
+        else:
+            # LEGACY: keep existing string-dispatch behavior (lambda/get/etc.)
+            if isinstance(field_value, str):
+                if field_value.startswith('lambda'):
+                    func = eval(field_value)
+                    field_value = func(subject)
+                elif field_value.startswith('get'):
+                    field_value = eval(field_value)
+                else:
+                    # treat as literal string if it doesn't look like code
+                    pass
 
         field_value = conform_field_specs_datatype(field_value, field_spec, subject)
+
     except KeyError:
         field_value = EmptyString
     except Exception as e:
         logger.warning("Exception for %s: %s\n" % (field, e))
         field_value = EmptyString
-    
+
     check_field_specs(field_value, field_spec, subject)
-    
     return field_value
 
 def write_ndar_csv(subject_data: SubjectData, ndar_csv_meta: TargetCSVMeta):
@@ -943,6 +965,12 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     )
     config_args.add_argument(
         '--verbose', '-v', action='count', default=0
+    )
+    config_args.add_argument(
+        '--mappings_dir',
+        help="Override path to the directory containing the mappings module "
+             "(e.g., hivalc_mappings.py or ncanda_mappings.py).",
+        type=is_dir("mappings_dir", os.R_OK | os.X_OK)
     )
 
     # HIVALC Specific args
@@ -1042,7 +1070,11 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
             if not ns.image_definition.exists():
                 raise ConfigError(f"The `image_definition`, {gen_cfg['image_definition']} is missing from {ns.datadict_dir}")
 
-            ns.mappings_dir = gen_cfg['mappings_dir']
+            # CLI override takes precedence; otherwise use config
+            ns.mappings_dir = Path(ns.mappings_dir) if ns.mappings_dir else Path(gen_cfg['mappings_dir'])
+            if not ns.mappings_dir.exists():
+                raise ConfigError(f"The `mappings_dir`, {ns.mappings_dir}, does not exist.")
+
         except KeyError:
             p.exit(10, f"Could not find `ndar.create_csv` in {p.config.as_posix()}")
         except ConfigError as ce:
@@ -1095,7 +1127,7 @@ def main(input_args: List[str] = None):
     args = _parse_args(input_args)
     
     # add mappings files to the system path so it can be imported
-    sys.path.append(args.mappings_dir)
+    sys.path.insert(0, str(Path(args.mappings_dir).resolve()))
 
     # set input and output base paths
     scan_dir, ndar_dir = set_dir_paths(args)

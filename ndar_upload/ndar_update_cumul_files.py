@@ -20,6 +20,7 @@ import csv
 import yaml
 import pathlib
 import argparse
+import importlib
 import pandas as pd
 from pandas.errors import EmptyDataError
 from typing import List, Dict
@@ -167,6 +168,12 @@ def _parse_args() -> argparse.Namespace:
         "--project", help="Enter project name of summary files to be updated (cns_deficit, mci_cb, etc.)",
         required=True, type=str 
     )
+    parser.add_argument(
+        "--mappings_dir",
+        help="Override directory that contains hivalc_mappings.py / ncanda_mappings.py",
+        type=pathlib.Path,
+        required=False,
+    )
 
     args = parser.parse_args()
     return args
@@ -184,15 +191,21 @@ def main():
     else:
         raise KeyError(f"ERROR: Project '{args.project}' not found in 'ndar' section of the config file.")
 
-    sys.path.append(project_config.get('mappings_dir'))
+    # Resolve mappings dir (CLI override wins; fallback to project config)
+    mappings_dir = args.mappings_dir or project_config.get('mappings_dir')
+    if not mappings_dir:
+        raise KeyError("No mappings_dir provided via --mappings_dir and none found in project config.")
+    mappings_dir = pathlib.Path(mappings_dir)
+    if not mappings_dir.exists():
+        raise FileNotFoundError(f"mappings_dir does not exist: {mappings_dir}")
+    sys.path.insert(0, str(mappings_dir.resolve()))
 
-    if args.project == 'ncanda':
-        import ncanda_mappings as mappings
-    else:
-        import hivalc_mappings as mappings
+    # Import the right mappings module from the resolved directory
+    mappings_module_name = 'ncanda_mappings' if args.project == 'ncanda' else 'hivalc_mappings'
+    mappings = importlib.import_module(mappings_module_name)
 
-    # Get base paths for everything from config
-    staging_path, data_path, consent_path, files_to_validate, data_dict_path = mappings.get_paths_from_config(args, project_config)
+    # NOTE: pass the *project* block (flat keys expected by mappings.get_paths_from_config)
+    consent_path, staging_path, src_data_path, files_to_validate, data_dict_path, upload2ndar_path = mappings.get_paths_from_config(args, project_config)
 
     # For the given project, get the current and previous data dirs
     to_be_uploaded_dir, prev_upload_dir = get_summ_dirs(args, staging_path)

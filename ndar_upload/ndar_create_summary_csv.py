@@ -58,6 +58,7 @@ class CSVMeta():
 
 csv_meta_map = {
     "image03.csv": CSVMeta("image03_definitions.csv", ["image", "03"]),
+    "ndar_subject01.csv": CSVMeta("ndar_subject01_definitions.csv", ["ndar_subject", "01"]),
 }
 
 def write_summary_csv(old_summary_csv, new_subj_csv, data_dict_path):
@@ -264,27 +265,36 @@ def main():
     summaries_dir = staging_path / 'staging' / 'summaries'
 
     # For each subject in visit list, for all scans found within copy their src files to summaries and append image03 as row to summ
+    summaries_dir = staging_path / 'staging' / 'summaries'
+    summaries_dir.mkdir(parents=True, exist_ok=True)
+
     for visit_path in filtered_visit_list:
+        # --- SUBJECT SUMMARY ---
+        subj_csv = visit_path / 'ndar_subject01.csv'
+        if subj_csv.is_file():
+            subj_summary_csv = summaries_dir / 'ndar_subject01.csv'
+            if not subj_summary_csv.exists():
+                shutil.copy2(subj_csv, subj_summary_csv)
+                logging.info(f"No ndar_subject01 summary file found, created at {subj_summary_csv}")
+            else:
+                write_summary_csv(subj_summary_csv, subj_csv, data_dict_path)
+
+        # --- IMAGE SUMMARY ---
         for mod in image_mods:
-            mod_dir = visit_path / mod  # Construct the path for the modality
+            mod_dir = visit_path / mod
             if mod_dir.is_dir():
                 for item in mod_dir.iterdir():
-                    if item.name == 'image03.csv':
-                        if item.is_file():
-                            image03_summ_csv = summaries_dir / 'image03.csv'
-                            if not image03_summ_csv.is_file():   # Create summary csv if it doesn't already exist
-                                # Copy current image row csv and use as base of new summary file
-                                dest_dir = image03_summ_csv.parent
-                                dest_dir.mkdir(parents=True, exist_ok=True)
-                                shutil.copy2(item, image03_summ_csv)
-                                logging.info(f"No image03 summary file found, now created via copy to path {image03_summ_csv}")
-                            else:
-                                # Append new row to summary file
-                                write_summary_csv(image03_summ_csv, item, data_dict_path)
+                    if item.name == 'image03.csv' and item.is_file():
+                        image03_summ_csv = summaries_dir / 'image03.csv'
+                        if not image03_summ_csv.exists():
+                            shutil.copy2(item, image03_summ_csv)
+                            logging.info(f"No image03 summary file found, created at {image03_summ_csv}")
+                        else:
+                            write_summary_csv(image03_summ_csv, item, data_dict_path)
                     elif 'NDAR' in item.name:
-                        if '.json' in item.name:
+                        if item.suffix == '.json':
                             logging.info(f"Copying {item} to {summaries_dir}")
-                            shutil.copy2(item, (summaries_dir / item.name))
+                            shutil.copy2(item, summaries_dir / item.name)
                         else:
                             logging.info(f"Copying {item} to {summaries_dir}")
                             shutil.copytree(item, summaries_dir / item.name, dirs_exist_ok=True)
