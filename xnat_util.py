@@ -255,8 +255,15 @@ class XnatUtil(object):
 
   def connect(self, verify=True, debug=False, loglevel=None):
     self._debug = debug
-    with logging.getLogger('xnat').setLevel(logging.ERROR):
-      self._xnat = xnat.connect(self._server, user=self._user, password=self._password, verify=verify, debug=debug, loglevel=loglevel)
+    requested_loglevel = loglevel if loglevel is not None else logging.WARNING if not debug else logging.DEBUG
+    temp_loglevel = logging.ERROR
+    self._xnat = xnat.connect(self._server, user=self._user, password=self._password, verify=verify, debug=debug, loglevel=temp_loglevel)
+    try:
+       xnat_logger = self._xnat.logger
+       xnat_logger.setLevel(requested_loglevel)
+    except Exception as e:
+        print(e)
+
     return self._xnat
 
   def _get_json(self, uri):
