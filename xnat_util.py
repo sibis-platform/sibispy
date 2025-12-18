@@ -15,6 +15,7 @@ import py
 import six
 import os
 import yaml
+import logging
 
 # jimklo: #stupidpythontricks monkey patch XNATBaseListing so you can access __get_item__ via __call__.
 def __call_getitem(self, item=None):
@@ -56,8 +57,8 @@ class XNATResourceUtil(object):
       try:
         response = self.xnat_session.delete(uri)
       except xnat.exceptions.XNATResponseError as e:
-         if e.status_code != 404:
-            raise e
+        if e.status_code != 404:
+          raise e
   
     self.xnat_session.upload_file(uri, data, query=query, method='post', **kwargs)
     self.files.clearcache()
@@ -254,7 +255,15 @@ class XnatUtil(object):
 
   def connect(self, verify=True, debug=False, loglevel=None):
     self._debug = debug
-    self._xnat = xnat.connect(self._server, user=self._user, password=self._password, verify=verify, debug=debug, loglevel=loglevel)
+    requested_loglevel = loglevel if loglevel is not None else logging.WARNING if not debug else logging.DEBUG
+    temp_loglevel = logging.ERROR
+    self._xnat = xnat.connect(self._server, user=self._user, password=self._password, verify=verify, debug=debug, loglevel=temp_loglevel)
+    try:
+       xnat_logger = self._xnat.logger
+       xnat_logger.setLevel(requested_loglevel)
+    except Exception as e:
+        print(e)
+
     return self._xnat
 
   def _get_json(self, uri):
