@@ -597,6 +597,16 @@ class Session(object):
     def get_email(self):
         return self.__config_usr_data.get_value("email")
 
+    def get_email_from(self):
+        return os.environ.get(
+            "SIBIS_EMAIL_NOTIFICATIONS_FROM",
+            self.__config_usr_data.get_value("email_from"))
+
+    def get_email_to(self):
+        return os.environ.get(
+            "SIBIS_EMAIL_NOTIFICATIONS_TO",
+            self.__config_usr_data.get_value("email_to"))
+
     def get_beta_dir(self):
         aDir = self.__get_analysis_dir()
         if aDir:
