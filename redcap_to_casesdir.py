@@ -260,26 +260,32 @@ class redcap_to_casesdir(object):
         if not os.path.exists(datadict_dir):
             os.makedirs(datadict_dir)
 
-        ddict = pandas.DataFrame(index=variable_list,columns=redcap_datadict_columns)
+        # Output variables: rename *_age -> *_age_months
+        out_vars = [
+            (re.sub(r'_age$', '_age_months', v) if v.endswith('_age') else v)
+            for v in variable_list
+        ]
 
-        for name_of_form, var in zip(export_forms_list, variable_list):
-            field_name = re.sub(r'___.*', '', var)
-            ddict.loc[var, "Variable / Field Name"] = field_name
-            ddict.loc[var, "Form Name"] = name_of_form
+        ddict = pandas.DataFrame(index=out_vars, columns=redcap_datadict_columns)
 
-            # Check if var is in data dict ('FORM_complete' fields are NOT)
-            if field_name in list(self.__metadata_dict.keys()):
-                ddict.loc[var, "Field Type"] = self.__metadata_dict[field_name][0]
-                # need to transfer to utf-8 code otherwise can create problems when
-                # writing dictionary to file it just is a text field so it should not matter
-                #  .encode('utf-8')
-                # Not needed in Python 3 anymore 
-                ddict.loc[var, "Field Label"] = self.__metadata_dict[field_name][2]
-                ddict.loc[var, "Text Validation Type OR Show Slider Number"] = self.__metadata_dict[field_name][1]
-                ddict.loc[var, "Text Validation Min"] = self.__metadata_dict[field_name][3]
-                ddict.loc[var, "Text Validation Max"] = self.__metadata_dict[field_name][4]
-                #.encode('utf-8')
-                ddict.loc[var, "Choices, Calculations, OR Slider Labels"] = self.__metadata_dict[field_name][5]
+        for name_of_form, var_in, var_out in zip(export_forms_list, variable_list, out_vars):
+            # What we write into the datadict
+            field_name_out = re.sub(r'___.*', '', var_out)
+            ddict.loc[var_out, "Variable / Field Name"] = field_name_out
+            ddict.loc[var_out, "Form Name"] = name_of_form
+
+            # What we look up in metadata (map months back to REDCap name)
+            field_name_in = re.sub(r'___.*', '', var_in)
+            meta_field = re.sub(r'_age_months$', '_age', field_name_out)
+
+            if meta_field in self.__metadata_dict:
+                ddict.loc[var_out, "Field Type"] = self.__metadata_dict[meta_field][0]
+                ddict.loc[var_out, "Field Label"] = self.__metadata_dict[meta_field][2]
+                ddict.loc[var_out, "Text Validation Type OR Show Slider Number"] = self.__metadata_dict[meta_field][1]
+                ddict.loc[var_out, "Text Validation Min"] = self.__metadata_dict[meta_field][3]
+                ddict.loc[var_out, "Text Validation Max"] = self.__metadata_dict[meta_field][4]
+                ddict.loc[var_out, "Choices, Calculations, OR Slider Labels"] = self.__metadata_dict[meta_field][5]
+
 
         # Finally, write the data dictionary to a CSV file
         dicFileName = os.path.join(datadict_dir,datadict_base_file + '_datadict.csv')
@@ -452,10 +458,10 @@ class redcap_to_casesdir(object):
                 ['visit', visit_code],
                 ['site', site],
                 ['sex', subject[8]],
-                ['visit_age', visit_months],
-                ['mri_structural_age', visit_months],
-                ['mri_diffusion_age', visit_months],
-                ['mri_restingstate_age', visit_months],
+                ['visit_age_months', visit_months],
+                ['mri_structural_age_months', visit_months],
+                ['mri_diffusion_age_months', visit_months],
+                ['mri_restingstate_age_months', visit_months],
                 ['exceeds_bl_drinking',
                  'NY'[int(subject_data['enroll_exception___drinking'])]],
                 ['exceeds_bl_drinking_2',exceeds_criteria_baseline],                
@@ -588,6 +594,16 @@ class redcap_to_casesdir(object):
             for old in record.columns
         }
         record.rename(columns=rename_map, inplace=True)
+
+        # ------------------------------------------------------------------
+        # 4b.  Rename *_age -> *_age_months (data are already months)
+        # ------------------------------------------------------------------
+        age_rename = {c: re.sub(r'_age$', '_age_months', c)
+                      for c in record.columns
+                      if c.endswith('_age')}
+        if age_rename:
+            record.rename(columns=age_rename, inplace=True)
+
 
         # ------------------------------------------------------------------
         # 5.  Export
