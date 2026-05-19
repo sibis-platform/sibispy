@@ -1050,7 +1050,12 @@ class Session(object):
         redcap_event_name: str,
         subject_id=None,
         name_of_form=None,
+        no_url=False,
     ):
+        # if db is offline/not reachable, no_url flag is passed, return empty string as link
+        if no_url:
+            return ""
+
         # Returns a possibly formattable redcap link for the passed arguments, 3 mandatory:
         # project_name: see table in https://neuro.sri.com/labwiki/index.php?title=Locking_in_REDCap
         # redcap_event_name: e.g. 7y_visit_arm_1 or recovery_daily_29_arm_2
