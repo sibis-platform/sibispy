@@ -65,7 +65,7 @@ def test_check_dti_gradients(session, slog):
             # check_stack_seq = next(iter(mod_dic))
             for check_stack_seq  in mod_dic.keys() :
                 print("     Seq:",  check_stack_seq,end=" ")
-                check_stack_xml = glob.glob(mod_dic[check_stack_seq])
+                check_stack_xml = sorted(glob.glob(mod_dic[check_stack_seq]))
 
                 # Currently not acquired for all settings
                 if "b3000" in check_stack_seq :
@@ -79,7 +79,6 @@ def test_check_dti_gradients(session, slog):
                             check_stack_xml = [check_stack_xml[0]]
                         elif  check_stack_seq == "pe2-dti6b3000" :
                             check_stack_xml = [check_stack_xml[1]]
-                    # print("===check_stack_xml", check_stack_xml)
 
                 assert(check.check_diffusion('TEST','TEST',check_stack_xml,check_stack_scn,check_stack_mod,"",check_stack_seq))
                 print("Passed")

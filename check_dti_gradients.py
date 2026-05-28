@@ -247,7 +247,7 @@ class check_dti_gradients(object):
         return path_dict
         
     def __load_ground_truth_gradients(self,gt_dti_path):
-        dti_stack = glob.glob(gt_dti_path)
+        dti_stack = sorted(glob.glob(gt_dti_path))
         if not len(dti_stack): 
             slog.info("__load_ground_truth_gradients","Error: Cannot find " + gt_dti_path)
             return []
