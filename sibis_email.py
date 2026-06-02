@@ -19,12 +19,14 @@ class sibis_email(object):
     """ Class handling email communication with XNAT users and admin."""
 
     # Initialize class.
-    def __init__(self, smtp_server, admin_email, sibis_admin_email = None):
+    def __init__(self, smtp_server, admin_email, sibis_admin_email = None, use_starttls = True):
         self._sibis_admin_email = sibis_admin_email
         self._admin_email = admin_email
         self._admin_messages = []
         self._messages_by_user = dict()
         self._smtp_server = smtp_server
+        self._use_starttls = use_starttls
+        print("sibis_email.send",f"Initialized sibis_email {vars(self)}\n")
         
     # Add to the message building up for a specific user
     def add_user_message( self, uid, txt, uFirstName=None, uLastName=None, uEmail=None):
@@ -66,35 +68,35 @@ class sibis_email(object):
     
         # Send the message via local SMTP server.
         try : 
-            s = smtplib.SMTP( self._smtp_server )
+            with smtplib.SMTP( self._smtp_server ) as s:
+                if self._use_starttls:
+                    slog.info("sibis_email.send",f"Using STARTTLS for smtp server {self._smtp_server}")
+                    s.starttls()
+                    
+                # sendmail function takes 3 arguments: sender's address, recipient's address
+                # and message to send - here it is sent as one string.
+                s.sendmail( from_email, to_email, msg.as_string() )
+            
+                # Send email also to sibis admin if defined
+                if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
+                    s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
+
+                s.quit()
+
         except Exception as err_msg:
-            slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
-                    err_msg = str(err_msg),
-                    smtp_server = self._smtp_server) 
-            return False
- 
-        try : 
-            # sendmail function takes 3 arguments: sender's address, recipient's address
-            # and message to send - here it is sent as one string.
-            s.sendmail( from_email, to_email, msg.as_string() )
+        # except Exception as err_msg:
+        #     slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
+        #             err_msg = str(err_msg),
+        #             smtp_server = self._smtp_server) 
+        #     return False
         
-            # Send email also to sibis admin if defined
-            if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
-                s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
-
-        except Exception as err_msg:
-            slog.info("sibis_email.send","ERROR: failed to send email at {} ".format(time.asctime()),
-                      err_msg = str(err_msg),
-                      email_from = from_email, 
-                      email_to = to_email,
-                      sibis_admin_email = self._sibis_admin_email, 
-                      email_msg = msg.as_string(),
-                      smtp_server = self._smtp_server)
-            s.quit()
+            err_msg=f"ERROR: failed to send email. err_msg={str(err_msg)}, self={vars(self)}, from_email={from_email}, to_email={to_email}, time={time.asctime()}"
+        
+            print("sibis_email.send ", err_msg)
+            raise
             return False
 
 
-        s.quit()
         return True
 
     # Send mail to one user
@@ -166,6 +168,7 @@ class xnat_email(sibis_email):
                 server_config = self._interface._get_json('/data/services/settings')
             self._site_url = server_config[u'siteUrl']
             self._site_name = server_config[u'siteId']
+            print("moose", server_config)
             sibis_email.__init__(self,server_config[u'smtp_host'],server_config[u'adminEmail'],session.get_email())
 
         else: 
