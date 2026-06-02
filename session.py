@@ -601,6 +601,11 @@ class Session(object):
         return os.environ.get(
             "SIBIS_EMAIL_NOTIFICATIONS_FROM",
             self.__config_usr_data.get_value("email_from"))
+        
+    def get_smtp_server(self):
+        return os.environ.get(
+            "SMTP_SERVER", "localhost.localdomain")
+            #self.__config_srv_data.get("smtp_server"))
 
     def get_email_to(self):
         return os.environ.get(

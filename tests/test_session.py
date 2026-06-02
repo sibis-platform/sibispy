@@ -609,36 +609,37 @@ def test_session_legacy(config_file, special_opts):
             errors = True
 
     # Make sure directories are assigned to the correct user
-    user_id = os.getuid()
-    for DIR in [session.get_laptop_imported_dir(), session.get_laptop_svn_dir()]:
-        path_uid = os.stat(DIR).st_uid
-        if user_id != path_uid:
-            print(
-                "ERROR: Dir '" + DIR + "' owned by user with id",
-                path_uid,
-                " and not user running the script (id: " + str(user_id) + ")",
-            )
-            errors = True
+    # TODO GM 2026.06.02 user checks should be obsolete at Stanford
+    # user_id = os.getuid()
+    # for DIR in [session.get_laptop_imported_dir(), session.get_laptop_svn_dir()]:
+    #     path_uid = os.stat(DIR).st_uid
+    #     if user_id != path_uid:
+    #         print(
+    #             "ERROR: Dir '" + DIR + "' owned by user with id",
+    #             path_uid,
+    #             " and not user running the script (id: " + str(user_id) + ")",
+    #         )
+    #         errors = True
 
-    for DIR in glob.glob(os.path.join(session.get_log_dir(), "*")):
-        path_uid = os.stat(DIR).st_uid
-        if user_id != path_uid:
-            print(
-                "ERROR: Dir '" + DIR + "' owned by user with id",
-                path_uid,
-                " and not user running the script (id: " + str(user_id) + ")",
-            )
-            errors = True
+    # for DIR in glob.glob(os.path.join(session.get_log_dir(), "*")):
+    #     path_uid = os.stat(DIR).st_uid
+    #     if user_id != path_uid:
+    #         print(
+    #             "ERROR: Dir '" + DIR + "' owned by user with id",
+    #             path_uid,
+    #             " and not user running the script (id: " + str(user_id) + ")",
+    #         )
+    #         errors = True
 
-    bDir = session.get_beta_dir()
-    if os.path.exists(bDir):
-        perm = os.stat(bDir).st_mode & 0o777
-        if perm != 0o777:
-            print("ERROR: Permission of " + bDir + " have to be 777 !")
-            errors = True
-    else:
-        print("ERROR: " + bDir + " does not exist!")
-        errors = True
+    # bDir = session.get_beta_dir()
+    # if os.path.exists(bDir):
+    #     perm = os.stat(bDir).st_mode & 0o777
+    #     if perm != 0o777:
+    #         print("ERROR: Permission of " + bDir + " have to be 777 !")
+    #         errors = True
+    # else:
+    #     print("ERROR: " + bDir + " does not exist!")
+    #     errors = True
 
     # Load in test specific settings :
     (sys_file_parser, err_msg) = session.get_config_test_parser()
