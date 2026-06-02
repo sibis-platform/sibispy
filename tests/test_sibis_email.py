@@ -37,8 +37,12 @@ def session(config_file):
     return get_session(config_file)
 
 @pytest.fixture
-def email_adr(session):
-    return session.get_email()
+def email_from(session):
+    return session.get_email_from()
+
+@pytest.fixture
+def email_to(session):
+    return session.get_email_to()
 
 # session = sibispy.Session()
 # session.configure(config_file)
@@ -47,13 +51,13 @@ def email_adr(session):
 #
 # Test sibis_email
 #
-def test_sibis_email(email_adr):
-    smail = sibis_email.sibis_email('localhost.localdomain',email_adr)
-    assert(smail.send('General-Test', 'test@email.com', [ email_adr ], 'TEST MESSAGE' ))
+def test_sibis_email(email_from, email_to):
+    smail = sibis_email.sibis_email('localhost.localdomain',email_from)
+    assert(smail.send('General-Test', 'test@email.com', [ email_to ], 'TEST MESSAGE' ))
 
-    smail.add_user_message('testA', 'user-test 1', 't', 'estA', email_adr)
+    smail.add_user_message('testA', 'user-test 1', 't', 'estA', email_to)
     smail.add_user_message('testA', 'user-test 2')
-    smail.add_user_message('testB', 'user-test 3', 'te', 'stB', email_adr)
+    smail.add_user_message('testB', 'user-test 3', 'te', 'stB', email_to)
     smail.add_admin_message('admin-test 1')
     smail.send_all('test_sibis_email','TEST USER INTRO', 'TEST_PROLOG', 'TEST ADMIN INTRO')
 
