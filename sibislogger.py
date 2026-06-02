@@ -12,7 +12,7 @@ from past.utils import old_div
 import sys
 import json
 import traceback
-# import logging
+import logging as log
 import collections
 import time 
 import os
