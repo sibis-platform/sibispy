@@ -134,7 +134,8 @@ def test_slurm_schedule_job(capsys, monkeypatch, request, session, test_config, 
 
     slurm = SlurmScheduler(test_config['cluster_config'])
     with capsys.disabled():
-        monkeypatch.setattr('sys.stdin', open('/dev/null'))
+        # TODO GM is monkeypatch still needed?
+        #monkeypatch.setattr('sys.stdin', open('/dev/null'))
         scheduled, _ = slurm.schedule_job(cmd_str, request.module.__name__, cluster_submit_log, cluster_job_log, True)
         assert scheduled, "Cluster Job should have been scheduled"
 
