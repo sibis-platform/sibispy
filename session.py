@@ -1289,7 +1289,7 @@ class Session(object):
                         subject_label = record_ser.name[0]
                         record_event = None
 
-                    error_label = "_".join(record_ser.name) + "_" + error_label
+                    error_label = "_".join(map(str, record_ser.name)) + "_" + error_label
                     record = record_ser.to_dict()
                 else:
                     slog.info(
