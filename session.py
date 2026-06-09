@@ -1248,9 +1248,25 @@ class Session(object):
         if time_label:
             slog.startTimer2()
         try:
-            # deal with new redcap api not liking named multi-indexes.
-            if isinstance(records.index, pd.MultiIndex) and None not in records.index.names:
+            # REDCap imports require the record id to be a real column, not only an
+            # index level. Name unnamed index levels before reset_index() so the id
+            # column is preserved correctly.
+            if isinstance(records.index, pd.MultiIndex):
+                imp_records = records.copy()
+
+                index_names = list(imp_records.index.names)
+                if index_names[0] is None:
+                    index_names[0] = red_api.def_field
+
+                imp_records.index = imp_records.index.set_names(index_names)
+                imp_records = imp_records.reset_index(drop=False)
+
+            elif isinstance(records, pd.DataFrame) and red_api.def_field not in records.columns:
                 imp_records = records.reset_index(drop=False)
+
+                if red_api.def_field not in imp_records.columns and "index" in imp_records.columns:
+                    imp_records = imp_records.rename(columns={"index": red_api.def_field})
+
             else:
                 imp_records = records
 
