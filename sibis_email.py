@@ -70,7 +70,7 @@ class sibis_email(object):
         try : 
             with smtplib.SMTP( self._smtp_server ) as s:
                 if self._use_starttls:
-                    slog.info("sibis_email.send",f"Using STARTTLS for smtp server {self._smtp_server}")
+                    #slog.info("sibis_email.send",f"Using STARTTLS for smtp server {self._smtp_server}")
                     s.starttls()
                     
                 # sendmail function takes 3 arguments: sender's address, recipient's address
