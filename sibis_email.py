@@ -8,8 +8,8 @@ from __future__ import print_function
 from builtins import str
 from builtins import object
 import smtplib
-import time 
-import json 
+import time
+import json
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -26,8 +26,8 @@ class sibis_email(object):
         self._messages_by_user = dict()
         self._smtp_server = smtp_server
         self._use_starttls = use_starttls
-        print("sibis_email.send",f"Initialized sibis_email {vars(self)}\n")
-        
+        # print("sibis_email.send",f"Initialized sibis_email {vars(self)}\n")
+
     # Add to the message building up for a specific user
     def add_user_message( self, uid, txt, uFirstName=None, uLastName=None, uEmail=None):
         if uid not in self._messages_by_user:
@@ -39,9 +39,9 @@ class sibis_email(object):
     def add_admin_message( self, msg ):
         self._admin_messages.append( msg )
 
-    # Send pre-formatted mail message 
+    # Send pre-formatted mail message
     def send( self, subject, from_email, to_email, html, sendToAdminFlag=True ):
-        if not self._smtp_server : 
+        if not self._smtp_server :
             slog.info("sibis_email.send","ERROR: smtp server not defined - email will not be sent!")
             return False
 
@@ -59,26 +59,26 @@ class sibis_email(object):
         text = ''
         part1 = MIMEText(text, 'plain')
         part2 = MIMEText(html, 'html')
-    
+
         # Attach parts into message container.
         # According to RFC 2046, the last part of a multipart message, in this case
         # the HTML message, is best and preferred.
         msg.attach(part1)
         msg.attach(part2)
-    
+
         # Send the message via local SMTP server.
-        try : 
+        try :
             with smtplib.SMTP( self._smtp_server ) as s:
                 if self._use_starttls:
                     #slog.info("sibis_email.send",f"Using STARTTLS for smtp server {self._smtp_server}")
                     s.starttls()
-                    
+
                 # sendmail function takes 3 arguments: sender's address, recipient's address
                 # and message to send - here it is sent as one string.
                 s.sendmail( from_email, to_email, msg.as_string() )
-            
+
                 # Send email also to sibis admin if defined
-                if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email : 
+                if sendToAdminFlag and self._sibis_admin_email and to_email != self._sibis_admin_email :
                     s.sendmail( from_email, self._sibis_admin_email, msg.as_string() )
 
                 s.quit()
@@ -87,11 +87,11 @@ class sibis_email(object):
         # except Exception as err_msg:
         #     slog.info("sibis_email.send","ERROR: failed to connect to SMTP server at {} ".format(time.asctime()),
         #             err_msg = str(err_msg),
-        #             smtp_server = self._smtp_server) 
+        #             smtp_server = self._smtp_server)
         #     return False
-        
+
             err_msg=f"ERROR: failed to send email. err_msg={str(err_msg)}, self={vars(self)}, from_email={from_email}, to_email={to_email}, time={time.asctime()}"
-        
+
             print("sibis_email.send ", err_msg)
             raise
             return False
@@ -105,10 +105,10 @@ class sibis_email(object):
         for m in msglist:
             problem_list.append( '<li>%s</li>' % m )
         problem_list.append( '</ol>' )
-            
+
         # Create the body of the message (a plain-text and an HTML version).
-        html = '<html>\n <head></head>\n <body>\n <p>Dear %s %s:<br><br>\n' %(uFirst,uLast) + intro_text + '\n %s\n' % ('\n'.join( problem_list ) ) + prolog + '\n</p>\n</body>\n</html>' 
-        
+        html = '<html>\n <head></head>\n <body>\n <p>Dear %s %s:<br><br>\n' %(uFirst,uLast) + intro_text + '\n %s\n' % ('\n'.join( problem_list ) ) + prolog + '\n</p>\n</body>\n</html>'
+
         self.send( title, self._admin_email, [ uEmail ], html )
 
     def mail_admin( self, title, intro_text):
@@ -127,7 +127,7 @@ class sibis_email(object):
             problem_list.append( '<ol>' )
             for m in self._admin_messages:
                 problem_list.append( '<li>%s</li>' % m )
-            problem_list.append( '</ol>' )            
+            problem_list.append( '</ol>' )
 
         text = ''
 
@@ -138,7 +138,7 @@ class sibis_email(object):
 </p>\n\
 </body>\n\
 </html>' % ('\n'.join( problem_list ))
-    
+
         self.send(title, self._admin_email, [ self._admin_email ], html )
 
     def send_all( self, title, uIntro_txt, uProlog, aIntro_txt ):
@@ -157,10 +157,10 @@ class sibis_email(object):
         print(self._admin_messages)
 
 class xnat_email(sibis_email):
-    def __init__(self, session): 
+    def __init__(self, session):
         self._interface = session.api['xnat']
         if self._interface :
-            try: 
+            try:
                 # XNAT 1.7
                 server_config = self._interface.client.get('/xapi/siteConfig').json()
             except Exception as ex:
@@ -168,13 +168,13 @@ class xnat_email(sibis_email):
                 server_config = self._interface._get_json('/data/services/settings')
             self._site_url = server_config[u'siteUrl']
             self._site_name = server_config[u'siteId']
-            print("moose", server_config)
+            # print("moose", server_config)
             sibis_email.__init__(self,server_config[u'smtp_host'],server_config[u'adminEmail'],session.get_email())
 
-        else: 
+        else:
             slog.info('xnat_email.__init__',"ERROR: xnat api is not defined")
-            self._site_url = None 
-            self._site_name = None  
+            self._site_url = None
+            self._site_name = None
             sibis_email.__init__(self,None,None,session.get_email())
 
         self._project_name = session.get_project_name()
@@ -183,7 +183,7 @@ class xnat_email(sibis_email):
 
     def add_user_message( self, uname, msg ):
         if uname not in self._messages_by_user:
-            try: 
+            try:
                 user = self._interface.client.users[uname]
                 uEmail = user.email
                 user_firstname = user.first_name
@@ -203,7 +203,7 @@ class xnat_email(sibis_email):
     def mail_user( self, uEmail, uFirst, uLast, msglist ):
         intro='We have detected the following problem(s) with data you uploaded to the <a href="%s">%s XNAT image repository</a>:' % (self._site_url, self._site_name)
         prolog='Please address these issues as soon as possible (direct links to the respective data items are provided above for your convenience). If you have further questions, feel free to contact the  <a href="mailto:%s">%s support</a>' % (self._admin_email, self._project_name )
-        
+
         title="%s XNAT: problems with your uploaded data" % ( self._project_name )
         sibis_email.mail_user(self,uEmail, uFirst, uLast, title, intro, prolog,  msglist)
 
@@ -222,4 +222,3 @@ class xnat_email(sibis_email):
 
         if len( self._messages_by_user ) or len( self._admin_messages ):
             self.mail_admin
-
