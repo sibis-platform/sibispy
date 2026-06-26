@@ -1251,7 +1251,7 @@ class Session(object):
             # REDCap imports require the record id to be a real column, not only an
             # index level. Name unnamed index levels before reset_index() so the id
             # column is preserved correctly.
-            if isinstance(records.index, pd.MultiIndex):
+            if isinstance(records, pd.DataFrame) and isinstance(records.index, pd.MultiIndex):
                 imp_records = records.copy()
 
                 index_names = list(imp_records.index.names)
@@ -1270,7 +1270,44 @@ class Session(object):
             else:
                 imp_records = records
 
-            import_response = red_api.import_records(imp_records, overwrite="overwrite", import_format=import_format)
+            batch_size = 500
+            batch_responses = []
+
+            if isinstance(imp_records, pd.DataFrame):
+                for start in range(0, len(imp_records), batch_size):
+                    batch = imp_records.iloc[start:start + batch_size]
+                    batch_response = red_api.import_records(
+                        batch,
+                        overwrite="overwrite",
+                        import_format=import_format,
+                        return_format_type="json",
+                    )
+                    batch_responses.append(batch_response)
+
+            elif isinstance(imp_records, list):
+                for start in range(0, len(imp_records), batch_size):
+                    batch = imp_records[start:start + batch_size]
+                    batch_response = red_api.import_records(
+                        batch,
+                        overwrite="overwrite",
+                        import_format=import_format,
+                        return_format_type="json",
+                    )
+                    batch_responses.append(batch_response)
+
+            else:
+                import_response = red_api.import_records(
+                    imp_records,
+                    overwrite="overwrite",
+                    import_format=import_format,
+                    return_format_type="json",
+                )
+
+            if isinstance(imp_records, (pd.DataFrame, list)):
+                if all(isinstance(resp, dict) and "count" in resp for resp in batch_responses):
+                    import_response = {"count": sum(resp["count"] for resp in batch_responses)}
+                else:
+                    import_response = batch_responses
 
         except requests.exceptions.RequestException as e:
             error = "session:redcap_import_record:Failed to import into REDCap"
