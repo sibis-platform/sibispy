@@ -216,6 +216,12 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         help="Followup year of the data being added to summary file (number only).",
         type=str, required=True,
     )
+    ncanda_parser.add_argument(
+        "--summaries-dir",
+        help="Explicit path to the staging/summaries directory to write/update (overrides config-derived path).",
+        type=pathlib.Path,
+        required=False,
+    )
 
     args = parser.parse_args()
     if args.verbose:
@@ -259,13 +265,17 @@ def main():
     filtered_visit_list = mappings.filter_visit_list(args, subj_list, upload2ndar_path)
     logging.info(f"INFO: Post filtering event count to upload: {len(filtered_visit_list)}")
 
+    # Keep only the target visit for this release (no cumulative copying)
+    target_visit = "baseline" if str(args.followup_year) == "0" else f"followup_{args.followup_year}y"
+    filtered_visit_list = [p for p in filtered_visit_list if pathlib.Path(p).name == target_visit]
+
+    logging.info(f"INFO: Filtered to {len(filtered_visit_list)} {target_visit} visits (images/JSON copied only for this release year).")
+
     # Generate list of imaging modalities to include
     image_mods = [str(f.parent) for f in files_to_validate if f.name == 'image03.csv']
 
-    summaries_dir = staging_path / 'staging' / 'summaries'
-
     # For each subject in visit list, for all scans found within copy their src files to summaries and append image03 as row to summ
-    summaries_dir = staging_path / 'staging' / 'summaries'
+    summaries_dir = args.summaries_dir if getattr(args, "summaries_dir", None) else (staging_path / 'staging' / 'summaries')
     summaries_dir.mkdir(parents=True, exist_ok=True)
 
     for visit_path in filtered_visit_list:
