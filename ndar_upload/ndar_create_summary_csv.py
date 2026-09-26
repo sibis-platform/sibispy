@@ -110,9 +110,15 @@ def write_summary_csv(old_summary_csv, new_subj_csv, data_dict_path):
     # convert the date columns after loading, if they exist
     for col in parse_dates:
         if col in old_summary_df.columns:
-            old_summary_df[col] = pd.to_datetime(old_summary_df[col], format='%m/%d/%y', errors='ignore')
+            try:
+                old_summary_df[col] = pd.to_datetime(old_summary_df[col], format='%m/%d/%y')
+            except (ValueError, TypeError):
+                pass
         if col in new_subject_df.columns:
-            new_subject_df[col] = pd.to_datetime(new_subject_df[col], format='%m/%d/%y', errors='ignore')
+            try:
+                new_subject_df[col] = pd.to_datetime(new_subject_df[col], format='%m/%d/%y')
+            except (ValueError, TypeError):
+                pass
 
     new_summary_df = pd.concat([old_summary_df, new_subject_df])
 
@@ -216,6 +222,12 @@ def _parse_args(input_args: List = None) -> argparse.Namespace:
         help="Followup year of the data being added to summary file (number only).",
         type=str, required=True,
     )
+    ncanda_parser.add_argument(
+        "--summaries-dir",
+        help="Explicit path to the staging/summaries directory to write/update (overrides config-derived path).",
+        type=pathlib.Path,
+        required=False,
+    )
 
     args = parser.parse_args()
     if args.verbose:
@@ -259,13 +271,18 @@ def main():
     filtered_visit_list = mappings.filter_visit_list(args, subj_list, upload2ndar_path)
     logging.info(f"INFO: Post filtering event count to upload: {len(filtered_visit_list)}")
 
+    # NCANDA only: keep just the target visit for this release (no cumulative copying)
+    followup_year = getattr(args, "followup_year", None)
+    if followup_year is not None:
+        target_visit = "baseline" if str(followup_year) == "0" else f"followup_{followup_year}y"
+        filtered_visit_list = [p for p in filtered_visit_list if pathlib.Path(p).name == target_visit]
+        logging.info(f"INFO: Filtered to {len(filtered_visit_list)} {target_visit} visits (images/JSON copied only for this release year).")
+
     # Generate list of imaging modalities to include
     image_mods = [str(f.parent) for f in files_to_validate if f.name == 'image03.csv']
 
-    summaries_dir = staging_path / 'staging' / 'summaries'
-
     # For each subject in visit list, for all scans found within copy their src files to summaries and append image03 as row to summ
-    summaries_dir = staging_path / 'staging' / 'summaries'
+    summaries_dir = args.summaries_dir if getattr(args, "summaries_dir", None) else (staging_path / 'staging' / 'summaries')
     summaries_dir.mkdir(parents=True, exist_ok=True)
 
     for visit_path in filtered_visit_list:
