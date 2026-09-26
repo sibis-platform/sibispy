@@ -848,11 +848,10 @@ def _parse_args(input_args: List[str] = None) -> argparse.Namespace:
     cfg_args.add_argument('--sys_config', type=is_file("config", os.X_OK), help="SIBIS System Configuration file")
     cfg_args.add_argument('--ndar_dir', type=is_dir("ndar_dir", os.X_OK | os.R_OK | os.W_OK, create_if_missing=True),
                           help="Base output directory for NDAR directory and CSV files to be written")
-    cfg_args.add_argument('--mappings-dir', dest='mappings_dir_cli', type=is_dir("mappings_dir", os.X_OK | os.R_OK),
+    cfg_args.add_argument('--mappings-dir', '--mappings_dir', dest='mappings_dir_cli',
+                          type=is_dir("mappings_dir", os.X_OK | os.R_OK),
                           help='Override the mappings directory (directory containing *_mappings.py)')
     cfg_args.add_argument('--verbose', '-v', action='count', default=0)
-    cfg_args.add_argument('--mappings_dir', type=is_dir("mappings_dir", os.R_OK | os.X_OK),
-                          help="Override path to dir containing mappings module (e.g., hivalc_mappings.py or ncanda_mappings.py).")
 
     sub = p.add_subparsers(title='Data Source', dest='source')
 

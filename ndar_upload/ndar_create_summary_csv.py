@@ -271,11 +271,12 @@ def main():
     filtered_visit_list = mappings.filter_visit_list(args, subj_list, upload2ndar_path)
     logging.info(f"INFO: Post filtering event count to upload: {len(filtered_visit_list)}")
 
-    # Keep only the target visit for this release (no cumulative copying)
-    target_visit = "baseline" if str(args.followup_year) == "0" else f"followup_{args.followup_year}y"
-    filtered_visit_list = [p for p in filtered_visit_list if pathlib.Path(p).name == target_visit]
-
-    logging.info(f"INFO: Filtered to {len(filtered_visit_list)} {target_visit} visits (images/JSON copied only for this release year).")
+    # NCANDA only: keep just the target visit for this release (no cumulative copying)
+    followup_year = getattr(args, "followup_year", None)
+    if followup_year is not None:
+        target_visit = "baseline" if str(followup_year) == "0" else f"followup_{followup_year}y"
+        filtered_visit_list = [p for p in filtered_visit_list if pathlib.Path(p).name == target_visit]
+        logging.info(f"INFO: Filtered to {len(filtered_visit_list)} {target_visit} visits (images/JSON copied only for this release year).")
 
     # Generate list of imaging modalities to include
     image_mods = [str(f.parent) for f in files_to_validate if f.name == 'image03.csv']
