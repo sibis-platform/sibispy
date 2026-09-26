@@ -110,9 +110,15 @@ def write_summary_csv(old_summary_csv, new_subj_csv, data_dict_path):
     # convert the date columns after loading, if they exist
     for col in parse_dates:
         if col in old_summary_df.columns:
-            old_summary_df[col] = pd.to_datetime(old_summary_df[col], format='%m/%d/%y', errors='ignore')
+            try:
+                old_summary_df[col] = pd.to_datetime(old_summary_df[col], format='%m/%d/%y')
+            except (ValueError, TypeError):
+                pass
         if col in new_subject_df.columns:
-            new_subject_df[col] = pd.to_datetime(new_subject_df[col], format='%m/%d/%y', errors='ignore')
+            try:
+                new_subject_df[col] = pd.to_datetime(new_subject_df[col], format='%m/%d/%y')
+            except (ValueError, TypeError):
+                pass
 
     new_summary_df = pd.concat([old_summary_df, new_subject_df])
 

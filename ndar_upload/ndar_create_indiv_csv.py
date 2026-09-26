@@ -782,7 +782,13 @@ def get_demo_dict(args) -> dict:
     demo_csv = args.visit_demographics
     if args.source == 'ncanda':
         # CURRENTLY SET TO READ DEMO DATA FROM CASES RATHER THAN INTERNAL RELEASE
-        demo_csv = mappings.set_ncanda_visit_dir(args, 'redcap', use_cases_override=True, cases_base_override="/fs/ncanda-share") / 'measures' / 'demographics.csv'
+        try:
+            demo_csv = mappings.set_ncanda_visit_dir(
+                args, 'redcap', use_cases_override=True,
+                cases_base_override="/fs/ncanda-share") / 'measures' / 'demographics.csv'
+        except FileNotFoundError:
+            logger.info(f"Skipping {args.subject}: no followup_{args.followup_year}y visit in the cases tree")
+            sys.exit(0)
     with demo_csv.open() as f:
         reader = csv.reader(f, delimiter=',')
         cols = {}
@@ -946,6 +952,12 @@ def main(input_args: List[str] = None):
         globals()['mappings'] = __import__('hivalc_mappings')
     else:
         globals()['mappings'] = __import__('ncanda_mappings')
+
+    if args.source == 'ncanda':
+        visit = "baseline" if args.followup_year == '0' else f"followup_{args.followup_year}y"
+        if not (Path("/fs/ncanda-share/cases") / args.subject / "standard" / visit).is_dir():
+            logger.info(f"Skipping {args.subject}: no {visit} visit in the cases tree")
+            sys.exit(0)
 
     scan_dir, ndar_dir = set_dir_paths(args)
     ndar_dir.mkdir(mode=0o775, parents=True, exist_ok=True)
